@@ -1,0 +1,74 @@
+/* Font is now loaded via next/font/google in layout.tsx — no @import needed */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  background-color: #080d1a;
+  color: #e2e8f0;
+  font-family: var(--font-inter), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+@layer utilities {
+  .gradient-text {
+    @apply bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent;
+  }
+
+  .gradient-border {
+    background: linear-gradient(#0f1629, #0f1629) padding-box,
+      linear-gradient(135deg, rgba(124, 58, 237, 0.5), rgba(59, 130, 246, 0.3)) border-box;
+    border: 1px solid transparent;
+  }
+
+  .glow-purple {
+    box-shadow: 0 0 40px rgba(124, 58, 237, 0.25);
+  }
+
+  .glow-sm {
+    box-shadow: 0 0 20px rgba(124, 58, 237, 0.2);
+  }
+
+  .animate-in {
+    animation: fadeUp 0.4s ease-out forwards;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50%       { transform: translateY(-10px); }
+  }
+}
+
+/* ── GPU-hint for heavy effects ───────────────────────────── */
+.backdrop-blur-xl,
+[style*="backdrop-filter"] {
+  will-change: transform;
+  contain: layout style paint;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: #0f1629; }
+::-webkit-scrollbar-thumb { background: #2d3f6b; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #7c3aed; }
+
+/* Input / Textarea dark styling */
+input, textarea, select {
+  color-scheme: dark;
+}
+
+/* ── Content-visibility for off-screen sections ───────────── */
+section {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 600px;
+}

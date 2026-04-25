@@ -1,0 +1,56 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@/lib/supabase/server';
+import { generatePdf } from '@/lib/pdf';
+import { canDownload } from '@/lib/usage';
+
+export const maxDuration = 30;
+
+export async function POST(req: NextRequest) {
+  try {
+    const { resumeText, versionId } = await req.json();
+
+    if (!resumeText?.trim()) {
+      return NextResponse.json({ error: 'No resume text provided' }, { status: 400 });
+    }
+
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (user) {
+      await supabase.rpc('reset_monthly_usage_if_needed', { profile_id: user.id });
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('plan, downloads_used')
+        .eq('id', user.id)
+        .single();
+
+      if (profile && !canDownload(profile.plan, profile.downloads_used)) {
+        return NextResponse.json(
+          { error: 'Download limit reached for your plan. Upgrade to continue.' },
+          { status: 403 }
+        );
+      }
+
+      if (profile) {
+        await supabase
+          .from('profiles')
+          .update({ downloads_used: profile.downloads_used + 1 })
+          .eq('id', user.id);
+      }
+    }
+
+    const pdfBuffer = await generatePdf(resumeText);
+    const filename = versionId ? `resume-${versionId.slice(0, 8)}.pdf` : 'resume-optimized.pdf';
+
+    return new NextResponse(new Uint8Array(pdfBuffer), {
+      headers: {
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `attachment; filename="${filename}"`,
+        'Content-Length': String(pdfBuffer.length),
+      },
+    });
+  } catch (e) {
+    console.error('PDF generation error:', e);
+    return NextResponse.json({ error: 'PDF generation failed' }, { status: 500 });
+  }
+}
