@@ -574,6 +574,20 @@ function OutreachSection({ email, linkedin }: { email: string; linkedin: string 
     setTimeout(() => setCopied(false), 2000);
   }
 
+  function openSend() {
+    if (tab === 'email') {
+      const lines = email.split('\n');
+      const subjectLine = lines.find((l) => /^subject:/i.test(l.trim()));
+      const subject = subjectLine ? subjectLine.replace(/^subject:\s*/i, '').trim() : 'Job Application';
+      const body = subjectLine
+        ? lines.filter((l) => l !== subjectLine).join('\n').trim()
+        : email;
+      window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    } else {
+      window.open('https://www.linkedin.com/messaging/', '_blank');
+    }
+  }
+
   return (
     <div className="rounded-2xl p-6" style={{ background: '#0f1629', border: '1px solid rgba(255,255,255,0.07)' }}>
       <h3 className="font-semibold text-white mb-4">Cold Outreach</h3>
@@ -595,13 +609,41 @@ function OutreachSection({ email, linkedin }: { email: string; linkedin: string 
         style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
         {text}
       </div>
-      <button
-        onClick={copy}
-        className="mt-3 flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-300 transition-colors"
-      >
-        {copied ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
-        {copied ? 'Copied!' : 'Copy'}
-      </button>
+      <div className="mt-3 flex items-center gap-3 flex-wrap">
+        <button
+          onClick={openSend}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white transition-all hover:opacity-90 active:scale-95"
+          style={{ background: tab === 'email' ? '#ea4335' : '#0a66c2' }}
+        >
+          {tab === 'email' ? (
+            <>
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z" />
+              </svg>
+              Open in Gmail
+            </>
+          ) : (
+            <>
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
+              </svg>
+              Open LinkedIn
+            </>
+          )}
+        </button>
+        <button
+          onClick={copy}
+          className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-300 transition-colors"
+        >
+          {copied ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
+          {copied ? 'Copied!' : 'Copy text'}
+        </button>
+      </div>
+      <p className="text-xs text-slate-600 mt-3">
+        {tab === 'email'
+          ? 'Opens your default email app with the draft pre-filled · edit before sending'
+          : 'Copy the note above · paste when sending a LinkedIn connection request'}
+      </p>
     </div>
   );
 }

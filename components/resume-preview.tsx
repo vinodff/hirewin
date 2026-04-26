@@ -14,34 +14,38 @@ export function ScaledPaper({
   children,
   bg = '#ffffff',
   shadow,
-  maxPages = 2,
 }: {
   children: React.ReactNode;
   bg?: string;
   shadow?: string;
-  maxPages?: number;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const innerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0.5);
+  const [innerH, setInnerH] = useState(PAPER_H);
 
   useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-    const update = () => setScale(el.getBoundingClientRect().width / PAPER_W);
+    const container = containerRef.current;
+    const inner = innerRef.current;
+    if (!container || !inner) return;
+    const update = () => {
+      setScale(container.getBoundingClientRect().width / PAPER_W);
+      setInnerH(inner.scrollHeight);
+    };
     update();
     const ro = new ResizeObserver(update);
-    ro.observe(el);
+    ro.observe(container);
+    ro.observe(inner);
     return () => ro.disconnect();
   }, []);
-
-  const containerH = Math.min(PAPER_H * maxPages, PAPER_H * maxPages) * scale;
 
   return (
     <div
       ref={containerRef}
-      style={{ width: '100%', height: containerH, position: 'relative', overflow: 'hidden' }}
+      style={{ width: '100%', height: innerH * scale, position: 'relative' }}
     >
       <div
+        ref={innerRef}
         style={{
           width: PAPER_W,
           minHeight: PAPER_H,
@@ -191,7 +195,7 @@ export default function ResumePreview({ resumeText, template, label = 'Preview',
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center justify-between mb-2 px-3 pt-3 sm:px-0 sm:pt-0 sm:mb-3">
         <div className="text-xs font-semibold uppercase tracking-wide flex items-center gap-1.5 text-purple-400">
           <FileText className="w-3.5 h-3.5" />
           {label}
@@ -207,8 +211,8 @@ export default function ResumePreview({ resumeText, template, label = 'Preview',
       </div>
 
       <div
-        className="rounded-lg overflow-hidden"
-        style={{ background: `linear-gradient(180deg, ${tpl.accentColor}25, ${tpl.accentColor}10)`, padding: '10px' }}
+        className="rounded-none sm:rounded-lg overflow-hidden p-0 sm:p-[10px]"
+        style={{ background: `linear-gradient(180deg, ${tpl.accentColor}25, ${tpl.accentColor}10)` }}
       >
         <ScaledPaper bg={tpl.paperBg} shadow={tpl.paperShadow}>
           <div style={{ padding: tpl.layout === 'two-column' ? '0' : '40px 48px' }}>

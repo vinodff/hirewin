@@ -117,12 +117,12 @@ export default function BeforeAfter({ original, optimized, atsScore, onResumeUpd
       {/* Compare view */}
       {viewMode === 'compare' && (
         <div
-          className="rounded-2xl p-4 sm:p-6"
+          className="rounded-2xl sm:p-6"
           style={{ background: '#0f1629', border: '1px solid rgba(255,255,255,0.07)' }}
         >
           {/* Mobile tab toggle */}
           <div
-            className="flex sm:hidden rounded-xl overflow-hidden mb-4"
+            className="flex sm:hidden rounded-xl overflow-hidden mx-3 mt-3 mb-3"
             style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
           >
             {(['original', 'optimized'] as const).map((tab) => (
@@ -141,7 +141,7 @@ export default function BeforeAfter({ original, optimized, atsScore, onResumeUpd
             ))}
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          <div className="grid grid-cols-1 lg:grid-cols-2 sm:gap-5">
             <div className={mobileTab === 'optimized' ? 'hidden sm:block' : ''}>
               <PaperPreview
                 label="Original"
@@ -261,7 +261,7 @@ function PaperPreview({
 }) {
   return (
     <div>
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center justify-between mb-2 px-3 pt-3 sm:px-0 sm:pt-0 sm:mb-3">
         <div className="text-xs font-semibold uppercase tracking-wide flex items-center gap-1.5 text-slate-500">
           <FileText className="w-3.5 h-3.5" />
           {label}
@@ -270,8 +270,8 @@ function PaperPreview({
       </div>
 
       <div
-        className="rounded-lg overflow-hidden"
-        style={{ background: 'rgba(255,255,255,0.04)', padding: '10px' }}
+        className="rounded-none sm:rounded-lg overflow-hidden p-0 sm:p-[10px]"
+        style={{ background: 'rgba(255,255,255,0.04)' }}
       >
         <ScaledPaper shadow="0 10px 30px rgba(0,0,0,0.4), 0 2px 6px rgba(0,0,0,0.25)">
           <pre
