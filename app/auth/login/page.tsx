@@ -5,7 +5,6 @@ import { useState } from 'react';
 import Link from 'next/link';
 
 export default function LoginPage() {
-  const supabase = createClient();
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
@@ -16,6 +15,7 @@ export default function LoginPage() {
     setLoading(true);
     setError('');
 
+    const supabase = createClient();
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
@@ -30,6 +30,7 @@ export default function LoginPage() {
   }
 
   async function handleGoogle() {
+    const supabase = createClient();
     await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: { redirectTo: `${window.location.origin}/auth/callback` },
