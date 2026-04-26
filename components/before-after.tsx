@@ -4,6 +4,7 @@ import { useState, useCallback } from 'react';
 import { Copy, Check, FileText, Pencil, Eye, ArrowLeftRight } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import type { TemplateName } from './template-selector';
+import { ScaledPaper } from './resume-preview';
 
 const ResumeEditor = dynamic(() => import('./resume-editor'), { ssr: false });
 const ResumePreview = dynamic(() => import('./resume-preview'), { ssr: false });
@@ -22,8 +23,9 @@ export default function BeforeAfter({ original, optimized, atsScore, onResumeUpd
   const [copied, setCopied] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>('compare');
   const [editedText, setEditedText] = useState(optimized);
-  const [template, setTemplate] = useState<TemplateName>('modern');
+  const [template, setTemplate] = useState<TemplateName>('classic');
   const [hasEdits, setHasEdits] = useState(false);
+  const [mobileTab, setMobileTab] = useState<'original' | 'optimized'>('optimized');
 
   function copy() {
     navigator.clipboard.writeText(editedText);
@@ -115,45 +117,70 @@ export default function BeforeAfter({ original, optimized, atsScore, onResumeUpd
       {/* Compare view */}
       {viewMode === 'compare' && (
         <div
-          className="rounded-2xl p-6"
+          className="rounded-2xl p-4 sm:p-6"
           style={{ background: '#0f1629', border: '1px solid rgba(255,255,255,0.07)' }}
         >
+          {/* Mobile tab toggle */}
+          <div
+            className="flex sm:hidden rounded-xl overflow-hidden mb-4"
+            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
+          >
+            {(['original', 'optimized'] as const).map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setMobileTab(tab)}
+                className="flex-1 py-2.5 text-xs font-semibold uppercase tracking-wider transition-all"
+                style={
+                  mobileTab === tab
+                    ? { background: 'linear-gradient(135deg, #7c3aed, #3b82f6)', color: '#fff' }
+                    : { color: '#64748b' }
+                }
+              >
+                {tab === 'original' ? 'Before' : 'After'}
+              </button>
+            ))}
+          </div>
+
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-            <PaperPreview
-              label="Original"
-              content={original}
-              badge={
-                typeof atsScore === 'number' ? (
+            <div className={mobileTab === 'optimized' ? 'hidden sm:block' : ''}>
+              <PaperPreview
+                label="Original"
+                content={original}
+                badge={
+                  typeof atsScore === 'number' ? (
+                    <span
+                      className="text-xs font-bold px-2 py-0.5 rounded-md"
+                      style={{
+                        background: 'rgba(239,68,68,0.12)',
+                        color: '#fca5a5',
+                        border: '1px solid rgba(239,68,68,0.25)',
+                      }}
+                    >
+                      ATS {atsScore}%
+                    </span>
+                  ) : null
+                }
+              />
+            </div>
+            <div className={mobileTab === 'original' ? 'hidden sm:block' : ''}>
+              <ResumePreview
+                resumeText={editedText}
+                template={template}
+                label="Optimized"
+                badge={
                   <span
                     className="text-xs font-bold px-2 py-0.5 rounded-md"
                     style={{
-                      background: 'rgba(239,68,68,0.12)',
-                      color: '#fca5a5',
-                      border: '1px solid rgba(239,68,68,0.25)',
+                      background: 'rgba(16,185,129,0.15)',
+                      color: '#6ee7b7',
+                      border: '1px solid rgba(16,185,129,0.3)',
                     }}
                   >
-                    ATS {atsScore}%
+                    ATS-Ready
                   </span>
-                ) : null
-              }
-            />
-            <ResumePreview
-              resumeText={editedText}
-              template={template}
-              label="Optimized"
-              badge={
-                <span
-                  className="text-xs font-bold px-2 py-0.5 rounded-md"
-                  style={{
-                    background: 'rgba(16,185,129,0.15)',
-                    color: '#6ee7b7',
-                    border: '1px solid rgba(16,185,129,0.3)',
-                  }}
-                >
-                  ATS-Ready
-                </span>
-              }
-            />
+                }
+              />
+            </div>
           </div>
         </div>
       )}
@@ -243,27 +270,14 @@ function PaperPreview({
       </div>
 
       <div
-        className="relative rounded-lg overflow-hidden"
-        style={{
-          background: 'rgba(255,255,255,0.04)',
-          padding: '10px',
-        }}
+        className="rounded-lg overflow-hidden"
+        style={{ background: 'rgba(255,255,255,0.04)', padding: '10px' }}
       >
-        <div
-          className="mx-auto overflow-y-auto"
-          style={{
-            maxHeight: '720px',
-            background: '#ffffff',
-            aspectRatio: '8.5 / 11',
-            maxWidth: '100%',
-            boxShadow: '0 10px 30px rgba(0,0,0,0.4), 0 2px 6px rgba(0,0,0,0.25)',
-            borderRadius: '2px',
-          }}
-        >
+        <ScaledPaper shadow="0 10px 30px rgba(0,0,0,0.4), 0 2px 6px rgba(0,0,0,0.25)">
           <pre
             className="whitespace-pre-wrap break-words"
             style={{
-              padding: '48px 56px',
+              padding: '40px 48px',
               fontFamily: '"Calibri", "Segoe UI", Arial, sans-serif',
               fontSize: '11.5px',
               lineHeight: '1.55',
@@ -273,7 +287,7 @@ function PaperPreview({
           >
             {content?.trim() ? content : '(No content)'}
           </pre>
-        </div>
+        </ScaledPaper>
       </div>
     </div>
   );
