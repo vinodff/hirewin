@@ -58,6 +58,8 @@ export async function POST(req: NextRequest) {
       amount: amountPaise,
       currency: 'INR',
       keyId: process.env.RAZORPAY_KEY_ID,
+      userName:  (user.user_metadata?.full_name as string) || (user.user_metadata?.name as string) || '',
+      userEmail: user.email ?? '',
     });
   } catch (e) {
     console.error('Order creation error:', e);
