@@ -30,6 +30,7 @@ body {
     box-shadow: 0 0 20px rgba(124, 58, 237, 0.2);
   }
 
+  /* ─── existing animations ─── */
   .animate-in {
     animation: fadeUp 0.4s ease-out forwards;
   }
@@ -47,11 +48,119 @@ body {
     0%, 100% { transform: translateY(0px); }
     50%       { transform: translateY(-10px); }
   }
+
+  /* ─── new keyframes ─── */
+
+  @keyframes slideUpSm {
+    from { opacity: 0; transform: translateY(22px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes scaleIn {
+    from { opacity: 0; transform: scale(0.88); }
+    to   { opacity: 1; transform: scale(1); }
+  }
+
+  @keyframes shimmer {
+    from { background-position: -200% 0; }
+    to   { background-position:  200% 0; }
+  }
+
+  @keyframes glowPulse {
+    0%, 100% { box-shadow: 0 0 24px rgba(124,58,237,0.35), 0 0 8px rgba(124,58,237,0.2); }
+    50%       { box-shadow: 0 0 48px rgba(124,58,237,0.65), 0 0 20px rgba(124,58,237,0.35); }
+  }
+
+  @keyframes gradientMove {
+    0%, 100% { background-position: 0% 50%; }
+    50%       { background-position: 100% 50%; }
+  }
+
+  @keyframes pulseRing {
+    0%   { transform: scale(0.85); opacity: 0.9; }
+    100% { transform: scale(2.0);  opacity: 0; }
+  }
+
+  @keyframes drawScore34 {
+    from { stroke-dasharray: 0 100; }
+    to   { stroke-dasharray: 34 66; }
+  }
+
+  @keyframes drawScore91 {
+    from { stroke-dasharray: 0 100; }
+    to   { stroke-dasharray: 91 9; }
+  }
+
+  @keyframes spinSlow {
+    to { transform: rotate(360deg); }
+  }
+
+  @keyframes bounceSoft {
+    0%, 100% { transform: translateY(0) scale(1); }
+    50%       { transform: translateY(-7px) scale(1.06); }
+  }
+
+  @keyframes orbitCW {
+    from { transform: rotate(0deg) translateX(70px) rotate(0deg); }
+    to   { transform: rotate(360deg) translateX(70px) rotate(-360deg); }
+  }
+
+  @keyframes orbitCCW {
+    from { transform: rotate(0deg) translateX(55px) rotate(0deg); }
+    to   { transform: rotate(-360deg) translateX(55px) rotate(360deg); }
+  }
+
+  /* ─── utility classes for new animations ─── */
+
+  .animate-slide-up-sm  { animation: slideUpSm 0.7s cubic-bezier(0.22,1,0.36,1) both; }
+  .animate-scale-in     { animation: scaleIn   0.6s cubic-bezier(0.22,1,0.36,1) both; }
+  .animate-glow-pulse   { animation: glowPulse 2.4s ease-in-out infinite; }
+  .animate-spin-slow    { animation: spinSlow  12s linear infinite; }
+  .animate-bounce-soft  { animation: bounceSoft 3.2s ease-in-out infinite; }
+
+  /* animated gradient text */
+  .gradient-text-animated {
+    background: linear-gradient(270deg, #c4b5fd, #60a5fa, #34d399, #a78bfa, #c4b5fd);
+    background-size: 300% 300%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: gradientMove 5s ease infinite;
+  }
+
+  /* SVG score circles (hero card — always visible on load) */
+  .score-circle-34 {
+    stroke-dasharray: 0 100;
+    animation: drawScore34 1.6s cubic-bezier(0.4, 0, 0.2, 1) 0.5s both;
+  }
+  .score-circle-91 {
+    stroke-dasharray: 0 100;
+    animation: drawScore91 1.6s cubic-bezier(0.4, 0, 0.2, 1) 0.9s both;
+  }
+
+  /* shimmer sweep button overlay */
+  .shimmer-btn {
+    position: relative;
+    overflow: hidden;
+  }
+  .shimmer-btn::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      105deg,
+      transparent 30%,
+      rgba(255, 255, 255, 0.18) 50%,
+      transparent 70%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 2.8s linear infinite;
+    pointer-events: none;
+  }
 }
 
 /* ── GPU-hint for heavy effects ───────────────────────────── */
-/* NOTE: contain:paint was removed — it clips position:absolute children
-   (e.g. dropdown menus) that overflow the nav boundary. */
+/* NOTE: contain:paint removed — clips position:absolute dropdown children */
 .backdrop-blur-xl,
 [style*="backdrop-filter"] {
   will-change: transform;
@@ -68,8 +177,4 @@ input, textarea, select {
   color-scheme: dark;
 }
 
-/* ── Content-visibility for off-screen sections ───────────── */
-section {
-  content-visibility: auto;
-  contain-intrinsic-size: auto 600px;
-}
+/* content-visibility removed — it interferes with IntersectionObserver scroll animations */
