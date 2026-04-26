@@ -22,6 +22,7 @@ export default function AppNav() {
   const [loading, setLoading] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [avatarError, setAvatarError] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const pathname = usePathname();
 
@@ -39,6 +40,7 @@ export default function AppNav() {
     });
     const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
+      setAvatarError(false);
     });
     return () => sub.subscription.unsubscribe();
   }, []);
@@ -143,9 +145,15 @@ export default function AppNav() {
                 onClick={() => setMenuOpen((v) => !v)}
                 className="flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-white/5 transition-colors"
               >
-                {avatar ? (
+                {avatar && !avatarError ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={avatar} alt={name} className="w-7 h-7 rounded-full" />
+                  <img
+                    src={avatar}
+                    alt={name}
+                    referrerPolicy="no-referrer"
+                    className="w-7 h-7 rounded-full object-cover"
+                    onError={() => setAvatarError(true)}
+                  />
                 ) : (
                   <span
                     className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0"

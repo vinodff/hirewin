@@ -50,10 +50,11 @@ body {
 }
 
 /* ── GPU-hint for heavy effects ───────────────────────────── */
+/* NOTE: contain:paint was removed — it clips position:absolute children
+   (e.g. dropdown menus) that overflow the nav boundary. */
 .backdrop-blur-xl,
 [style*="backdrop-filter"] {
   will-change: transform;
-  contain: layout style paint;
 }
 
 /* Scrollbar */
