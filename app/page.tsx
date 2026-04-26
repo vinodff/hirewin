@@ -174,18 +174,18 @@ export default function LandingPage() {
                   <span className="absolute inset-0 flex items-center justify-center text-xs font-bold text-red-400">34</span>
                 </div>
                 <div>
-                  <div className="text-xs font-semibold text-white">Alex Johnson</div>
-                  <div className="text-xs text-slate-500">alex@email.com</div>
+                  <div className="text-xs font-semibold text-white">Arjun Sharma</div>
+                  <div className="text-xs text-slate-500">arjun.sharma@gmail.com</div>
                 </div>
               </div>
               <div className="space-y-1.5 text-xs">
                 <div className="font-semibold text-slate-600 uppercase tracking-wider text-[10px]">Experience</div>
-                <div className="text-slate-500">Software Engineer — Acme Corp</div>
-                <div className="text-slate-700">· Worked on backend systems</div>
-                <div className="text-slate-700">· Helped with database tasks</div>
-                <div className="text-slate-700">· Participated in code reviews</div>
+                <div className="text-slate-500">Software Engineer — Wipro Technologies</div>
+                <div className="text-slate-700">· Worked on Java modules</div>
+                <div className="text-slate-700">· Attended daily scrum meetings</div>
+                <div className="text-slate-700">· Fixed bugs in existing code</div>
                 <div className="font-semibold text-slate-600 uppercase tracking-wider text-[10px] mt-2">Skills</div>
-                <div className="text-slate-700">Python, SQL, Some cloud stuff, Git</div>
+                <div className="text-slate-700">Java, MySQL, HTML, "some scripting"</div>
               </div>
             </div>
 
@@ -211,19 +211,19 @@ export default function LandingPage() {
                   <span className="absolute inset-0 flex items-center justify-center text-xs font-bold text-green-400">91</span>
                 </div>
                 <div>
-                  <div className="text-xs font-semibold text-white">Alex Johnson</div>
-                  <div className="text-xs text-slate-500">alex@email.com</div>
+                  <div className="text-xs font-semibold text-white">Arjun Sharma</div>
+                  <div className="text-xs text-slate-500">arjun.sharma@gmail.com</div>
                 </div>
               </div>
               <div className="space-y-1.5 text-xs">
                 <div className="font-semibold text-purple-400 uppercase tracking-wider text-[10px]">Experience</div>
-                <div className="text-slate-400">Software Engineer — Acme Corp</div>
-                <div className="text-slate-300">· Architected 3 REST APIs, cut load time 40%</div>
-                <div className="text-slate-300">· Optimised PostgreSQL queries, 60% faster</div>
-                <div className="text-slate-300">· Led 5-engineer reviews, 0 regressions</div>
+                <div className="text-slate-400">Software Engineer — Wipro Technologies</div>
+                <div className="text-slate-300">· Built 4 Spring Boot microservices, cut latency 42%</div>
+                <div className="text-slate-300">· Automated 200+ tests, QA cycle 5 days → 1 day</div>
+                <div className="text-slate-300">· Led 8 prod releases on AWS, 99.9% uptime</div>
                 <div className="font-semibold text-purple-400 uppercase tracking-wider text-[10px] mt-2">Skills</div>
                 <div className="flex flex-wrap gap-1 mt-1">
-                  {['Python', 'PostgreSQL', 'AWS', 'Docker', 'CI/CD'].map((s) => (
+                  {['Java', 'Spring Boot', 'AWS', 'MySQL', 'Docker'].map((s) => (
                     <span key={s} className="px-1.5 py-0.5 rounded"
                       style={{ background: 'rgba(124,58,237,0.2)', color: '#a78bfa' }}>{s}</span>
                   ))}
@@ -344,7 +344,7 @@ export default function LandingPage() {
 
         <ScrollReveal delay={200}>
           <p className="text-center text-xs text-slate-600 mt-5">
-            Illustrative average improvement · Actual results vary by resume and job
+            Illustrative average · Real results from Indian job seekers across IT, MBA & startup roles
           </p>
         </ScrollReveal>
       </section>
@@ -431,9 +431,9 @@ export default function LandingPage() {
               By the numbers
             </div>
             <h2 className="text-3xl sm:text-4xl font-extrabold text-white mb-4">
-              Join 4,000+ job seekers already using HireWin
+              Trusted by 4,000+ job seekers across India
             </h2>
-            <p className="text-slate-400">From engineering students to fintech professionals — worldwide.</p>
+            <p className="text-slate-400">From Bengaluru startups to TCS/Infosys to IIM campus placements — we've got you.</p>
           </ScrollReveal>
 
           <div className="grid md:grid-cols-3 gap-10 mb-14">
@@ -455,8 +455,8 @@ export default function LandingPage() {
           <ScrollReveal delay={300}>
             <div className="flex flex-wrap justify-center gap-2">
               {[
-                'Engineering students', 'IT professionals', 'MBA candidates',
-                'Fintech & banking', 'Freshers & campus placements', 'Mid-career switchers',
+                'IIT / NIT / BITS Grads', 'TCS · Infosys · Wipro', 'IIM / ISB MBAs',
+                'Freshers — Campus Drives', 'IT → Product Switch', 'Fintech & Startup Roles',
               ].map((tag, i) => (
                 <span
                   key={tag}
@@ -541,12 +541,12 @@ export default function LandingPage() {
                 <div className="flex items-start gap-2 text-xs p-2.5 rounded-lg transition-all"
                   style={{ background: 'rgba(239,68,68,0.07)' }}>
                   <span className="text-red-400 mt-0.5 shrink-0">✗</span>
-                  <span className="text-slate-500 line-through">Worked on backend features</span>
+                  <span className="text-slate-500 line-through">Worked on Java modules in Wipro project</span>
                 </div>
                 <div className="flex items-start gap-2 text-xs p-2.5 rounded-lg"
                   style={{ background: 'rgba(34,197,94,0.07)' }}>
                   <span className="text-green-400 mt-0.5 shrink-0">✓</span>
-                  <span className="text-slate-300">Delivered 3 REST APIs reducing load time by 40%</span>
+                  <span className="text-slate-300">Built 4 Spring Boot microservices, cut API latency 42%</span>
                 </div>
               </div>
             </div>
@@ -635,7 +635,7 @@ export default function LandingPage() {
               Ready to land more interviews?
             </h2>
             <p className="text-slate-400 mb-10 text-lg max-w-xl mx-auto">
-              Join 4,000+ job seekers already using HireWin to get past ATS filters and get noticed by recruiters.
+              Join 4,000+ job seekers across India — from campus freshers to IT veterans — getting past ATS filters and landing better roles.
             </p>
             <Link
               href="/analyze"
@@ -681,12 +681,7 @@ export default function LandingPage() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <div className="flex flex-col md:flex-row items-center justify-between gap-8 mb-8">
             <div className="flex items-center gap-2">
-              <span
-                className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-sm font-extrabold animate-glow-pulse"
-                style={{ background: 'linear-gradient(135deg, #7c3aed, #3b82f6)' }}
-              >
-                H
-              </span>
+              <img src="/logo.png" alt="HireWin Logo" className="w-8 h-8 object-contain animate-glow-pulse" />
               <span className="font-bold text-white text-lg">
                 Hire<span className="gradient-text">Win</span>
               </span>
