@@ -84,12 +84,7 @@ export default function AppNav() {
       <div className="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between gap-4">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-1.5 shrink-0">
-          <span
-            className="w-7 h-7 rounded-md flex items-center justify-center text-white text-xs font-extrabold"
-            style={{ background: 'linear-gradient(135deg, #7c3aed, #3b82f6)' }}
-          >
-            H
-          </span>
+          <img src="/logo.png" alt="HireWin Logo" className="w-7 h-7 object-contain" />
           <span className="font-bold text-white tracking-tight text-sm">
             Hire<span className="gradient-text">Win</span>
           </span>
@@ -208,14 +203,14 @@ export default function AppNav() {
       </div>
 
       {/* Mobile nav */}
-      <div className="md:hidden border-t border-white/[0.05] px-4 pb-2 flex gap-1 overflow-x-auto">
+      <div className="md:hidden border-t border-white/[0.05] px-3 py-1.5 flex gap-1 overflow-x-auto scrollbar-none">
         {NAV_LINKS.map(({ href, label }) => {
           const active = pathname === href || (href !== '/' && pathname?.startsWith(href));
           return (
             <Link
               key={href}
               href={href}
-              className="whitespace-nowrap px-3 py-1.5 rounded-lg text-xs font-medium transition-colors shrink-0"
+              className="whitespace-nowrap px-3 py-2 rounded-lg text-xs font-medium transition-colors shrink-0 active:scale-95"
               style={
                 active
                   ? { color: '#fff', background: 'rgba(124,58,237,0.18)' }

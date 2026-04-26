@@ -102,7 +102,7 @@ export default function HistoryDetailPage() {
               />
             </div>
 
-            <DownloadButtons optimizedResume={version.optimized_resume} versionId={version.id} />
+            <DownloadButtons optimizedResume={version.optimized_resume} versionId={version.id} beforeScore={version.ats_score} />
 
             <BeforeAfter
               original={version.original_resume}

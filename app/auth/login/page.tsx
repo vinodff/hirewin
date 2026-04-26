@@ -35,7 +35,7 @@ export default function LoginPage() {
 
   return (
     <div
-      className="min-h-screen flex flex-col items-center justify-center px-4 py-12"
+      className="min-h-screen flex flex-col items-center justify-center px-4 py-8 sm:py-12"
       style={{ background: '#080d1a' }}
     >
       {/* Dot-grid texture */}
@@ -113,8 +113,8 @@ export default function LoginPage() {
           <button
             onClick={handleGoogle}
             disabled={loading}
-            className="w-full flex items-center justify-center gap-3 py-3.5 rounded-xl text-base font-semibold text-white transition-all hover:scale-[1.02] hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98]"
-            style={{ background: 'rgba(255,255,255,0.09)', border: '1px solid rgba(255,255,255,0.13)' }}
+            className="w-full flex items-center justify-center gap-3 py-4 rounded-xl text-base font-semibold text-white transition-all hover:scale-[1.02] hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98]"
+            style={{ background: 'rgba(255,255,255,0.09)', border: '1px solid rgba(255,255,255,0.13)', minHeight: '52px' }}
           >
             {loading ? (
               <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
