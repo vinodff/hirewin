@@ -13,9 +13,9 @@ const BENEFITS = [
 ];
 
 const PILLS = [
-  { icon: Clock,    label: '2 free / month'  },
-  { icon: BarChart2,label: 'ATS optimised'   },
-  { icon: FileText, label: 'PDF & DOCX'      },
+  { icon: Clock,     label: '2 free / month' },
+  { icon: BarChart2, label: 'ATS optimised'  },
+  { icon: FileText,  label: 'PDF & DOCX'     },
 ];
 
 export default function LoginPage() {
@@ -34,8 +34,10 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-4 py-12" style={{ background: '#080d1a' }}>
-
+    <div
+      className="min-h-screen flex flex-col items-center justify-center px-4 py-12"
+      style={{ background: '#080d1a' }}
+    >
       {/* Dot-grid texture */}
       <div
         className="fixed inset-0 pointer-events-none"
@@ -48,10 +50,14 @@ export default function LoginPage() {
 
       {/* Ambient orbs */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[500px] rounded-full opacity-20 animate-float"
-          style={{ background: 'radial-gradient(ellipse, rgba(124,58,237,0.7) 0%, transparent 70%)', animationDuration: '9s' }} />
-        <div className="absolute bottom-0 right-1/3 w-[400px] h-[400px] rounded-full opacity-10 animate-float"
-          style={{ background: 'radial-gradient(ellipse, rgba(59,130,246,0.8) 0%, transparent 70%)', animationDelay: '-4s', animationDuration: '12s' }} />
+        <div
+          className="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[500px] rounded-full opacity-20 animate-float"
+          style={{ background: 'radial-gradient(ellipse, rgba(124,58,237,0.7) 0%, transparent 70%)', animationDuration: '9s' }}
+        />
+        <div
+          className="absolute bottom-0 right-1/3 w-[400px] h-[400px] rounded-full opacity-10 animate-float"
+          style={{ background: 'radial-gradient(ellipse, rgba(59,130,246,0.8) 0%, transparent 70%)', animationDelay: '-4s', animationDuration: '12s' }}
+        />
       </div>
 
       <div className="relative w-full max-w-sm animate-slide-up-sm">
@@ -64,7 +70,7 @@ export default function LoginPage() {
           >
             H
           </div>
-          <span className="text-xl font-bold text-white">
+          <span className="text-xl font-bold text-white tracking-tight">
             Hire<span className="gradient-text">Win</span>
           </span>
         </div>
@@ -141,10 +147,7 @@ export default function LoginPage() {
           <ul className="space-y-3">
             {BENEFITS.map((b) => (
               <li key={b} className="flex items-center gap-3 text-sm text-slate-300">
-                <CheckCircle
-                  className="w-5 h-5 shrink-0"
-                  style={{ color: '#22c55e' }}
-                />
+                <CheckCircle className="w-5 h-5 shrink-0" style={{ color: '#22c55e' }} />
                 {b}
               </li>
             ))}
@@ -175,6 +178,7 @@ export default function LoginPage() {
             Back to home
           </Link>
         </div>
+
       </div>
     </div>
   );
