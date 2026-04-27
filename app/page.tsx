@@ -80,7 +80,7 @@ export default function LandingPage() {
               style={{ animation: 'pulseRing 1.6s cubic-bezier(0,0,0.2,1) infinite' }} />
             <span className="relative inline-flex w-2.5 h-2.5 rounded-full bg-purple-500" />
           </span>
-          2 Free Resumes · No Credit Card
+          Free Resume Improvements · No Credit Card
         </div>
 
         {/* Headline — staggered lines */}
@@ -623,7 +623,7 @@ export default function LandingPage() {
               className="shimmer-btn animate-glow-pulse inline-flex items-center gap-2 text-white font-bold px-6 sm:px-10 py-4 rounded-xl text-base sm:text-lg transition-all hover:scale-105 hover:brightness-110"
               style={{ background: 'linear-gradient(135deg, #7c3aed, #3b82f6)' }}
             >
-              Claim Your 2 Free Resumes
+              Improve My Resume — Free
               <ArrowRight className="w-5 h-5" />
             </Link>
             <div className="mt-4 sm:mt-5">
@@ -632,7 +632,7 @@ export default function LandingPage() {
               </Link>
             </div>
             <div className="flex items-center justify-center flex-wrap gap-3 sm:gap-6 mt-6 sm:mt-8 text-xs sm:text-sm text-slate-500">
-              {['No credit card', '2 free/month', 'Results in 30s'].map((t) => (
+              {['No credit card', 'Free to preview', 'Results in 30s'].map((t) => (
                 <div key={t} className="flex items-center gap-1.5">
                   <CheckCircle className="w-3.5 h-3.5 text-green-500 shrink-0" />
                   {t}

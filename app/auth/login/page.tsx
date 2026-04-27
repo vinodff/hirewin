@@ -13,7 +13,7 @@ const BENEFITS = [
 ];
 
 const PILLS = [
-  { icon: Clock,     label: '2 free / month' },
+  { icon: Clock,     label: 'Free to preview' },
   { icon: BarChart2, label: 'ATS optimised'  },
   { icon: FileText,  label: 'PDF & DOCX'     },
 ];

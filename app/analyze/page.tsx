@@ -283,7 +283,7 @@ export default function AnalyzePage() {
               </h1>
               <p className="text-slate-400 text-sm sm:text-base max-w-xl mx-auto px-2">
                 Paste your resume and the job you want. We improve it to match — automatically.{' '}
-                <span className="text-white font-medium">Get 2 free resumes per month.</span>
+                <span className="text-white font-medium">Free to preview · Pay only to download.</span>
               </p>
             </div>
 

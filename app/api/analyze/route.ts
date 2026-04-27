@@ -8,8 +8,7 @@ import { fetchJobDescription, isKnownAtsDomain } from '@/lib/jina';
 import { parsePdf } from '@/lib/pdf-parser';
 import { parse as parsePartial } from 'partial-json';
 import { v4 as uuidv4 } from 'uuid';
-import type { AnalysisResult, Plan } from '@/types';
-import { PLAN_LIMITS } from '@/types';
+import type { AnalysisResult } from '@/types';
 
 export const maxDuration = 60;
 export const dynamic = 'force-dynamic';
@@ -98,29 +97,14 @@ export async function POST(req: NextRequest) {
           return;
         }
 
-        // --- Plan usage check (authenticated users) ---
-        if (user && process.env.USAGE_LIMITS_DISABLED !== 'true') {
+        // Improvements are unlimited and free — paywall lives on download (PDF/DOCX) routes.
+        // Track usage for analytics so plan dashboards remain accurate.
+        if (user) {
           await supabase.rpc('reset_monthly_usage_if_needed', { profile_id: user.id });
-
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('plan')
-            .eq('id', user.id)
-            .single();
-
-          if (profile) {
-            const raw = PLAN_LIMITS[profile.plan as Plan].improvements;
-            const limit = raw === Infinity ? -1 : raw;
-            const { data: allowed } = await supabase.rpc('try_increment_improvements_used', {
-              p_user_id: user.id,
-              p_limit: limit,
-            });
-            if (!allowed) {
-              emit({ type: 'error', message: 'Monthly improvement limit reached. Upgrade your plan to continue.' });
-              controller.close();
-              return;
-            }
-          }
+          await supabase.rpc('try_increment_improvements_used', {
+            p_user_id: user.id,
+            p_limit: -1,
+          });
         }
 
         // --- Stream from Claude ---
