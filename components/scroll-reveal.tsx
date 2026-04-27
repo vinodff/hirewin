@@ -18,17 +18,22 @@ export default function ScrollReveal({
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
+
+    // Fallback: force visible after 800ms in case IntersectionObserver doesn't fire
+    const fallback = setTimeout(() => setVisible(true), 800);
+
     const obs = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
           setVisible(true);
           obs.disconnect();
+          clearTimeout(fallback);
         }
       },
-      { threshold: 0.08 }
+      { threshold: 0, rootMargin: '0px 0px -30px 0px' }
     );
     obs.observe(el);
-    return () => obs.disconnect();
+    return () => { obs.disconnect(); clearTimeout(fallback); };
   }, []);
 
   const initial: Record<string, string> = {

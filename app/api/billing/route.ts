@@ -13,7 +13,7 @@ export async function GET() {
   const [profileRes, ordersRes] = await Promise.all([
     supabase
       .from('profiles')
-      .select('plan, improvements_used, downloads_used, roadmaps_used, deep_evals_used')
+      .select('plan, improvements_used, downloads_used, roadmaps_used')
       .eq('id', user.id)
       .single(),
     supabase
@@ -30,7 +30,7 @@ export async function GET() {
     improvements_used: profileRes.data?.improvements_used ?? 0,
     downloads_used: profileRes.data?.downloads_used ?? 0,
     roadmaps_used: profileRes.data?.roadmaps_used ?? 0,
-    deep_evals_used: profileRes.data?.deep_evals_used ?? 0,
+    deep_evals_used: 0,
   };
   const orders = ordersRes.data ?? [];
 

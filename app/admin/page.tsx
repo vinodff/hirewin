@@ -18,10 +18,13 @@ export default async function AdminPage() {
         style={{ background: 'rgba(8,13,26,0.85)' }}
       >
         <div className="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between">
-          <Link href="/" className="font-bold text-white tracking-tight">
-            Hire<span className="gradient-text">Win</span>
-            <span className="ml-2 text-xs font-medium text-slate-500 uppercase tracking-widest">
-              Admin
+          <Link href="/" className="flex items-center gap-2 font-bold text-white tracking-tight">
+            <img src="/logo.png" alt="HireWin Logo" className="w-6 h-6 object-contain" />
+            <span>
+              Hire<span className="gradient-text">Win</span>
+              <span className="ml-2 text-xs font-medium text-slate-500 uppercase tracking-widest">
+                Admin
+              </span>
             </span>
           </Link>
           <div className="flex items-center gap-4">

@@ -305,10 +305,12 @@ export default function PricingPage() {
               if (data.ok) {
                 window.location.href = `/payment/success?plan=${checkoutPlan.id}`;
               } else {
-                window.location.href = '/payment/failed';
+                console.error('[payment] verify failed:', data.error, 'status:', verifyRes.status);
+                window.location.href = `/payment/failed?reason=${encodeURIComponent(data.error ?? 'unknown')}`;
               }
-            } catch {
-              window.location.href = '/payment/failed';
+            } catch (err) {
+              console.error('[payment] verify request threw:', err);
+              window.location.href = '/payment/failed?reason=network';
             }
           },
         });
@@ -499,7 +501,7 @@ export default function PricingPage() {
               ))}
             </div>
             <button
-              onClick={() => openCheckout({ id: 'team', name: 'Team', price: { monthly: '₹500', yearly: '₹500' }, period: { monthly: 'min top-up', yearly: 'min top-up' }, cta: 'Create Team', ctaHref: null, highlight: false, features: teamFeatures.slice(0, 5) })}
+              onClick={() => openCheckout({ id: 'team', name: 'Team', price: { monthly: '₹500', yearly: '₹500' }, period: { monthly: 'min top-up', yearly: 'min top-up' }, cta: 'Create Team', ctaHref: null, highlight: false, yearlyNote: '', features: teamFeatures.slice(0, 5) })}
               className="shrink-0 flex items-center gap-2 text-white font-semibold px-5 py-2.5 rounded-xl text-sm transition-all hover:opacity-90 active:scale-[0.98] self-start sm:self-center"
               style={{ background: 'rgba(234,179,8,0.15)', border: '1px solid rgba(234,179,8,0.3)', color: '#fbbf24' }}
             >

@@ -4,7 +4,8 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import {
   Pencil, Undo2, Redo2, Plus, Trash2, GripVertical,
   ChevronUp, ChevronDown, Sparkles, Save, RotateCcw, Type,
-  Check,
+  Check, X, Award, Languages, BookOpen, Heart, Users, Globe,
+  Wrench, Code, FileBadge, Lightbulb, MapPin, Phone,
 } from 'lucide-react';
 
 /* ── Types ─────────────────────────────────── */
@@ -13,6 +14,109 @@ export type ResumeSection = {
   type: 'header' | 'section-title' | 'content';
   text: string;
 };
+
+/* ── Section Presets ───────────────────────── */
+type SectionPreset = {
+  title: string;
+  icon: React.ReactNode;
+  starter: string;
+  hint: string;
+};
+
+const SECTION_PRESETS: SectionPreset[] = [
+  {
+    title: 'PROJECTS',
+    icon: <Code className="w-3.5 h-3.5" />,
+    hint: 'Personal & side projects',
+    starter:
+      'Project Name | Tech Stack | Month Year\n' +
+      '• What you built and the impact it had\n' +
+      '• Key technical decision and result\n' +
+      '• Link: github.com/your-repo',
+  },
+  {
+    title: 'CERTIFICATIONS',
+    icon: <FileBadge className="w-3.5 h-3.5" />,
+    hint: 'AWS, Google, etc.',
+    starter:
+      '• AWS Certified Solutions Architect — Amazon Web Services, 2024\n' +
+      '• Google Data Analytics Professional Certificate — Coursera, 2023',
+  },
+  {
+    title: 'AWARDS & ACHIEVEMENTS',
+    icon: <Award className="w-3.5 h-3.5" />,
+    hint: 'Honors, recognitions',
+    starter:
+      '• Award Name — Issuing Organization, Year\n' +
+      '• Brief context (1 line)',
+  },
+  {
+    title: 'LANGUAGES',
+    icon: <Languages className="w-3.5 h-3.5" />,
+    hint: 'Spoken languages',
+    starter: 'English (Native) · Hindi (Fluent) · Spanish (Conversational)',
+  },
+  {
+    title: 'PUBLICATIONS',
+    icon: <BookOpen className="w-3.5 h-3.5" />,
+    hint: 'Papers, articles',
+    starter:
+      '• Title of Paper — Co-authors, Journal/Conference, Year\n' +
+      '• Brief one-line summary',
+  },
+  {
+    title: 'VOLUNTEER EXPERIENCE',
+    icon: <Heart className="w-3.5 h-3.5" />,
+    hint: 'Community work',
+    starter:
+      'Role | Organization | Month Year – Present\n' +
+      '• What you contributed and the impact',
+  },
+  {
+    title: 'LEADERSHIP & ACTIVITIES',
+    icon: <Users className="w-3.5 h-3.5" />,
+    hint: 'Clubs, roles, events',
+    starter:
+      'Role | Group | Year\n' +
+      '• Initiative led and outcome',
+  },
+  {
+    title: 'TECHNICAL SKILLS',
+    icon: <Wrench className="w-3.5 h-3.5" />,
+    hint: 'Tools, languages',
+    starter:
+      'Languages: Python, JavaScript, SQL\n' +
+      'Frameworks: React, Node.js, FastAPI\n' +
+      'Tools: Git, Docker, AWS',
+  },
+  {
+    title: 'INTERESTS',
+    icon: <Lightbulb className="w-3.5 h-3.5" />,
+    hint: 'Hobbies, passions',
+    starter: 'Photography · Long-distance running · Open-source contributions',
+  },
+  {
+    title: 'REFERENCES',
+    icon: <Users className="w-3.5 h-3.5" />,
+    hint: 'On request',
+    starter: 'Available upon request.',
+  },
+];
+
+/* ── Inline Field Presets (for header/contact) ─ */
+type FieldPreset = {
+  label: string;
+  icon: React.ReactNode;
+  template: string;
+};
+
+const FIELD_PRESETS: FieldPreset[] = [
+  { label: 'LinkedIn', icon: <Globe className="w-3.5 h-3.5" />, template: 'linkedin.com/in/your-handle' },
+  { label: 'GitHub', icon: <Code className="w-3.5 h-3.5" />, template: 'github.com/your-handle' },
+  { label: 'Portfolio', icon: <Globe className="w-3.5 h-3.5" />, template: 'yourdomain.com' },
+  { label: 'Phone', icon: <Phone className="w-3.5 h-3.5" />, template: '+1 (555) 123-4567' },
+  { label: 'Location', icon: <MapPin className="w-3.5 h-3.5" />, template: 'City, State' },
+];
 
 /* ── Helpers ───────────────────────────────── */
 function parseResumeToSections(text: string): ResumeSection[] {
@@ -87,6 +191,8 @@ export default function ResumeEditor({ initialText, onSave, onReoptimize }: Prop
   const [saved, setSaved] = useState(false);
   const [addSectionOpen, setAddSectionOpen] = useState(false);
   const [newSectionTitle, setNewSectionTitle] = useState('');
+  const [insertAfterId, setInsertAfterId] = useState<string | null>(null);
+  const [activeAddTab, setActiveAddTab] = useState<'preset' | 'custom'>('preset');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Auto-resize textarea
@@ -154,17 +260,54 @@ export default function ResumeEditor({ initialText, onSave, onReoptimize }: Prop
     setSections(next);
   };
 
-  const addSection = () => {
-    if (!newSectionTitle.trim()) return;
+  const addSection = (titleOverride?: string, starterOverride?: string) => {
+    const rawTitle = (titleOverride ?? newSectionTitle).trim();
+    if (!rawTitle) return;
     pushHistory();
     const id = `sec-${Date.now()}`;
-    setSections((s) => [
-      ...s,
-      { id: `${id}-t`, type: 'section-title', text: newSectionTitle.toUpperCase() },
-      { id: `${id}-c`, type: 'content', text: 'Add your content here...' },
-    ]);
+    const newItems: ResumeSection[] = [
+      { id: `${id}-t`, type: 'section-title', text: rawTitle.toUpperCase() },
+      { id: `${id}-c`, type: 'content', text: starterOverride ?? 'Add your content here...' },
+    ];
+    setSections((s) => {
+      if (insertAfterId) {
+        const idx = s.findIndex((sec) => sec.id === insertAfterId);
+        if (idx >= 0) {
+          const next = [...s];
+          next.splice(idx + 1, 0, ...newItems);
+          return next;
+        }
+      }
+      return [...s, ...newItems];
+    });
     setNewSectionTitle('');
     setAddSectionOpen(false);
+    setInsertAfterId(null);
+  };
+
+  const insertFieldIntoHeader = (fieldText: string) => {
+    const headerIdx = sections.findIndex((s) => s.type === 'header');
+    if (headerIdx < 0) return;
+    pushHistory();
+    setSections((s) =>
+      s.map((sec, i) =>
+        i === headerIdx
+          ? { ...sec, text: sec.text + (sec.text.endsWith('\n') ? '' : '\n') + fieldText }
+          : sec
+      )
+    );
+  };
+
+  const openAddAfter = (id: string) => {
+    setInsertAfterId(id);
+    setAddSectionOpen(true);
+    setActiveAddTab('preset');
+  };
+
+  const closeAddSection = () => {
+    setAddSectionOpen(false);
+    setInsertAfterId(null);
+    setNewSectionTitle('');
   };
 
   const handleSave = () => {
@@ -313,6 +456,13 @@ export default function ResumeEditor({ initialText, onSave, onReoptimize }: Prop
                     </button>
                   )}
                   <button
+                    onClick={(e) => { e.stopPropagation(); openAddAfter(section.id); }}
+                    className="p-1.5 rounded-md text-emerald-400 hover:bg-emerald-500/10 transition-all"
+                    title="Insert section below"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                  </button>
+                  <button
                     onClick={(e) => { e.stopPropagation(); startEdit(section); }}
                     className="p-1.5 rounded-md text-slate-400 hover:bg-white/5 transition-all"
                     title="Edit"
@@ -378,7 +528,34 @@ export default function ResumeEditor({ initialText, onSave, onReoptimize }: Prop
                   onClick={() => startEdit(section)}
                 >
                   {section.type === 'header' && (
-                    <div className="text-lg font-bold text-white text-center">{section.text}</div>
+                    <div>
+                      <div className="text-lg font-bold text-white text-center whitespace-pre-wrap">{section.text}</div>
+                      <div className="mt-3 pt-3 border-t border-white/5">
+                        <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-2 text-center">
+                          Quick-add contact field
+                        </div>
+                        <div className="flex flex-wrap justify-center gap-1.5">
+                          {FIELD_PRESETS.map((field) => (
+                            <button
+                              key={field.label}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                insertFieldIntoHeader(field.template);
+                              }}
+                              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium text-slate-400 hover:text-white transition-all"
+                              style={{
+                                background: 'rgba(124,58,237,0.06)',
+                                border: '1px solid rgba(124,58,237,0.18)',
+                              }}
+                              title={`Add ${field.label}`}
+                            >
+                              {field.icon}
+                              {field.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
                   )}
                   {section.type === 'section-title' && (
                     <div className="flex items-center gap-2">
@@ -411,37 +588,101 @@ export default function ResumeEditor({ initialText, onSave, onReoptimize }: Prop
             className="rounded-xl p-4 animate-in"
             style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}
           >
-            <div className="flex items-center gap-2">
-              <input
-                value={newSectionTitle}
-                onChange={(e) => setNewSectionTitle(e.target.value)}
-                placeholder="Section name (e.g., PROJECTS, LANGUAGES)"
-                className="flex-1 px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-purple-500/50 placeholder-slate-600"
-                style={inputStyle}
-                autoFocus
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') addSection();
-                  if (e.key === 'Escape') setAddSectionOpen(false);
-                }}
-              />
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Plus className="w-4 h-4 text-purple-400" />
+                <span className="text-sm font-semibold text-white">
+                  {insertAfterId ? 'Insert section here' : 'Add a new section'}
+                </span>
+              </div>
               <button
-                onClick={addSection}
-                className="px-4 py-2 rounded-lg text-xs font-semibold text-white transition-all"
-                style={{ background: 'linear-gradient(135deg, #7c3aed, #3b82f6)' }}
+                onClick={closeAddSection}
+                className="p-1 rounded-md text-slate-500 hover:text-white hover:bg-white/5 transition-all"
               >
-                Add
-              </button>
-              <button
-                onClick={() => setAddSectionOpen(false)}
-                className="px-3 py-2 rounded-lg text-xs text-slate-400 hover:text-white transition-all"
-              >
-                Cancel
+                <X className="w-4 h-4" />
               </button>
             </div>
+
+            {/* Tabs */}
+            <div
+              className="flex rounded-lg overflow-hidden mb-3 w-fit"
+              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
+            >
+              {([
+                { key: 'preset', label: 'From preset' },
+                { key: 'custom', label: 'Custom' },
+              ] as const).map((tab) => (
+                <button
+                  key={tab.key}
+                  onClick={() => setActiveAddTab(tab.key)}
+                  className="px-3 py-1.5 text-xs font-medium transition-all"
+                  style={
+                    activeAddTab === tab.key
+                      ? { background: 'linear-gradient(135deg, #7c3aed, #3b82f6)', color: '#fff' }
+                      : { color: '#94a3b8' }
+                  }
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+
+            {activeAddTab === 'preset' ? (
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {SECTION_PRESETS.map((preset) => (
+                  <button
+                    key={preset.title}
+                    onClick={() => addSection(preset.title, preset.starter)}
+                    className="flex items-start gap-2 p-3 rounded-lg text-left transition-all hover:bg-white/5"
+                    style={{
+                      background: 'rgba(255,255,255,0.02)',
+                      border: '1px solid rgba(255,255,255,0.06)',
+                    }}
+                  >
+                    <div
+                      className="shrink-0 w-7 h-7 rounded-md flex items-center justify-center"
+                      style={{ background: 'rgba(124,58,237,0.12)', color: '#c4b5fd' }}
+                    >
+                      {preset.icon}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="text-xs font-semibold text-slate-200 truncate">
+                        {preset.title}
+                      </div>
+                      <div className="text-[10px] text-slate-500 mt-0.5 truncate">
+                        {preset.hint}
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <input
+                  value={newSectionTitle}
+                  onChange={(e) => setNewSectionTitle(e.target.value)}
+                  placeholder="Section name (e.g., COURSEWORK, PATENTS)"
+                  className="flex-1 px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-purple-500/50 placeholder-slate-600"
+                  style={inputStyle}
+                  autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') addSection();
+                    if (e.key === 'Escape') closeAddSection();
+                  }}
+                />
+                <button
+                  onClick={() => addSection()}
+                  className="px-4 py-2 rounded-lg text-xs font-semibold text-white transition-all"
+                  style={{ background: 'linear-gradient(135deg, #7c3aed, #3b82f6)' }}
+                >
+                  Add
+                </button>
+              </div>
+            )}
           </div>
         ) : (
           <button
-            onClick={() => setAddSectionOpen(true)}
+            onClick={() => { setInsertAfterId(null); setAddSectionOpen(true); setActiveAddTab('preset'); }}
             className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-medium text-slate-500 hover:text-purple-400 transition-all border border-dashed border-white/10 hover:border-purple-500/30"
           >
             <Plus className="w-4 h-4" />

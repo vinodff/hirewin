@@ -5,6 +5,8 @@ import { canDownload } from '@/lib/usage';
 
 export const maxDuration = 30;
 
+const SHARES_NEEDED = 5;
+
 export async function POST(req: NextRequest) {
   try {
     const { resumeText, versionId } = await req.json();
@@ -24,14 +26,24 @@ export async function POST(req: NextRequest) {
         .eq('id', user.id)
         .single();
 
-      if (profile && !canDownload(profile.plan, profile.downloads_used)) {
-        return NextResponse.json(
-          { error: 'Download limit reached for your plan. Upgrade to continue.' },
-          { status: 403 }
-        );
+      const planAllows = profile && canDownload(profile.plan, profile.downloads_used);
+
+      // Check server-side share count — never trust shareUnlocked from the client body
+      let shareUnlocked = false;
+      if (!planAllows) {
+        const { count } = await supabase
+          .from('share_events')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', user.id)
+          .eq('version_id', versionId ?? null);
+        shareUnlocked = (count ?? 0) >= SHARES_NEEDED;
       }
 
-      if (profile) {
+      if (!planAllows && !shareUnlocked) {
+        return NextResponse.json({ error: 'locked' }, { status: 403 });
+      }
+
+      if (profile && planAllows) {
         await supabase
           .from('profiles')
           .update({ downloads_used: profile.downloads_used + 1 })

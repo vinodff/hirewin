@@ -12,7 +12,7 @@ import { usePathname } from 'next/navigation';
 const NAV_LINKS = [
   { href: '/analyze',    label: 'Optimize',        icon: FileText   },
   { href: '/my-resumes', label: 'My Resumes',       icon: LayoutGrid },
-  { href: '/history',    label: 'History',          icon: History    },
+  { href: '/history',    label: 'Job Tracker',      icon: History    },
   { href: '/pricing',    label: 'Pricing',          icon: Zap        },
   { href: '/billing',    label: 'Billing & Usage',  icon: CreditCard },
 ];
@@ -164,7 +164,7 @@ export default function AppNav() {
                     <MenuLink href="/my-resumes" icon={<LayoutGrid  className="w-4 h-4" />} label="My Resumes"       onClose={() => setMenuOpen(false)} />
                     <MenuLink href="/pricing"    icon={<Zap         className="w-4 h-4" />} label="Pricing"          onClose={() => setMenuOpen(false)} />
                     <MenuLink href="/billing"    icon={<CreditCard  className="w-4 h-4" />} label="Billing & Usage"  onClose={() => setMenuOpen(false)} />
-                    <MenuLink href="/history"    icon={<History     className="w-4 h-4" />} label="History"          onClose={() => setMenuOpen(false)} />
+                    <MenuLink href="/history"    icon={<History     className="w-4 h-4" />} label="Job Tracker"      onClose={() => setMenuOpen(false)} />
                     {isAdmin && <MenuLink href="/admin" icon={<Shield className="w-4 h-4" />} label="Admin" onClose={() => setMenuOpen(false)} />}
                     <div className="border-t border-white/5 mt-1 pt-1">
                       <button onClick={signOut}

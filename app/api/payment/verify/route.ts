@@ -27,17 +27,21 @@ export async function POST(req: NextRequest) {
 
     const serviceSupabase = await createServiceClient();
 
-    // Fetch the order to get the plan
-    const { data: order } = await serviceSupabase
+    // Fetch the order — query by order_id only (signature already verified above, so order_id is trusted)
+    // Do NOT restrict by user_id to avoid edge cases where session user_id doesn't match the order creator
+    const { data: order, error: orderFetchError } = await serviceSupabase
       .from('orders')
-      .select('plan, is_yearly')
+      .select('plan, is_yearly, user_id')
       .eq('razorpay_order_id', razorpay_order_id)
-      .eq('user_id', user.id)
       .single();
 
-    if (!order) {
+    if (orderFetchError || !order) {
+      console.error('[payment/verify] order lookup failed', { razorpay_order_id, error: orderFetchError });
       return NextResponse.json({ error: 'Order not found' }, { status: 404 });
     }
+
+    // Use the order's user_id as the authoritative reference for the plan upgrade
+    const targetUserId = order.user_id || user.id;
 
     // Mark order as paid
     const { error: orderUpdateError } = await serviceSupabase
@@ -56,7 +60,7 @@ export async function POST(req: NextRequest) {
       const { error } = await serviceSupabase
         .from('profiles')
         .update({ plan: order.plan })
-        .eq('id', user.id);
+        .eq('id', targetUserId);
       if (!error) { planUpgradeError = null; break; }
       planUpgradeError = error;
     }
@@ -64,7 +68,7 @@ export async function POST(req: NextRequest) {
     if (planUpgradeError) {
       // Log for manual repair: user was charged but plan not upgraded
       console.error('[payment/verify] CRITICAL plan upgrade failed after payment', {
-        user_id: user.id,
+        user_id: targetUserId,
         razorpay_order_id,
         razorpay_payment_id,
         plan: order.plan,

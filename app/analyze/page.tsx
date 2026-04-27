@@ -1,10 +1,10 @@
 'use client';
 
-import { useReducer, useRef, useState, useCallback } from 'react';
+import { useReducer, useRef, useState, useCallback, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import {
   Upload, Link as LinkIcon, FileText, Loader2, Copy, Check,
-  AlertCircle, Target, BarChart2,
+  AlertCircle, Target, BarChart2, Briefcase,
 } from 'lucide-react';
 import { trackEvent, getSessionHash } from '@/lib/analytics';
 import type { AnalysisResult, SSEEvent } from '@/types';
@@ -15,6 +15,7 @@ const KeywordChips = dynamic(() => import('@/components/keyword-chips'), { ssr: 
 const SkillGapList = dynamic(() => import('@/components/skill-gap-list'), { ssr: false });
 const BeforeAfter = dynamic(() => import('@/components/before-after'), { ssr: false });
 const DownloadButtons = dynamic(() => import('@/components/download-buttons'), { ssr: false });
+const InterviewQA = dynamic(() => import('@/components/interview-qa'), { ssr: false });
 
 type Step = 'input' | 'analyzing' | 'results';
 
@@ -139,6 +140,15 @@ export default function AnalyzePage() {
 
   const handleResumeUpdate = useCallback((text: string) => {
     dispatch({ type: 'EDIT_RESUME', text });
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const stored = sessionStorage.getItem('hirewin:builder-resume');
+    if (stored && stored.trim()) {
+      dispatch({ type: 'SET_RESUME_TEXT', text: stored });
+      sessionStorage.removeItem('hirewin:builder-resume');
+    }
   }, []);
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -527,13 +537,25 @@ export default function AnalyzePage() {
                   {result.companyType} · {result.careerLevel} level
                 </p>
               </div>
-              <button
-                onClick={() => dispatch({ type: 'RESET' })}
-                className="text-sm font-semibold px-4 py-2.5 rounded-xl text-white transition-all hover:opacity-90 shrink-0 w-full sm:w-auto"
-                style={{ background: 'linear-gradient(135deg, #7c3aed, #3b82f6)' }}
-              >
-                + New Resume
-              </button>
+              <div className="flex items-center gap-2 flex-wrap">
+                {versionId && (
+                  <a
+                    href="/history"
+                    className="flex items-center gap-1.5 text-sm font-medium px-4 py-2.5 rounded-xl text-slate-300 transition-all hover:text-white shrink-0"
+                    style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
+                  >
+                    <Briefcase className="w-4 h-4" />
+                    Track Application
+                  </a>
+                )}
+                <button
+                  onClick={() => dispatch({ type: 'RESET' })}
+                  className="text-sm font-semibold px-4 py-2.5 rounded-xl text-white transition-all hover:opacity-90 shrink-0"
+                  style={{ background: 'linear-gradient(135deg, #7c3aed, #3b82f6)' }}
+                >
+                  + New Resume
+                </button>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -555,6 +577,12 @@ export default function AnalyzePage() {
               beforeScore={result.atsScore}
             />
             <OutreachSection email={result.outreachEmail} linkedin={result.outreachLinkedIn} />
+            <InterviewQA
+              resumeText={state.editedResume || result.optimizedResume}
+              role={result.role}
+              company={result.company}
+              jdText={state.jdText}
+            />
           </div>
         )}
       </div>

@@ -37,6 +37,40 @@ export async function GET() {
   return NextResponse.json({ versions: versions ?? [] });
 }
 
+export async function PATCH(req: NextRequest) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const { id, application_status, pipeline_note } = await req.json();
+  if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 });
+
+  const updates: Record<string, unknown> = {};
+  if (application_status !== undefined) updates.application_status = application_status;
+  if (pipeline_note !== undefined) updates.pipeline_note = pipeline_note;
+
+  const now = new Date().toISOString();
+  if (application_status === 'applied') updates.applied_at = now;
+  if (application_status === 'responded') updates.responded_at = now;
+  if (application_status === 'interview') updates.interview_at = now;
+  if (application_status === 'offer' || application_status === 'rejected' || application_status === 'discarded') {
+    updates.closed_at = now;
+  }
+
+  const { error } = await supabase
+    .from('resume_versions')
+    .update(updates)
+    .eq('id', id)
+    .eq('user_id', user.id);
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  return NextResponse.json({ ok: true });
+}
+
 export async function DELETE(req: NextRequest) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();

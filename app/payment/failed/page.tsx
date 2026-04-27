@@ -1,9 +1,17 @@
 'use client';
 
+import { useSearchParams } from 'next/navigation';
+import { Suspense } from 'react';
 import Link from 'next/link';
 import { XCircle, ArrowLeft, RefreshCw } from 'lucide-react';
 
-export default function PaymentFailedPage() {
+const CHARGED_REASONS = ['Order not found', 'Invalid signature'];
+
+function FailedContent() {
+  const params = useSearchParams();
+  const reason = params.get('reason') ?? '';
+  const wasCharged = CHARGED_REASONS.some(r => reason.toLowerCase().includes(r.toLowerCase()));
+
   return (
     <div
       className="min-h-screen flex flex-col items-center justify-center px-4 py-12"
@@ -25,9 +33,15 @@ export default function PaymentFailedPage() {
         </div>
 
         <div className="text-2xl font-extrabold text-white mb-2">Payment Failed</div>
-        <p className="text-slate-400 text-sm mb-8">
-          Your payment could not be processed. No amount has been charged. Please try again or contact support.
-        </p>
+        {wasCharged ? (
+          <p className="text-slate-400 text-sm mb-8">
+            Your payment may have gone through but we couldn&apos;t confirm it. Please contact support with your payment ID and we&apos;ll upgrade your plan manually.
+          </p>
+        ) : (
+          <p className="text-slate-400 text-sm mb-8">
+            Your payment could not be processed. No amount has been charged. Please try again or contact support.
+          </p>
+        )}
 
         <div className="space-y-3">
           <Link
@@ -56,5 +70,13 @@ export default function PaymentFailedPage() {
         </p>
       </div>
     </div>
+  );
+}
+
+export default function PaymentFailedPage() {
+  return (
+    <Suspense>
+      <FailedContent />
+    </Suspense>
   );
 }

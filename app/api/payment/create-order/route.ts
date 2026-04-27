@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
 
     // Record in DB
     const serviceSupabase = await createServiceClient();
-    await serviceSupabase.from('orders').insert({
+    const { error: insertError } = await serviceSupabase.from('orders').insert({
       user_id: user.id,
       razorpay_order_id: order.id,
       plan,
@@ -52,6 +52,11 @@ export async function POST(req: NextRequest) {
       status: 'created',
       is_yearly: !!isYearly,
     });
+
+    if (insertError) {
+      console.error('[create-order] DB insert failed:', insertError);
+      return NextResponse.json({ error: 'Failed to record order. Please try again.' }, { status: 500 });
+    }
 
     return NextResponse.json({
       orderId: order.id,
