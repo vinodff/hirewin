@@ -250,8 +250,8 @@ export async function POST(req: NextRequest) {
               keywords_matched: result.keywordsMatched,
               keywords_missing: result.keywordsMissing,
               skill_gaps: result.skillGaps,
-              outreach_email: result.outreachEmail,
-              outreach_linkedin: result.outreachLinkedIn,
+              outreach_email: null,
+              outreach_linkedin: null,
             })
             .select('id')
             .single();
