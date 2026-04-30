@@ -9,6 +9,7 @@ import {
   Plus, Trash2, ArrowRight, ArrowLeft, FileText, Sparkles, Check,
 } from 'lucide-react';
 import AppNav from '@/components/app-nav';
+import DownloadButtons from '@/components/download-buttons';
 import type { TemplateName } from '@/components/template-selector';
 
 const ResumePreview = dynamic(() => import('@/components/resume-preview'), { ssr: false });
@@ -210,16 +211,6 @@ export default function BuilderPage() {
       sessionStorage.setItem('hirewin:builder-resume', resumeText);
     }
     router.push('/analyze');
-  }
-
-  function handleDownload() {
-    const blob = new Blob([resumeText], { type: 'text/plain;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${data.name?.trim().replace(/\s+/g, '-').toLowerCase() || 'resume'}.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
   }
 
   const currentStep = STEPS[step];
@@ -598,8 +589,7 @@ export default function BuilderPage() {
                   <div>
                     <p className="text-sm font-semibold text-emerald-300">Your resume is ready!</p>
                     <p className="text-xs text-slate-400 mt-1">
-                      Pick a template on the right, then send it to the analyzer to get an ATS score and tailored
-                      improvements — or download the plain text.
+                      Pick a template on the right, then optimize for a specific job or download your resume.
                     </p>
                   </div>
                 </div>
@@ -613,14 +603,10 @@ export default function BuilderPage() {
                   Optimize for a Job →
                 </button>
 
-                <button
-                  onClick={handleDownload}
-                  className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold text-slate-300 hover:text-white transition-all"
-                  style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
-                >
-                  <FileText className="w-4 h-4" />
-                  Download as plain text
-                </button>
+                <DownloadButtons
+                  optimizedResume={resumeText}
+                  template={template}
+                />
               </div>
             )}
 

@@ -14,12 +14,13 @@ type Props = {
   original: string;
   optimized: string;
   atsScore?: number;
+  jobFitScore?: number;
   onResumeUpdate?: (text: string) => void;
 };
 
 type ViewMode = 'compare' | 'edit' | 'preview';
 
-export default function BeforeAfter({ original, optimized, atsScore, onResumeUpdate }: Props) {
+export default function BeforeAfter({ original, optimized, atsScore, jobFitScore, onResumeUpdate }: Props) {
   const [copied, setCopied] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>('compare');
   const [editedText, setEditedText] = useState(optimized);
@@ -56,17 +57,27 @@ export default function BeforeAfter({ original, optimized, atsScore, onResumeUpd
         style={{ background: '#0f1629', border: '1px solid rgba(255,255,255,0.07)' }}
       >
         <div className="flex items-center justify-between flex-wrap gap-3">
-          <div className="flex items-center gap-2">
-            <h3 className="font-semibold text-white">Your Resume</h3>
+          <div className="flex items-center gap-2 flex-wrap">
+            <h3 className="font-semibold text-white">Before / After</h3>
+            {typeof atsScore === 'number' && typeof jobFitScore === 'number' && (
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs font-bold px-2 py-0.5 rounded-md"
+                  style={{ background: 'rgba(239,68,68,0.1)', color: '#fca5a5', border: '1px solid rgba(239,68,68,0.2)' }}>
+                  {atsScore}
+                </span>
+                <span className="text-slate-600 text-xs">→</span>
+                <span className="text-xs font-bold px-2 py-0.5 rounded-md"
+                  style={{ background: 'rgba(16,185,129,0.1)', color: '#34d399', border: '1px solid rgba(16,185,129,0.2)' }}>
+                  {jobFitScore}
+                </span>
+                <span className="text-xs font-semibold text-emerald-400">
+                  +{jobFitScore - atsScore} pts
+                </span>
+              </div>
+            )}
             {hasEdits && (
-              <span
-                className="text-xs font-medium px-2 py-0.5 rounded-md"
-                style={{
-                  background: 'rgba(124,58,237,0.12)',
-                  color: '#c4b5fd',
-                  border: '1px solid rgba(124,58,237,0.25)',
-                }}
-              >
+              <span className="text-xs font-medium px-2 py-0.5 rounded-md"
+                style={{ background: 'rgba(124,58,237,0.12)', color: '#c4b5fd', border: '1px solid rgba(124,58,237,0.25)' }}>
                 Edited
               </span>
             )}
@@ -121,43 +132,37 @@ export default function BeforeAfter({ original, optimized, atsScore, onResumeUpd
           style={{ background: '#0f1629', border: '1px solid rgba(255,255,255,0.07)' }}
         >
           {/* Mobile tab toggle */}
-          <div
-            className="flex sm:hidden rounded-xl overflow-hidden mx-3 mt-3 mb-3"
-            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
-          >
-            {(['original', 'optimized'] as const).map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setMobileTab(tab)}
-                className="flex-1 py-2.5 text-xs font-semibold uppercase tracking-wider transition-all"
-                style={
-                  mobileTab === tab
-                    ? { background: 'linear-gradient(135deg, #7c3aed, #3b82f6)', color: '#fff' }
-                    : { color: '#64748b' }
-                }
-              >
-                {tab === 'original' ? 'Before' : 'After'}
-              </button>
-            ))}
+          <div className="flex sm:hidden mx-3 mt-3 mb-3 rounded-xl overflow-hidden"
+            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
+            <button onClick={() => setMobileTab('original')}
+              className="flex-1 py-2.5 text-xs font-semibold transition-all"
+              style={mobileTab === 'original'
+                ? { background: 'rgba(239,68,68,0.18)', color: '#fca5a5' }
+                : { color: '#64748b' }}>
+              Before{typeof atsScore === 'number' && <span className="ml-1 opacity-70">({atsScore})</span>}
+            </button>
+            <button onClick={() => setMobileTab('optimized')}
+              className="flex-1 py-2.5 text-xs font-semibold transition-all"
+              style={mobileTab === 'optimized'
+                ? { background: 'rgba(16,185,129,0.18)', color: '#34d399' }
+                : { color: '#64748b' }}>
+              After{typeof jobFitScore === 'number' && <span className="ml-1 opacity-70">({jobFitScore})</span>}
+            </button>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 sm:gap-5">
             <div className={mobileTab === 'optimized' ? 'hidden sm:block' : ''}>
               <PaperPreview
-                label="Original"
+                label="Before"
                 content={original}
                 badge={
                   typeof atsScore === 'number' ? (
-                    <span
-                      className="text-xs font-bold px-2 py-0.5 rounded-md"
-                      style={{
-                        background: 'rgba(239,68,68,0.12)',
-                        color: '#fca5a5',
-                        border: '1px solid rgba(239,68,68,0.25)',
-                      }}
-                    >
-                      ATS {atsScore}%
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold px-2.5 py-1 rounded-lg"
+                        style={{ background: 'rgba(239,68,68,0.12)', color: '#fca5a5', border: '1px solid rgba(239,68,68,0.25)' }}>
+                        Score: {atsScore}
+                      </span>
+                    </div>
                   ) : null
                 }
               />
@@ -166,18 +171,20 @@ export default function BeforeAfter({ original, optimized, atsScore, onResumeUpd
               <ResumePreview
                 resumeText={editedText}
                 template={template}
-                label="Optimized"
+                label="After"
                 badge={
-                  <span
-                    className="text-xs font-bold px-2 py-0.5 rounded-md"
-                    style={{
-                      background: 'rgba(16,185,129,0.15)',
-                      color: '#6ee7b7',
-                      border: '1px solid rgba(16,185,129,0.3)',
-                    }}
-                  >
-                    ATS-Ready
-                  </span>
+                  <div className="flex items-center gap-2">
+                    {typeof jobFitScore === 'number' && (
+                      <span className="text-xs font-bold px-2.5 py-1 rounded-lg"
+                        style={{ background: 'rgba(16,185,129,0.12)', color: '#34d399', border: '1px solid rgba(16,185,129,0.25)' }}>
+                        Score: {jobFitScore}
+                      </span>
+                    )}
+                    <span className="text-xs font-bold px-2.5 py-1 rounded-lg"
+                      style={{ background: 'rgba(16,185,129,0.08)', color: '#6ee7b7', border: '1px solid rgba(16,185,129,0.2)' }}>
+                      ATS-Optimized ✓
+                    </span>
+                  </div>
                 }
               />
             </div>

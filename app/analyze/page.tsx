@@ -10,7 +10,7 @@ import { trackEvent, getSessionHash } from '@/lib/analytics';
 import type { AnalysisResult, SSEEvent } from '@/types';
 import AppNav from '@/components/app-nav';
 
-const AtsGauge = dynamic(() => import('@/components/ats-gauge'), { ssr: false });
+const ScoreHero = dynamic(() => import('@/components/score-hero'), { ssr: false });
 const KeywordChips = dynamic(() => import('@/components/keyword-chips'), { ssr: false });
 const SkillGapList = dynamic(() => import('@/components/skill-gap-list'), { ssr: false });
 const BeforeAfter = dynamic(() => import('@/components/before-after'), { ssr: false });
@@ -525,58 +525,65 @@ export default function AnalyzePage() {
 
         {/* RESULTS STEP */}
         {step === 'results' && result && (
-          <div className="space-y-6 animate-in">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+          <div className="space-y-5 animate-in">
+
+            {/* Job title + actions */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="min-w-0">
-                <h1 className="text-lg sm:text-2xl font-bold text-white leading-snug">
+                <h1 className="text-lg sm:text-2xl font-bold text-white leading-snug flex flex-wrap items-baseline gap-x-1.5">
                   <span className="line-clamp-1">{result.role}</span>
-                  <span className="text-slate-500 font-normal text-base sm:text-xl"> at </span>
+                  <span className="text-slate-500 font-normal text-base">at</span>
                   <span className="line-clamp-1">{result.company}</span>
                 </h1>
-                <p className="text-xs sm:text-sm text-slate-500 mt-1 capitalize">
+                <p className="text-xs text-slate-500 mt-1 capitalize">
                   {result.companyType} · {result.careerLevel} level
                 </p>
               </div>
               <div className="flex items-center gap-2 flex-wrap">
                 {versionId && (
-                  <a
-                    href="/history"
+                  <a href="/history"
                     className="flex items-center gap-1.5 text-sm font-medium px-4 py-2.5 rounded-xl text-slate-300 transition-all hover:text-white shrink-0"
-                    style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
-                  >
-                    <Briefcase className="w-4 h-4" />
-                    Track Application
+                    style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                    <Briefcase className="w-4 h-4" />Track Application
                   </a>
                 )}
-                <button
-                  onClick={() => dispatch({ type: 'RESET' })}
+                <button onClick={() => dispatch({ type: 'RESET' })}
                   className="text-sm font-semibold px-4 py-2.5 rounded-xl text-white transition-all hover:opacity-90 shrink-0"
-                  style={{ background: 'linear-gradient(135deg, #7c3aed, #3b82f6)' }}
-                >
+                  style={{ background: 'linear-gradient(135deg, #7c3aed, #3b82f6)' }}>
                   + New Resume
                 </button>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <AtsGauge score={result.atsScore} label="ATS Match Score" sublabel="Original resume vs. job description" />
-              <AtsGauge score={result.jobFitScore} label="Job Fit Score" sublabel="Skills & experience match" color="emerald" />
-            </div>
+            {/* Score Hero — most impactful element */}
+            <ScoreHero atsScore={result.atsScore} jobFitScore={result.jobFitScore} />
 
+            {/* Keyword coverage */}
             <KeywordChips matched={result.keywordsMatched} missing={result.keywordsMissing} />
-            <SkillGapList gaps={result.skillGaps} />
+
+            {/* Before / After PDF preview */}
             <BeforeAfter
               original={state.originalResume || state.resumeText}
               optimized={result.optimizedResume}
               atsScore={result.atsScore}
+              jobFitScore={result.jobFitScore}
               onResumeUpdate={handleResumeUpdate}
             />
+
+            {/* Download — gated */}
             <DownloadButtons
               optimizedResume={state.editedResume || result.optimizedResume}
               versionId={versionId ?? undefined}
               beforeScore={result.atsScore}
             />
+
+            {/* Skill gaps */}
+            <SkillGapList gaps={result.skillGaps} />
+
+            {/* Outreach */}
             <OutreachSection email={result.outreachEmail} linkedin={result.outreachLinkedIn} />
+
+            {/* Interview prep */}
             <InterviewQA
               resumeText={state.editedResume || result.optimizedResume}
               role={result.role}

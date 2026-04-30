@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Download, Loader2, Palette, Share2, CheckCircle2, Lock } from 'lucide-react';
+import { Download, Loader2, Palette, Share2, CheckCircle2 } from 'lucide-react';
 import { trackEvent, getSessionHash } from '@/lib/analytics';
+import UnlockModal from '@/components/unlock-modal';
 
 const SHARES_NEEDED = 5;
 
@@ -26,18 +27,12 @@ export default function DownloadButtons({ optimizedResume, versionId, template, 
   const [shareCount, setShareCount]     = useState(0);
   const [sharingBusy, setSharingBusy]   = useState(false);
   const [justUnlocked, setJustUnlocked] = useState(false);
-  const [notSignedIn, setNotSignedIn]   = useState(false);
 
-  // Load server-side share count on mount
   useEffect(() => {
-    const url = versionId
-      ? `/api/share?versionId=${versionId}`
-      : '/api/share?versionId=';
+    const url = versionId ? `/api/share?versionId=${versionId}` : '/api/share?versionId=';
     fetch(url)
       .then((r) => r.json())
-      .then((d) => {
-        if (typeof d.shareCount === 'number') setShareCount(d.shareCount);
-      })
+      .then((d) => { if (typeof d.shareCount === 'number') setShareCount(d.shareCount); })
       .catch(() => {});
   }, [versionId]);
 
@@ -51,7 +46,7 @@ export default function DownloadButtons({ optimizedResume, versionId, template, 
       : `🚀 Just optimized my resume with HireWin AI — it tailors your resume to any job and boosts your ATS score instantly.\n\nFree to try 👉 ${siteUrl}`;
 
   async function handleShare() {
-    if (isUnlocked) return; // already unlocked, just share for fun
+    if (isUnlocked) return;
     setSharingBusy(true);
     try {
       const res = await fetch('/api/share', {
@@ -59,11 +54,7 @@ export default function DownloadButtons({ optimizedResume, versionId, template, 
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ versionId: versionId ?? null }),
       });
-      if (res.status === 401) {
-        setNotSignedIn(true);
-        setSharingBusy(false);
-        return;
-      }
+      if (res.status === 401) { window.location.href = '/auth/login'; return; }
       const data = await res.json();
       if (typeof data.shareCount === 'number') {
         const prev = shareCount;
@@ -72,11 +63,6 @@ export default function DownloadButtons({ optimizedResume, versionId, template, 
       }
     } catch { /* ignore */ }
     setSharingBusy(false);
-    // Open WhatsApp after recording the share
-    window.open(`https://wa.me/?text=${encodeURIComponent(whatsappMsg)}`, '_blank');
-  }
-
-  function openWhatsAppOrganic() {
     window.open(`https://wa.me/?text=${encodeURIComponent(whatsappMsg)}`, '_blank');
   }
 
@@ -90,15 +76,8 @@ export default function DownloadButtons({ optimizedResume, versionId, template, 
         body: JSON.stringify({ resumeText: optimizedResume, versionId, template }),
       });
 
-      if (res.status === 403) {
-        setShowUnlock(true);
-        setLoading(false);
-        return;
-      }
-      if (res.status === 401) {
-        window.location.href = '/auth/login';
-        return;
-      }
+      if (res.status === 403) { setShowUnlock(true); setLoading(false); return; }
+      if (res.status === 401) { window.location.href = '/auth/login'; return; }
       if (!res.ok) throw new Error('Download failed');
 
       const blob = await res.blob();
@@ -117,146 +96,106 @@ export default function DownloadButtons({ optimizedResume, versionId, template, 
   const remaining = SHARES_NEEDED - shareCount;
 
   return (
-    <div className="rounded-2xl p-6" style={{ background: '#0f1629', border: '1px solid rgba(255,255,255,0.07)' }}>
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="font-semibold text-white">Download Optimized Resume</h3>
-        {template && template !== 'classic' && (
-          <span className="flex items-center gap-1.5 text-xs font-medium px-2 py-0.5 rounded-md"
-            style={{ background: 'rgba(124,58,237,0.12)', color: '#c4b5fd', border: '1px solid rgba(124,58,237,0.25)' }}>
-            <Palette className="w-3 h-3" />
-            {template.charAt(0).toUpperCase() + template.slice(1)}
-          </span>
-        )}
-      </div>
-
-      {/* Download buttons */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <button onClick={() => download('pdf')} disabled={pdfLoading}
-          className="flex-1 flex items-center justify-center gap-2 py-3.5 sm:py-3 rounded-xl font-semibold text-white transition-all hover:opacity-90 active:scale-[0.98] disabled:opacity-40"
-          style={{ background: 'linear-gradient(135deg, #7c3aed, #3b82f6)' }}>
-          {pdfLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-          Download PDF
-        </button>
-        <button onClick={() => download('docx')} disabled={docxLoading}
-          className="flex-1 flex items-center justify-center gap-2 py-3.5 sm:py-3 rounded-xl font-medium text-slate-300 hover:text-white transition-all active:scale-[0.98] disabled:opacity-40"
-          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
-          {docxLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-          Download DOCX
-        </button>
-      </div>
-
-      {/* ── Unlock panel — shown after 403 ── */}
+    <>
       {showUnlock && !isUnlocked && (
-        <div className="mt-4 rounded-2xl p-5" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.08)' }}>
+        <UnlockModal onClose={() => setShowUnlock(false)} onPaid={() => setShowUnlock(false)} />
+      )}
 
-          <div className="flex items-center gap-2 mb-1">
-            <Lock className="w-4 h-4 text-slate-400" />
-            <p className="text-sm font-semibold text-white">Unlock your download</p>
-          </div>
-          <p className="text-xs text-slate-500 mb-5">Free plan includes unlimited optimization — download via sharing or a one-time payment.</p>
-
-          {/* Not signed in warning */}
-          {notSignedIn && (
-            <div className="rounded-xl p-3 mb-4 text-xs text-amber-400"
-              style={{ background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.2)' }}>
-              You need to <a href="/auth/login" className="underline font-semibold">sign in</a> to track shares and unlock downloads.
-            </div>
+      <div className="rounded-2xl p-6" style={{ background: '#0f1629', border: '1px solid rgba(255,255,255,0.07)' }}>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-semibold text-white">Download Optimized Resume</h3>
+          {template && template !== 'classic' && (
+            <span className="flex items-center gap-1.5 text-xs font-medium px-2 py-0.5 rounded-md"
+              style={{ background: 'rgba(124,58,237,0.12)', color: '#c4b5fd', border: '1px solid rgba(124,58,237,0.25)' }}>
+              <Palette className="w-3 h-3" />
+              {template.charAt(0).toUpperCase() + template.slice(1)}
+            </span>
           )}
+        </div>
 
-          {/* Option A — Share on WhatsApp */}
-          <div className="rounded-xl p-4 mb-3" style={{ background: 'rgba(37,211,102,0.06)', border: '1px solid rgba(37,211,102,0.2)' }}>
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-sm font-semibold text-white flex items-center gap-2">
-                {WA_ICON}
-                Share on WhatsApp — Free
-              </span>
-              <span className="text-xs font-bold" style={{ color: shareCount > 0 ? '#25d366' : '#64748b' }}>
+        {/* Download buttons */}
+        <div className="flex flex-col sm:flex-row gap-3">
+          <button onClick={() => download('pdf')} disabled={pdfLoading}
+            className="flex-1 flex items-center justify-center gap-2 py-3.5 sm:py-3 rounded-xl font-semibold text-white transition-all hover:opacity-90 active:scale-[0.98] disabled:opacity-40"
+            style={{ background: 'linear-gradient(135deg, #7c3aed, #3b82f6)' }}>
+            {pdfLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+            Download PDF
+          </button>
+          <button onClick={() => download('docx')} disabled={docxLoading}
+            className="flex-1 flex items-center justify-center gap-2 py-3.5 sm:py-3 rounded-xl font-medium text-slate-300 hover:text-white transition-all active:scale-[0.98] disabled:opacity-40"
+            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
+            {docxLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+            Download DOCX
+          </button>
+        </div>
+
+        {/* Share-unlock success */}
+        {isUnlocked && justUnlocked && (
+          <div className="mt-4 rounded-xl p-4 flex items-center gap-3"
+            style={{ background: 'rgba(37,211,102,0.08)', border: '1px solid rgba(37,211,102,0.25)' }}>
+            <CheckCircle2 className="w-5 h-5 text-green-400 shrink-0" />
+            <div>
+              <p className="text-sm font-semibold text-green-400">🎉 Download unlocked! Thank you for sharing.</p>
+              <p className="text-xs text-slate-400 mt-0.5">Click Download PDF or DOCX above.</p>
+            </div>
+          </div>
+        )}
+
+        {/* WhatsApp share-to-unlock strip (only when not yet unlocked) */}
+        {!isUnlocked && (
+          <div className="mt-5 pt-4" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+            <div className="flex items-center gap-2 mb-2">
+              <Share2 className="w-4 h-4 text-slate-500" />
+              <span className="text-sm font-medium text-slate-400">Or unlock free by sharing</span>
+              <span className="text-xs font-bold ml-auto" style={{ color: shareCount > 0 ? '#25d366' : '#475569' }}>
                 {shareCount}/{SHARES_NEEDED}
               </span>
             </div>
-
-            {/* Progress bar */}
             <div className="flex gap-1.5 mb-3">
               {Array.from({ length: SHARES_NEEDED }).map((_, i) => (
-                <div key={i} className="flex-1 h-2 rounded-full transition-all duration-500"
-                  style={{ background: i < shareCount ? '#25d366' : 'rgba(255,255,255,0.08)', boxShadow: i < shareCount ? '0 0 6px #25d36680' : 'none' }} />
+                <div key={i} className="flex-1 h-1.5 rounded-full transition-all duration-500"
+                  style={{ background: i < shareCount ? '#25d366' : 'rgba(255,255,255,0.08)', boxShadow: i < shareCount ? '0 0 6px #25d36660' : 'none' }} />
               ))}
             </div>
-
-            <p className="text-xs text-slate-400 mb-3">
+            <p className="text-xs text-slate-500 mb-3">
               {remaining > 0
-                ? `Share HireWin with ${remaining} more friend${remaining !== 1 ? 's' : ''} on WhatsApp to unlock your free download.`
+                ? `Share with ${remaining} more friend${remaining !== 1 ? 's' : ''} on WhatsApp to unlock free download.`
                 : '✅ All shares done! Click Download above.'}
             </p>
-
             <button onClick={handleShare} disabled={sharingBusy}
-              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold text-white transition-all hover:opacity-90 active:scale-95 disabled:opacity-60"
+              className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white transition-all hover:opacity-90 active:scale-95 disabled:opacity-60"
               style={{ background: '#25d366' }}>
-              {sharingBusy
-                ? <Loader2 className="w-4 h-4 animate-spin" />
-                : WA_ICON}
-              {sharingBusy ? 'Recording share…' : `Share with a friend (${shareCount}/${SHARES_NEEDED})`}
+              {sharingBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : WA_ICON}
+              {sharingBusy ? 'Recording…' : `Share on WhatsApp (${shareCount}/${SHARES_NEEDED})`}
             </button>
           </div>
+        )}
 
-          {/* OR divider */}
-          <div className="flex items-center gap-3 my-3">
-            <div className="flex-1 h-px" style={{ background: 'rgba(255,255,255,0.06)' }} />
-            <span className="text-xs text-slate-600 font-medium">OR</span>
-            <div className="flex-1 h-px" style={{ background: 'rgba(255,255,255,0.06)' }} />
+        {/* Organic share when already unlocked via WhatsApp */}
+        {isUnlocked && !justUnlocked && (
+          <div className="mt-5 pt-4" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+            <div className="flex items-center gap-2 mb-3">
+              <Share2 className="w-4 h-4 text-slate-500" />
+              <span className="text-sm font-medium text-slate-300">Share your result</span>
+              {beforeScore !== undefined && (
+                <span className="text-xs text-slate-500">
+                  {beforeScore} → <span className="text-green-400 font-semibold">{afterScore}</span> ATS
+                </span>
+              )}
+            </div>
+            <button onClick={() => window.open(`https://wa.me/?text=${encodeURIComponent(whatsappMsg)}`, '_blank')}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white transition-all hover:opacity-90 active:scale-95"
+              style={{ background: '#25d366' }}>
+              {WA_ICON}
+              Share on WhatsApp
+            </button>
           </div>
+        )}
 
-          {/* Option B — Pay ₹49 */}
-          <a href="/pricing"
-            className="flex items-center justify-between gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-white transition-all hover:opacity-90 active:scale-[0.98]"
-            style={{ background: 'linear-gradient(135deg, #7c3aed, #3b82f6)' }}>
-            <span className="flex items-center gap-2">
-              <Download className="w-4 h-4" />
-              Pay ₹49 — Unlock Downloads
-            </span>
-            <span className="text-xs font-normal opacity-75">one-time</span>
-          </a>
-        </div>
-      )}
-
-      {/* ── Success: just reached 5 shares ── */}
-      {showUnlock && isUnlocked && (
-        <div className="mt-4 rounded-xl p-4 flex items-center gap-3"
-          style={{ background: 'rgba(37,211,102,0.08)', border: '1px solid rgba(37,211,102,0.25)' }}>
-          <CheckCircle2 className="w-5 h-5 text-green-400 shrink-0" />
-          <div>
-            <p className="text-sm font-semibold text-green-400">
-              {justUnlocked ? '🎉 Download unlocked! Thank you for sharing.' : 'Download unlocked via sharing.'}
-            </p>
-            <p className="text-xs text-slate-400 mt-0.5">Click Download PDF or DOCX above.</p>
-          </div>
-        </div>
-      )}
-
-      {/* ── Always-visible organic share strip ── */}
-      {!showUnlock && (
-        <div className="mt-5 pt-4 border-t border-white/[0.06]">
-          <div className="flex items-center gap-2 mb-3">
-            <Share2 className="w-4 h-4 text-slate-500" />
-            <span className="text-sm font-medium text-slate-300">Share your result</span>
-            {beforeScore !== undefined && (
-              <span className="text-xs text-slate-500">
-                {beforeScore} → <span className="text-green-400 font-semibold">{afterScore}</span> ATS
-              </span>
-            )}
-          </div>
-          <button onClick={openWhatsAppOrganic}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white transition-all hover:opacity-90 hover:scale-105 active:scale-95"
-            style={{ background: '#25d366' }}>
-            {WA_ICON}
-            Share on WhatsApp
-          </button>
-        </div>
-      )}
-
-      <p className="text-xs text-slate-600 mt-4">
-        Free plan: optimize unlimited · download free by sharing 5× or ₹49 one-time
-      </p>
-    </div>
+        <p className="text-xs text-slate-600 mt-4">
+          Free plan: optimize unlimited · download by sharing 5× or subscribing
+        </p>
+      </div>
+    </>
   );
 }

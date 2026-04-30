@@ -28,13 +28,12 @@ const plans = [
   {
     id: 'starter',
     name: 'Starter',
-    price: { monthly: '₹49', yearly: '₹49' },
+    price: { monthly: '₹99', yearly: '₹99' },
     period: { monthly: 'one-time', yearly: 'one-time' },
     badge: 'No subscription',
-    cta: 'Buy ₹49',
+    cta: 'Buy ₹99',
     ctaHref: null,
     highlight: false,
-    urgency: '🔥 Limited offer — ₹49 only',
     features: [
       'Everything in Free',
       '1 resume download (PDF + DOCX)',
@@ -46,18 +45,18 @@ const plans = [
   {
     id: 'pro',
     name: 'Pro',
-    price: { monthly: '₹166', yearly: '₹1,990' },
+    price: { monthly: '₹199', yearly: '₹1,990' },
     period: { monthly: '/mo', yearly: '/yr' },
     badge: 'Most Popular',
-    cta: 'Subscribe — Yearly',
+    cta: 'Subscribe',
     ctaHref: null,
     highlight: true,
-    yearlyNote: '₹1,990/yr charged annually',
+    yearlyNote: '₹1,990/yr charged annually · 2 months free',
     features: [
       '20 resume improvements / month',
       'Unlimited PDF + DOCX downloads',
       '5 cover letters / month',
-      'Skills learning roadmap (lifetime)',
+      'Skills learning roadmap (15/month)',
       'Build up to 20 resumes from scratch',
       'AI resume builder',
       'Import resume via AI',
@@ -68,21 +67,21 @@ const plans = [
   {
     id: 'power',
     name: 'Power',
-    price: { monthly: '₹332', yearly: '₹3,990' },
+    price: { monthly: '₹399', yearly: '₹3,990' },
     period: { monthly: '/mo', yearly: '/yr' },
-    cta: 'Subscribe — Yearly',
+    cta: 'Subscribe',
     ctaHref: null,
     highlight: false,
-    yearlyNote: '₹3,990/yr charged annually',
+    yearlyNote: '₹3,990/yr charged annually · 2 months free',
     features: [
       '80 resume improvements / month',
       'Unlimited PDF + DOCX downloads',
       '15 cover letters / month',
       '60 skill roadmaps / month',
-      'Build unlimited resumes',
+      'Build unlimited resumes from scratch',
       'AI resume builder',
       'Import resume via AI',
-      'Edit resume before downloading',
+      'Edit resume & cover letter before download',
       'Optimization history (6-month retention)',
       'Priority support',
     ],
@@ -103,7 +102,7 @@ const teamFeatures = [
 
 const faqs = [
   { q: 'Can I see my results before paying?', a: 'Yes — the full ATS analysis, keyword matching, and resume preview are always free. You only pay to download the PDF or DOCX file.' },
-  { q: 'What is the Starter plan?', a: '₹49 is a one-time purchase that gives you 1 download credit. No subscription, no recurring charges. Perfect if you only need it once.' },
+  { q: 'What is the Starter plan?', a: '₹99 is a one-time purchase that gives you 1 resume download and 1 cover letter download. No subscription, no recurring charges. Perfect if you only need it once.' },
   { q: 'Is my payment secure?', a: 'Yes. Payments are processed by Razorpay — PCI-DSS compliant. We never store your card details. Your data is encrypted end-to-end.' },
   { q: 'What counts as a "skill roadmap"?', a: 'Each skill you select and generate a learning plan for counts as 1 roadmap. Pro users get 15 per month, Power users get 60 per month.' },
   { q: 'Can I cancel my subscription?', a: 'Yes, anytime. Your plan stays active until the end of the billing period, then you return to the free tier. No pro-rated refunds for unused time.' },
@@ -151,9 +150,6 @@ function CheckoutModal({
               <span className="font-bold text-white">HireWin</span>
             </div>
             <h2 className="text-xl font-extrabold text-white">{plan.name} Plan</h2>
-            {plan.urgency && (
-              <span className="inline-block text-xs font-semibold text-orange-400 mt-1">{plan.urgency}</span>
-            )}
           </div>
           <button onClick={onClose} className="text-slate-500 hover:text-slate-300 transition-colors p-1">
             <X className="w-5 h-5" />
@@ -437,9 +433,6 @@ export default function PricingPage() {
                 </div>
                 {yearly && plan.yearlyNote && (
                   <div className="text-xs text-slate-600 mt-1">{plan.yearlyNote}</div>
-                )}
-                {plan.urgency && (
-                  <div className="text-xs text-orange-400 font-semibold mt-1">{plan.urgency}</div>
                 )}
               </div>
 

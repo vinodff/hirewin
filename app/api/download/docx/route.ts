@@ -18,6 +18,10 @@ export async function POST(req: NextRequest) {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
+    if (!user) {
+      return NextResponse.json({ error: 'Sign in required' }, { status: 401 });
+    }
+
     if (user) {
       await supabase.rpc('reset_monthly_usage_if_needed', { profile_id: user.id });
       const { data: profile } = await supabase
