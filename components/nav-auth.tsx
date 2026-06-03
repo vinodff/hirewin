@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { LogOut, User as UserIcon, Shield } from 'lucide-react';
 import type { User } from '@supabase/supabase-js';
@@ -14,20 +15,32 @@ export default function NavAuth() {
 
   useEffect(() => {
     const supabase = createClient();
+    let cancelled = false;
 
-    supabase.auth.getUser().then(({ data }) => {
-      setUser(data.user);
-      setLoading(false);
-      if (data.user) {
-        fetch('/api/auth/is-admin').then((r) => r.json()).then(({ isAdmin }) => setIsAdmin(!!isAdmin)).catch(() => {});
-      }
-    });
+    const timeout = new Promise<{ data: { user: null } }>((resolve) =>
+      setTimeout(() => resolve({ data: { user: null } }), 4000)
+    );
+
+    Promise.race([supabase.auth.getUser(), timeout])
+      .then(({ data }) => {
+        if (cancelled) return;
+        setUser(data.user);
+        setLoading(false);
+        if (data.user) {
+          fetch('/api/auth/is-admin').then((r) => r.json()).then(({ isAdmin }) => setIsAdmin(!!isAdmin)).catch(() => {});
+        }
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setUser(null);
+        setLoading(false);
+      });
 
     const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
     });
 
-    return () => sub.subscription.unsubscribe();
+    return () => { cancelled = true; sub.subscription.unsubscribe(); };
   }, []);
 
   useEffect(() => {
@@ -54,13 +67,13 @@ export default function NavAuth() {
 
   if (!user) {
     return (
-      <a
+      <Link
         href="/auth/login"
         className="text-sm font-semibold px-3 py-1.5 rounded-lg text-white transition-all hover:opacity-90"
         style={{ background: 'linear-gradient(135deg, #7c3aed, #3b82f6)' }}
       >
         Sign in
-      </a>
+      </Link>
     );
   }
 
@@ -94,21 +107,23 @@ export default function NavAuth() {
           style={{ background: '#0f1629', border: '1px solid rgba(255,255,255,0.08)', boxShadow: '0 10px 30px rgba(0,0,0,0.5)' }}
         >
           <div className="px-3 py-2 text-xs text-slate-500 border-b border-white/5 mb-1 truncate">{user.email}</div>
-          <a
+          <Link
             href="/history"
             className="flex items-center gap-2 px-3 py-2 text-sm text-slate-300 hover:bg-white/5 rounded-lg transition-colors"
+            onClick={() => setMenuOpen(false)}
           >
             <UserIcon className="w-4 h-4" />
             History
-          </a>
+          </Link>
           {isAdmin && (
-            <a
+            <Link
               href="/admin"
               className="flex items-center gap-2 px-3 py-2 text-sm text-purple-300 hover:bg-purple-500/10 rounded-lg transition-colors"
+              onClick={() => setMenuOpen(false)}
             >
               <Shield className="w-4 h-4" />
               Admin
-            </a>
+            </Link>
           )}
           <button
             onClick={signOut}

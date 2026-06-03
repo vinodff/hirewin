@@ -66,6 +66,5 @@ export async function generateDocx(resumeText: string): Promise<Buffer> {
     ],
   });
 
-  const buffer = await Packer.toBuffer(doc);
-  return Buffer.from(buffer);
+  return Packer.toBuffer(doc);
 }

@@ -1,6 +1,7 @@
 'use client';
 
 import { useReducer, useRef, useState, useCallback, useEffect } from 'react';
+import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import {
   Upload, Link as LinkIcon, FileText, Loader2, Copy, Check,
@@ -15,7 +16,9 @@ const KeywordChips = dynamic(() => import('@/components/keyword-chips'), { ssr: 
 const SkillGapList = dynamic(() => import('@/components/skill-gap-list'), { ssr: false });
 const BeforeAfter = dynamic(() => import('@/components/before-after'), { ssr: false });
 const DownloadButtons = dynamic(() => import('@/components/download-buttons'), { ssr: false });
-const InterviewQA = dynamic(() => import('@/components/interview-qa'), { ssr: false });
+const VoiceInterview = dynamic(() => import('@/components/voice-interview'), { ssr: false });
+const TrustPanel = dynamic(() => import('@/components/trust-panel'), { ssr: false });
+const SelfDescription = dynamic(() => import('@/components/self-description'), { ssr: false });
 
 type Step = 'input' | 'analyzing' | 'results';
 
@@ -133,7 +136,9 @@ const INSTRUCTION_HINTS = [
 export default function AnalyzePage() {
   const [state, dispatch] = useReducer(reducer, initial);
   const abortRef = useRef<AbortController | null>(null);
-  const sessionHash = typeof window !== 'undefined' ? getSessionHash() : '';
+  // sessionHash reads localStorage — defer to effect to avoid SSR/CSR hydration mismatch.
+  const [sessionHash, setSessionHash] = useState('');
+  useEffect(() => { setSessionHash(getSessionHash()); }, []);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleResumeUpdate = useCallback((text: string) => {
@@ -539,11 +544,11 @@ export default function AnalyzePage() {
               </div>
               <div className="flex items-center gap-2 flex-wrap">
                 {versionId && (
-                  <a href="/history"
+                  <Link href="/history"
                     className="flex items-center gap-1.5 text-sm font-medium px-4 py-2.5 rounded-xl text-slate-300 transition-all hover:text-white shrink-0"
                     style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
                     <Briefcase className="w-4 h-4" />Track Application
-                  </a>
+                  </Link>
                 )}
                 <button onClick={() => dispatch({ type: 'RESET' })}
                   className="text-sm font-semibold px-4 py-2.5 rounded-xl text-white transition-all hover:opacity-90 shrink-0"
@@ -555,6 +560,13 @@ export default function AnalyzePage() {
 
             {/* Score Hero — most impactful element */}
             <ScoreHero atsScore={result.atsScore} jobFitScore={result.jobFitScore} />
+
+            {/* Trust & Evidence — HireWin's differentiator */}
+            <TrustPanel
+              trustScore={result.trustScore}
+              skillEvidence={result.skillEvidence}
+              interviewRisks={result.interviewRisks}
+            />
 
             {/* Keyword coverage */}
             <KeywordChips matched={result.keywordsMatched} missing={result.keywordsMissing} />
@@ -586,8 +598,16 @@ export default function AnalyzePage() {
               jdText={state.jdText}
             />
 
-            {/* Interview prep */}
-            <InterviewQA
+            {/* Live voice mock interview */}
+            <VoiceInterview
+              resumeText={state.editedResume || result.optimizedResume}
+              role={result.role}
+              company={result.company}
+              jdText={state.jdText}
+            />
+
+            {/* Self-introduction generator */}
+            <SelfDescription
               resumeText={state.editedResume || result.optimizedResume}
               role={result.role}
               company={result.company}

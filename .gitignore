@@ -45,3 +45,4 @@ client_secret*.json
 *.csv
 .mcp.json
 .claude/
+.gstack/

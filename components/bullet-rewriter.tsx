@@ -63,7 +63,7 @@ function Row({ t, visible, idx }: { t: typeof TRANSFORMS[0]; visible: boolean; i
           </div>
           <div className="flex-1 text-sm text-slate-500 leading-relaxed italic"
             style={{
-              textDecoration: visible ? 'line-through' : 'none',
+              textDecorationLine: visible ? 'line-through' : 'none',
               textDecorationColor: 'rgba(248,113,113,0.5)',
               transition: `text-decoration 0.5s ease ${delay + 400}ms`,
             }}>

@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Download, Loader2, Palette, Share2, CheckCircle2 } from 'lucide-react';
+import { Download, Loader2, Palette, Share2, CheckCircle2, Gift, Sparkles, Lock, Crown } from 'lucide-react';
+import Link from 'next/link';
 import { trackEvent, getSessionHash } from '@/lib/analytics';
 import UnlockModal from '@/components/unlock-modal';
 
@@ -27,16 +28,27 @@ export default function DownloadButtons({ optimizedResume, versionId, template, 
   const [shareCount, setShareCount]     = useState(0);
   const [sharingBusy, setSharingBusy]   = useState(false);
   const [justUnlocked, setJustUnlocked] = useState(false);
+  const [downloadsLeft, setDownloadsLeft] = useState<number | null>(null); // null = loading, -1 = unlimited
+  const [planUnlimited, setPlanUnlimited] = useState(false);
+  const [signedIn, setSignedIn] = useState<boolean | null>(null);
 
   useEffect(() => {
-    const url = versionId ? `/api/share?versionId=${versionId}` : '/api/share?versionId=';
-    fetch(url)
+    if (!versionId) return;
+    fetch(`/api/share?versionId=${versionId}`)
       .then((r) => r.json())
-      .then((d) => { if (typeof d.shareCount === 'number') setShareCount(d.shareCount); })
+      .then((d) => {
+        if (typeof d.shareCount === 'number') setShareCount(d.shareCount);
+        if (typeof d.downloadsLeft === 'number') setDownloadsLeft(d.downloadsLeft);
+        if (typeof d.planUnlimited === 'boolean') setPlanUnlimited(d.planUnlimited);
+        if (typeof d.signedIn === 'boolean') setSignedIn(d.signedIn);
+      })
       .catch(() => {});
   }, [versionId]);
 
-  const isUnlocked = shareCount >= SHARES_NEEDED;
+  const sharesUnlocked = shareCount >= SHARES_NEEDED;
+  const hasFreeDownload = downloadsLeft !== null && downloadsLeft !== 0; // includes -1 (unlimited) and >0
+  const canDownload = planUnlimited || hasFreeDownload || sharesUnlocked;
+
   const siteUrl = 'https://hirewin.live';
   const afterScore = beforeScore !== undefined ? Math.min(beforeScore + 52, 95) : 87;
 
@@ -46,7 +58,7 @@ export default function DownloadButtons({ optimizedResume, versionId, template, 
       : `🚀 Just optimized my resume with HireWin AI — it tailors your resume to any job and boosts your ATS score instantly.\n\nFree to try 👉 ${siteUrl}`;
 
   async function handleShare() {
-    if (isUnlocked) return;
+    if (sharesUnlocked) return;
     setSharingBusy(true);
     try {
       const res = await fetch('/api/share', {
@@ -85,116 +97,200 @@ export default function DownloadButtons({ optimizedResume, versionId, template, 
       const a    = document.createElement('a');
       a.href     = url;
       a.download = `resume-${versionId?.slice(0, 8) ?? 'optimized'}.${format}`;
+      document.body.appendChild(a);
       a.click();
-      URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
       trackEvent(format === 'pdf' ? 'download_pdf' : 'download_docx', {}, getSessionHash());
       setShowUnlock(false);
+      // optimistic: decrement free downloads after success (server is authoritative)
+      if (!planUnlimited && downloadsLeft !== null && downloadsLeft > 0) {
+        setDownloadsLeft(downloadsLeft - 1);
+      }
     } catch { /* silently handle */ }
     setLoading(false);
   }
 
   const remaining = SHARES_NEEDED - shareCount;
+  const showFreeBanner = signedIn === true && !planUnlimited && downloadsLeft !== null && downloadsLeft > 0 && !sharesUnlocked;
+  const showSignInPrompt = signedIn === false;
 
   return (
     <>
-      {showUnlock && !isUnlocked && (
+      {showUnlock && !sharesUnlocked && (
         <UnlockModal onClose={() => setShowUnlock(false)} onPaid={() => setShowUnlock(false)} />
       )}
 
-      <div className="rounded-2xl p-6" style={{ background: '#0f1629', border: '1px solid rgba(255,255,255,0.07)' }}>
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold text-white">Download Optimized Resume</h3>
-          {template && template !== 'classic' && (
-            <span className="flex items-center gap-1.5 text-xs font-medium px-2 py-0.5 rounded-md"
-              style={{ background: 'rgba(124,58,237,0.12)', color: '#c4b5fd', border: '1px solid rgba(124,58,237,0.25)' }}>
-              <Palette className="w-3 h-3" />
-              {template.charAt(0).toUpperCase() + template.slice(1)}
-            </span>
-          )}
-        </div>
+      <div className="relative rounded-2xl overflow-hidden"
+        style={{
+          background: 'linear-gradient(160deg, #0f1629, #0a1020)',
+          border: '1px solid rgba(255,255,255,0.07)',
+          boxShadow: '0 20px 50px -15px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05)',
+        }}>
 
-        {/* Download buttons */}
-        <div className="flex flex-col sm:flex-row gap-3">
-          <button onClick={() => download('pdf')} disabled={pdfLoading}
-            className="flex-1 flex items-center justify-center gap-2 py-3.5 sm:py-3 rounded-xl font-semibold text-white transition-all hover:opacity-90 active:scale-[0.98] disabled:opacity-40"
-            style={{ background: 'linear-gradient(135deg, #7c3aed, #3b82f6)' }}>
-            {pdfLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-            Download PDF
-          </button>
-          <button onClick={() => download('docx')} disabled={docxLoading}
-            className="flex-1 flex items-center justify-center gap-2 py-3.5 sm:py-3 rounded-xl font-medium text-slate-300 hover:text-white transition-all active:scale-[0.98] disabled:opacity-40"
-            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
-            {docxLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-            Download DOCX
-          </button>
-        </div>
-
-        {/* Share-unlock success */}
-        {isUnlocked && justUnlocked && (
-          <div className="mt-4 rounded-xl p-4 flex items-center gap-3"
-            style={{ background: 'rgba(37,211,102,0.08)', border: '1px solid rgba(37,211,102,0.25)' }}>
-            <CheckCircle2 className="w-5 h-5 text-green-400 shrink-0" />
-            <div>
-              <p className="text-sm font-semibold text-green-400">🎉 Download unlocked! Thank you for sharing.</p>
-              <p className="text-xs text-slate-400 mt-0.5">Click Download PDF or DOCX above.</p>
-            </div>
-          </div>
+        {/* Top accent stripe */}
+        {canDownload && (
+          <div className="absolute top-0 inset-x-0 h-px"
+            style={{ background: 'linear-gradient(90deg, transparent, rgba(124,58,237,0.6), rgba(59,130,246,0.6), transparent)' }} />
         )}
 
-        {/* WhatsApp share-to-unlock strip (only when not yet unlocked) */}
-        {!isUnlocked && (
-          <div className="mt-5 pt-4" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-            <div className="flex items-center gap-2 mb-2">
-              <Share2 className="w-4 h-4 text-slate-500" />
-              <span className="text-sm font-medium text-slate-400">Or unlock free by sharing</span>
-              <span className="text-xs font-bold ml-auto" style={{ color: shareCount > 0 ? '#25d366' : '#475569' }}>
-                {shareCount}/{SHARES_NEEDED}
-              </span>
-            </div>
-            <div className="flex gap-1.5 mb-3">
-              {Array.from({ length: SHARES_NEEDED }).map((_, i) => (
-                <div key={i} className="flex-1 h-1.5 rounded-full transition-all duration-500"
-                  style={{ background: i < shareCount ? '#25d366' : 'rgba(255,255,255,0.08)', boxShadow: i < shareCount ? '0 0 6px #25d36660' : 'none' }} />
-              ))}
-            </div>
-            <p className="text-xs text-slate-500 mb-3">
-              {remaining > 0
-                ? `Share with ${remaining} more friend${remaining !== 1 ? 's' : ''} on WhatsApp to unlock free download.`
-                : '✅ All shares done! Click Download above.'}
-            </p>
-            <button onClick={handleShare} disabled={sharingBusy}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white transition-all hover:opacity-90 active:scale-95 disabled:opacity-60"
-              style={{ background: '#25d366' }}>
-              {sharingBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : WA_ICON}
-              {sharingBusy ? 'Recording…' : `Share on WhatsApp (${shareCount}/${SHARES_NEEDED})`}
-            </button>
-          </div>
-        )}
-
-        {/* Organic share when already unlocked via WhatsApp */}
-        {isUnlocked && !justUnlocked && (
-          <div className="mt-5 pt-4" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-            <div className="flex items-center gap-2 mb-3">
-              <Share2 className="w-4 h-4 text-slate-500" />
-              <span className="text-sm font-medium text-slate-300">Share your result</span>
-              {beforeScore !== undefined && (
-                <span className="text-xs text-slate-500">
-                  {beforeScore} → <span className="text-green-400 font-semibold">{afterScore}</span> ATS
+        <div className="p-5 sm:p-6">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+            <div className="flex items-center gap-2">
+              <h3 className="font-bold text-white text-base sm:text-lg">Download your resume</h3>
+              {planUnlimited && (
+                <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md"
+                  style={{ background: 'rgba(251,191,36,0.12)', color: '#fbbf24', border: '1px solid rgba(251,191,36,0.3)' }}>
+                  <Crown className="w-3 h-3" />
+                  Unlimited
                 </span>
               )}
             </div>
-            <button onClick={() => window.open(`https://wa.me/?text=${encodeURIComponent(whatsappMsg)}`, '_blank')}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white transition-all hover:opacity-90 active:scale-95"
-              style={{ background: '#25d366' }}>
-              {WA_ICON}
-              Share on WhatsApp
+            {template && template !== 'classic' && (
+              <span className="flex items-center gap-1.5 text-xs font-medium px-2 py-0.5 rounded-md"
+                style={{ background: 'rgba(124,58,237,0.12)', color: '#c4b5fd', border: '1px solid rgba(124,58,237,0.25)' }}>
+                <Palette className="w-3 h-3" />
+                {template.charAt(0).toUpperCase() + template.slice(1)}
+              </span>
+            )}
+          </div>
+
+          {/* FREE DOWNLOAD BANNER — most prominent */}
+          {showFreeBanner && (
+            <div className="relative rounded-xl p-4 mb-5 overflow-hidden"
+              style={{
+                background: 'linear-gradient(135deg, rgba(124,58,237,0.15), rgba(59,130,246,0.12))',
+                border: '1px solid rgba(124,58,237,0.35)',
+              }}>
+              <div className="absolute -top-8 -right-8 w-24 h-24 rounded-full opacity-30 blur-2xl"
+                style={{ background: 'radial-gradient(circle, #a78bfa, transparent)' }} />
+              <div className="relative flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+                  style={{ background: 'rgba(124,58,237,0.25)', border: '1px solid rgba(124,58,237,0.4)' }}>
+                  <Gift className="w-5 h-5 text-purple-300" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-bold text-white flex items-center gap-1.5">
+                    1 free download ready
+                    <Sparkles className="w-3.5 h-3.5 text-purple-300" />
+                  </p>
+                  <p className="text-xs text-slate-400 mt-0.5">Use it now — no card needed, no strings attached.</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Just unlocked via shares */}
+          {sharesUnlocked && justUnlocked && (
+            <div className="rounded-xl p-4 mb-5 flex items-center gap-3"
+              style={{ background: 'rgba(37,211,102,0.1)', border: '1px solid rgba(37,211,102,0.3)' }}>
+              <CheckCircle2 className="w-5 h-5 text-green-400 shrink-0" />
+              <div>
+                <p className="text-sm font-bold text-green-300">Download unlocked. Thanks for sharing.</p>
+                <p className="text-xs text-slate-400 mt-0.5">Click PDF or DOCX below.</p>
+              </div>
+            </div>
+          )}
+
+          {/* Download buttons */}
+          <div className="flex flex-col sm:flex-row gap-3">
+            <button onClick={() => download('pdf')} disabled={pdfLoading || docxLoading}
+              className="group relative flex-1 flex items-center justify-center gap-2 py-3.5 sm:py-3 rounded-xl font-bold text-white transition-all hover:opacity-95 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden"
+              style={{
+                background: 'linear-gradient(135deg, #7c3aed, #3b82f6)',
+                boxShadow: canDownload ? '0 8px 24px -8px rgba(124,58,237,0.5)' : 'none',
+              }}>
+              {pdfLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+              <span>Download PDF</span>
+              {!canDownload && !pdfLoading && <Lock className="w-3.5 h-3.5 opacity-70" />}
+            </button>
+            <button onClick={() => download('docx')} disabled={pdfLoading || docxLoading}
+              className="flex-1 flex items-center justify-center gap-2 py-3.5 sm:py-3 rounded-xl font-semibold text-slate-300 hover:text-white transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}>
+              {docxLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+              <span>Download DOCX</span>
+              {!canDownload && !docxLoading && <Lock className="w-3.5 h-3.5 opacity-70" />}
             </button>
           </div>
-        )}
 
-        <p className="text-xs text-slate-600 mt-4">
-          Free plan: optimize unlimited · download by sharing 5× or subscribing
-        </p>
+          {/* Sign-in prompt for anonymous users */}
+          {showSignInPrompt && (
+            <div className="mt-4 rounded-xl p-3 flex items-center gap-2.5"
+              style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
+              <Lock className="w-4 h-4 text-slate-500 shrink-0" />
+              <p className="text-xs text-slate-400 flex-1">
+                <Link href="/auth/login" className="text-purple-400 font-semibold hover:underline">Sign in</Link>
+                {' '}to claim your free download.
+              </p>
+            </div>
+          )}
+
+          {/* Share-to-unlock — only shown when not unlocked & not freshly unlocked & signed in & no free download */}
+          {!sharesUnlocked && signedIn && (!showFreeBanner || downloadsLeft === 0) && (
+            <div className="mt-5 pt-5" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+              <div className="flex items-center gap-2 mb-3">
+                <Share2 className="w-4 h-4 text-slate-500" />
+                <span className="text-sm font-semibold text-slate-300">Or unlock more by sharing</span>
+                <span className="text-xs font-bold ml-auto tabular-nums" style={{ color: shareCount > 0 ? '#25d366' : '#64748b' }}>
+                  {shareCount}/{SHARES_NEEDED}
+                </span>
+              </div>
+
+              {/* Progress segments */}
+              <div className="flex gap-1.5 mb-3">
+                {Array.from({ length: SHARES_NEEDED }).map((_, i) => (
+                  <div key={i} className="flex-1 h-2 rounded-full transition-all duration-500"
+                    style={{
+                      background: i < shareCount ? '#25d366' : 'rgba(255,255,255,0.07)',
+                      boxShadow: i < shareCount ? '0 0 10px #25d36670, inset 0 1px 0 rgba(255,255,255,0.2)' : 'none',
+                    }} />
+                ))}
+              </div>
+
+              <p className="text-xs text-slate-500 mb-3 leading-relaxed">
+                {remaining > 0
+                  ? `Share with ${remaining} more friend${remaining !== 1 ? 's' : ''} on WhatsApp to unlock unlimited downloads.`
+                  : 'All shares done — click Download above.'}
+              </p>
+
+              <button onClick={handleShare} disabled={sharingBusy}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-bold text-white transition-all hover:opacity-95 active:scale-95 disabled:opacity-60"
+                style={{ background: '#25d366', boxShadow: '0 4px 14px -4px rgba(37,211,102,0.5)' }}>
+                {sharingBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : WA_ICON}
+                {sharingBusy ? 'Recording…' : `Share on WhatsApp (${shareCount}/${SHARES_NEEDED})`}
+              </button>
+            </div>
+          )}
+
+          {/* Organic share when shares-unlocked */}
+          {sharesUnlocked && !justUnlocked && (
+            <div className="mt-5 pt-5" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+              <div className="flex items-center gap-2 mb-3 flex-wrap">
+                <Share2 className="w-4 h-4 text-slate-500" />
+                <span className="text-sm font-medium text-slate-300">Share your win</span>
+                {beforeScore !== undefined && (
+                  <span className="text-xs text-slate-500">
+                    {beforeScore} → <span className="text-green-400 font-semibold">{afterScore}</span> ATS
+                  </span>
+                )}
+              </div>
+              <button onClick={() => window.open(`https://wa.me/?text=${encodeURIComponent(whatsappMsg)}`, '_blank')}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-bold text-white transition-all hover:opacity-95 active:scale-95"
+                style={{ background: '#25d366', boxShadow: '0 4px 14px -4px rgba(37,211,102,0.5)' }}>
+                {WA_ICON}
+                Share on WhatsApp
+              </button>
+            </div>
+          )}
+
+          {/* Footer plan note */}
+          <p className="text-[11px] text-slate-600 mt-5 leading-relaxed">
+            {planUnlimited
+              ? 'Unlimited downloads on your current plan.'
+              : 'Free plan: optimize unlimited · 1 free download · then share 5× or upgrade'}
+          </p>
+        </div>
       </div>
     </>
   );

@@ -182,10 +182,12 @@ function JobCard({ v, index, onStatusChange, onDelete, onNoteChange }: {
   const cfg = STATUS_CFG[status];
   const initial = (v.company?.[0] ?? v.role?.[0] ?? '?').toUpperCase();
 
+  // Animate-in on mount only — don't re-flicker when filtering/searching changes the index.
   useEffect(() => {
     const t = setTimeout(() => setVis(true), index * 50);
     return () => clearTimeout(t);
-  }, [index]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div className="rounded-2xl overflow-hidden"
@@ -334,7 +336,8 @@ export default function HistoryPage() {
 
   async function del(id: string) {
     if (!confirm('Delete this entry?')) return;
-    await fetch('/api/history', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) });
+    const res = await fetch('/api/history', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) });
+    if (!res.ok) { setError('Failed to delete entry.'); return; }
     setVersions(vs => vs.filter(x => x.id !== id));
   }
 

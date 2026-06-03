@@ -23,8 +23,12 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  // Refresh session if expired
-  await supabase.auth.getUser();
+  // Refresh session if expired — race against a 3s timeout so if Supabase
+  // is unreachable, the request still completes instead of hanging.
+  await Promise.race([
+    supabase.auth.getUser().catch(() => null),
+    new Promise((resolve) => setTimeout(resolve, 3000)),
+  ]);
 
   return supabaseResponse;
 }

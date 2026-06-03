@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Copy, Check, FileText, Pencil, Eye, ArrowLeftRight } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import type { TemplateName } from './template-selector';
@@ -27,6 +27,12 @@ export default function BeforeAfter({ original, optimized, atsScore, jobFitScore
   const [template, setTemplate] = useState<TemplateName>('classic');
   const [hasEdits, setHasEdits] = useState(false);
   const [mobileTab, setMobileTab] = useState<'original' | 'optimized'>('optimized');
+
+  // Sync editedText when the optimized prop changes (e.g., user runs a new analysis).
+  // Skip if the user has unsaved edits so we don't clobber their work.
+  useEffect(() => {
+    if (!hasEdits) setEditedText(optimized);
+  }, [optimized, hasEdits]);
 
   function copy() {
     navigator.clipboard.writeText(editedText);

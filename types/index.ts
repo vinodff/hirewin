@@ -152,19 +152,35 @@ export type SkillGap = {
   reason: string;
 };
 
+export type EvidenceConfidence = 'high' | 'medium' | 'low' | 'claimed_only';
+
+export type SkillEvidence = {
+  skill: string;
+  evidence: string;
+  confidence: EvidenceConfidence;
+};
+
+export type InterviewRisk = {
+  skill: string;
+  reason: string;
+};
+
 export type AnalysisResult = {
   atsScore: number;
   jobFitScore: number;
+  trustScore?: number;
   careerLevel: CareerLevel;
   keywordsMatched: string[];
   keywordsMissing: string[];
   skillGaps: SkillGap[];
+  skillEvidence?: SkillEvidence[];
+  interviewRisks?: InterviewRisk[];
   company: string;
   role: string;
   companyType: CompanyType;
   optimizedResume: string;
-  outreachEmail: string;
-  outreachLinkedIn: string;
+  outreachEmail?: string;
+  outreachLinkedIn?: string;
 };
 
 export type ResumeVersion = {
@@ -182,8 +198,8 @@ export type ResumeVersion = {
   keywords_matched: string[];
   keywords_missing: string[];
   skill_gaps: SkillGap[];
-  outreach_email: string;
-  outreach_linkedin: string;
+  outreach_email: string | null;
+  outreach_linkedin: string | null;
   application_status: ApplicationStatus;
   applied_at: string | null;
   responded_at: string | null;
@@ -244,7 +260,7 @@ export type PlanLimits = {
 };
 
 export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
-  free: { improvements: 2, roadmaps: 1, downloads: 0, historyMonths: 1, deepEvals: 0, scansPerMonth: 0 },
+  free: { improvements: 2, roadmaps: 1, downloads: 1, historyMonths: 1, deepEvals: 0, scansPerMonth: 0 },
   starter: { improvements: 2, roadmaps: 1, downloads: 1, historyMonths: 1, deepEvals: 0, scansPerMonth: 0 },
   pro: { improvements: 20, roadmaps: 15, downloads: Infinity, historyMonths: 3, deepEvals: 10, scansPerMonth: 30 },
   power: { improvements: 80, roadmaps: 60, downloads: Infinity, historyMonths: 6, deepEvals: 40, scansPerMonth: 100 },

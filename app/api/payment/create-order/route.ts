@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { PLAN_PRICES } from '@/lib/usage';
+import { checkRateLimit } from '@/lib/rate-limit';
+
+const VALID_PLANS = new Set(['starter', 'pro', 'power']);
 
 export async function POST(req: NextRequest) {
   if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
@@ -8,12 +11,24 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const { plan, isYearly } = await req.json();
-
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       return NextResponse.json({ error: 'Sign in required to purchase' }, { status: 401 });
+    }
+
+    // Rate limit: prevent order-creation spam (can rack up Razorpay API calls + DB writes)
+    const { success } = await checkRateLimit(`create-order:${user.id}`);
+    if (!success) {
+      return NextResponse.json({ error: 'Too many checkout attempts. Try again in an hour.' }, { status: 429 });
+    }
+
+    const body = await req.json();
+    const plan = typeof body?.plan === 'string' ? body.plan : '';
+    const isYearly = body?.isYearly === true; // strict boolean check — reject string "true"
+
+    if (!VALID_PLANS.has(plan)) {
+      return NextResponse.json({ error: 'Invalid plan' }, { status: 400 });
     }
 
     // Calculate amount
@@ -24,8 +39,10 @@ export async function POST(req: NextRequest) {
       amountPaise = isYearly ? PLAN_PRICES.pro.yearly_paise : PLAN_PRICES.pro.monthly_paise;
     } else if (plan === 'power') {
       amountPaise = isYearly ? PLAN_PRICES.power.yearly_paise : PLAN_PRICES.power.monthly_paise;
-    } else {
-      return NextResponse.json({ error: 'Invalid plan' }, { status: 400 });
+    }
+
+    if (!amountPaise || amountPaise <= 0) {
+      return NextResponse.json({ error: 'Invalid plan amount' }, { status: 400 });
     }
 
     // Create Razorpay order

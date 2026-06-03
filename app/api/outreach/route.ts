@@ -1,12 +1,35 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAnthropicClient, MODEL_NAME } from '@/lib/anthropic';
+import { createClient } from '@/lib/supabase/server';
+import { checkRateLimit } from '@/lib/rate-limit';
+
+export const maxDuration = 30;
+
+const MAX_RESUME_CHARS = 20_000;
+const MAX_JD_CHARS = 10_000;
 
 export async function POST(req: NextRequest) {
   try {
+    // --- Auth ---
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return NextResponse.json({ error: 'Sign in required' }, { status: 401 });
+
+    // --- Rate limit ---
+    const { success } = await checkRateLimit(`outreach:${user.id}`);
+    if (!success) return NextResponse.json({ error: 'Too many requests. Try again in an hour.' }, { status: 429 });
+
     const { optimizedResume, role, company, jdText } = await req.json();
 
-    if (!optimizedResume || !role) {
+    // --- Validation ---
+    if (typeof optimizedResume !== 'string' || typeof role !== 'string' || !optimizedResume.trim() || !role.trim()) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    }
+    if (optimizedResume.length > MAX_RESUME_CHARS) {
+      return NextResponse.json({ error: 'Resume too long' }, { status: 413 });
+    }
+    if (typeof jdText === 'string' && jdText.length > MAX_JD_CHARS) {
+      return NextResponse.json({ error: 'Job description too long' }, { status: 413 });
     }
 
     const prompt = `You are an expert job application coach. Based on the candidate's resume and the job details below, write two short outreach messages.
@@ -32,9 +55,17 @@ Return ONLY the JSON. No markdown, no explanation.`;
       messages: [{ role: 'user', content: prompt }],
     });
 
-    const raw = message.content[0].type === 'text' ? message.content[0].text.trim() : '';
+    const firstBlock = message.content?.[0];
+    const raw = firstBlock?.type === 'text' ? firstBlock.text.trim() : '';
+    if (!raw) return NextResponse.json({ error: 'Empty response from AI' }, { status: 500 });
+
     const jsonStr = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
-    const parsed = JSON.parse(jsonStr);
+    let parsed: { email?: string; linkedin?: string };
+    try {
+      parsed = JSON.parse(jsonStr);
+    } catch {
+      return NextResponse.json({ error: 'AI returned malformed response' }, { status: 500 });
+    }
 
     return NextResponse.json({ email: parsed.email ?? '', linkedin: parsed.linkedin ?? '' });
   } catch (err) {

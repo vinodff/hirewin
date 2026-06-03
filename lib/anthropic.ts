@@ -28,13 +28,27 @@ const SkillGapSchema = z.object({
   reason: z.string(),
 });
 
+const SkillEvidenceSchema = z.object({
+  skill: z.string(),
+  evidence: z.string(),
+  confidence: z.enum(['high', 'medium', 'low', 'claimed_only']),
+});
+
+const InterviewRiskSchema = z.object({
+  skill: z.string(),
+  reason: z.string(),
+});
+
 export const AnalysisResultSchema = z.object({
   atsScore: z.number().min(0).max(100),
   jobFitScore: z.number().min(0).max(100),
+  trustScore: z.number().min(0).max(100).optional(),
   careerLevel: z.enum(['Junior', 'Mid', 'Senior', 'Executive']),
   keywordsMatched: z.array(z.string()),
   keywordsMissing: z.array(z.string()),
   skillGaps: z.array(SkillGapSchema),
+  skillEvidence: z.array(SkillEvidenceSchema).optional(),
+  interviewRisks: z.array(InterviewRiskSchema).optional(),
   company: z.string(),
   role: z.string(),
   companyType: z.enum(['startup', 'enterprise', 'faang', 'agency', 'nonprofit']),
@@ -67,11 +81,19 @@ ${JSON_SCHEMA}
 OUTPUT RULES:
 - Return ONLY the JSON object. No markdown code fences, no explanation text, no preamble.
 - Output fields in this exact order for progressive rendering:
-  atsScore -> jobFitScore -> careerLevel -> keywordsMatched -> keywordsMissing -> skillGaps -> company -> role -> companyType -> optimizedResume
+  atsScore -> jobFitScore -> trustScore -> careerLevel -> keywordsMatched -> keywordsMissing -> skillGaps -> skillEvidence -> interviewRisks -> company -> role -> companyType -> optimizedResume
 
 FIELD DEFINITIONS:
 - atsScore: 0-100. Score the ORIGINAL resume against the JD. Be honest — most unoptimized resumes score 20-50%.
 - jobFitScore: 0-100. How well candidate's actual experience matches role requirements.
+- trustScore: 0-100. Score the OPTIMIZED resume on how well its claims are backed by the original resume. 100 = every skill and claim is directly supported by the original. Lower the score for: skills added without project/coursework basis, inflated language, generic claims with no evidence. Be strict — a resume that adds "AWS" or "React" without proof should score below 70.
+- skillEvidence: Map EVERY key technical skill in the optimized resume to its evidence in the ORIGINAL resume. Format: { skill, evidence, confidence }. Confidence levels:
+    high = built a project / used in internship / production work in original
+    medium = coursework or academic project in original
+    low = brief mention or implicit only in original
+    claimed_only = listed as a skill but no project/coursework supports it (this is risky — flag honestly)
+  Include 5-12 of the most important skills for this JD. This is the trust layer — be honest.
+- interviewRisks: 0-5 entries. Skills or claims in the optimized resume that a recruiter could probe in interview where the candidate may struggle (e.g., listed React but no React project; mentioned AWS but only coursework). Each: { skill, reason } — reason should be one sentence explaining why this is a risk.
 - careerLevel: Infer from years of experience and seniority. Students/freshers = Junior.
 - keywordsMatched: Important JD keywords found in the original resume (max 15).
 - keywordsMissing: Important JD keywords NOT in the original resume (max 15).
@@ -160,8 +182,22 @@ export type AnalysisStream = {
 
 export async function streamAnalysis(
   resumeText: string,
-  jobDescription: string
+  jobDescription: string,
+  options?: { instructions?: string; resumeLength?: string }
 ): Promise<AnalysisStream> {
+  const instructionBlock = options?.instructions
+    ? `\n\nCANDIDATE NOTES (incorporate these into the optimized resume):\n${options.instructions}`
+    : '';
+
+  const lengthBlock = options?.resumeLength && options.resumeLength !== 'auto'
+    ? `\n\nRESUME LENGTH PREFERENCE: ${
+        options.resumeLength === '1page' ? 'Target exactly 1 page (350-500 words max)' :
+        options.resumeLength === '2page' ? 'Target 1-2 pages (up to 800 words)' :
+        options.resumeLength === 'academic' ? 'Academic CV format — include all publications, coursework, and research; length not restricted' :
+        ''
+      }`
+    : '';
+
   const stream = await getAnthropicClient().messages.create({
     model: MODEL_NAME,
     max_tokens: 8192,
@@ -169,7 +205,7 @@ export async function streamAnalysis(
     messages: [
       {
         role: 'user',
-        content: `Resume:\n${resumeText}\n\nJob Description:\n${jobDescription}`,
+        content: `Resume:\n${resumeText}\n\nJob Description:\n${jobDescription}${instructionBlock}${lengthBlock}`,
       },
     ],
     stream: true,

@@ -41,8 +41,9 @@ export async function generatePdf(resumeText: string, name?: string): Promise<Bu
         continue;
       }
 
-      // Bold lines starting with known patterns (company names, job titles)
-      if (/^[A-Z][^a-z]{0,5}/.test(trimmed) && trimmed.length < 60) {
+      // Bold lines that look like "Company | Role | Date" or "Role at Company | Date"
+      // Use pipe or em-dash separator as the structural signal — avoids bolding bullet points
+      if (/[|–—]/.test(trimmed) && trimmed.length < 80) {
         doc.font('Helvetica-Bold').fontSize(10).text(trimmed);
       } else {
         doc.font('Helvetica').fontSize(10).text(trimmed, { lineGap: 1 });

@@ -21,17 +21,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
     }
 
+    // The HMAC signature IS the trust. We intentionally do NOT require a live session here —
+    // a user whose Supabase session expired mid-checkout would otherwise be charged but
+    // never plan-upgraded. The order row (created at checkout-start) holds the authoritative user_id.
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const sessionUserId = user?.id ?? null;
 
     const serviceSupabase = await createServiceClient();
 
     // Fetch the order — query by order_id only (signature already verified above, so order_id is trusted)
-    // Do NOT restrict by user_id to avoid edge cases where session user_id doesn't match the order creator
     const { data: order, error: orderFetchError } = await serviceSupabase
       .from('orders')
-      .select('plan, is_yearly, user_id')
+      .select('plan, is_yearly, user_id, status')
       .eq('razorpay_order_id', razorpay_order_id)
       .single();
 
@@ -40,14 +42,33 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Order not found' }, { status: 404 });
     }
 
-    // Use the order's user_id as the authoritative reference for the plan upgrade
-    const targetUserId = order.user_id || user.id;
+    // IDEMPOTENCY: if already paid, return success without re-touching the plan.
+    // Prevents replay of an old signature from downgrading a user who has since upgraded further.
+    if (order.status === 'paid') {
+      return NextResponse.json({ ok: true, plan: order.plan, alreadyProcessed: true });
+    }
 
-    // Mark order as paid
-    const { error: orderUpdateError } = await serviceSupabase
+    // Use the order's user_id as the authoritative reference for the plan upgrade.
+    // Falls back to the session user (if any) only when the order somehow lacks one.
+    const targetUserId = order.user_id || sessionUserId;
+    if (!targetUserId) {
+      console.error('[payment/verify] no user_id on order and no session', { razorpay_order_id });
+      return NextResponse.json({ error: 'Order has no associated user' }, { status: 500 });
+    }
+
+    // Mark order as paid — atomic conditional update guards against races.
+    // Only the request that flips status from 'created' → 'paid' proceeds to upgrade the plan.
+    const { data: claimed, error: orderUpdateError } = await serviceSupabase
       .from('orders')
       .update({ status: 'paid', razorpay_payment_id })
-      .eq('razorpay_order_id', razorpay_order_id);
+      .eq('razorpay_order_id', razorpay_order_id)
+      .eq('status', 'created')
+      .select('id');
+
+    if (!orderUpdateError && (!claimed || claimed.length === 0)) {
+      // Another concurrent request already claimed it — that one will upgrade the plan.
+      return NextResponse.json({ ok: true, plan: order.plan, alreadyProcessed: true });
+    }
 
     if (orderUpdateError) {
       console.error('[payment/verify] order update failed', { razorpay_order_id, error: orderUpdateError });

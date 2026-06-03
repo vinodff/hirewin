@@ -32,21 +32,37 @@ export default function AppNav() {
 
   useEffect(() => {
     const supabase = createClient();
-    supabase.auth.getUser().then(({ data }) => {
-      setUser(data.user);
-      setLoading(false);
-      if (data.user) {
-        fetch('/api/auth/is-admin')
-          .then((r) => r.json())
-          .then(({ isAdmin }) => setIsAdmin(!!isAdmin))
-          .catch(() => {});
-      }
-    });
+    let cancelled = false;
+
+    // Race getUser against a 4s timeout — if Supabase is unreachable,
+    // treat the user as logged-out instead of hanging the nav forever.
+    const timeout = new Promise<{ data: { user: null } }>((resolve) =>
+      setTimeout(() => resolve({ data: { user: null } }), 4000)
+    );
+
+    Promise.race([supabase.auth.getUser(), timeout])
+      .then(({ data }) => {
+        if (cancelled) return;
+        setUser(data.user);
+        setLoading(false);
+        if (data.user) {
+          fetch('/api/auth/is-admin')
+            .then((r) => r.json())
+            .then(({ isAdmin }) => setIsAdmin(!!isAdmin))
+            .catch(() => {});
+        }
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setUser(null);
+        setLoading(false);
+      });
+
     const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
       setAvatarError(false);
     });
-    return () => sub.subscription.unsubscribe();
+    return () => { cancelled = true; sub.subscription.unsubscribe(); };
   }, []);
 
   // Close desktop dropdown on outside click
@@ -121,12 +137,12 @@ export default function AppNav() {
           {loading ? (
             <div className="w-8 h-8 rounded-full animate-pulse" style={{ background: 'rgba(255,255,255,0.06)' }} />
           ) : !user ? (
-            <a href="/auth/login"
+            <Link href="/auth/login"
               className="text-sm font-semibold px-3 py-1.5 rounded-lg text-white hover:opacity-90 transition-all"
               style={{ background: 'linear-gradient(135deg, #7c3aed, #3b82f6)' }}
             >
               Sign in
-            </a>
+            </Link>
           ) : (
             <>
               {/* Desktop avatar dropdown */}

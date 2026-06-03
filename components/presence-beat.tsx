@@ -29,10 +29,19 @@ export default function PresenceBeat() {
 
     async function start() {
       const supabase = createClient();
-      const { data } = await supabase.auth.getUser();
-      if (!data.user || cancelled) return;
-      beat();
-      timer = setInterval(beat, HEARTBEAT_MS);
+      try {
+        const result = await Promise.race([
+          supabase.auth.getUser(),
+          new Promise<{ data: { user: null } }>((resolve) =>
+            setTimeout(() => resolve({ data: { user: null } }), 4000)
+          ),
+        ]);
+        if (!result.data.user || cancelled) return;
+        beat();
+        timer = setInterval(beat, HEARTBEAT_MS);
+      } catch {
+        // Supabase unreachable — skip presence tracking silently
+      }
     }
 
     start();

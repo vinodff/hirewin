@@ -493,14 +493,14 @@ export default function PricingPage() {
                 </div>
               ))}
             </div>
-            <button
-              onClick={() => openCheckout({ id: 'team', name: 'Team', price: { monthly: '₹500', yearly: '₹500' }, period: { monthly: 'min top-up', yearly: 'min top-up' }, cta: 'Create Team', ctaHref: null, highlight: false, yearlyNote: '', features: teamFeatures.slice(0, 5) })}
+            <a
+              href="mailto:support@hirewin.live?subject=HireWin%20Team%20Plan%20Inquiry&body=Hi%2C%20I%27d%20like%20to%20set%20up%20a%20team%20account.%20Please%20share%20next%20steps."
               className="shrink-0 flex items-center gap-2 text-white font-semibold px-5 py-2.5 rounded-xl text-sm transition-all hover:opacity-90 active:scale-[0.98] self-start sm:self-center"
               style={{ background: 'rgba(234,179,8,0.15)', border: '1px solid rgba(234,179,8,0.3)', color: '#fbbf24' }}
             >
               <Zap className="w-4 h-4" />
-              Create a Team →
-            </button>
+              Contact Us for Team →
+            </a>
           </div>
         </div>
 

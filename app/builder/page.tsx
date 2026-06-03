@@ -207,6 +207,7 @@ export default function BuilderPage() {
   const prev = () => setStep((s) => Math.max(s - 1, 0));
 
   function handleAnalyze() {
+    if (!resumeText.trim()) return;
     if (typeof window !== 'undefined') {
       sessionStorage.setItem('hirewin:builder-resume', resumeText);
     }

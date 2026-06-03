@@ -37,6 +37,8 @@ export async function POST(req: NextRequest) {
         const resumeFile = formData.get('resumeFile') as File | null;
         const jdText = formData.get('jdText') as string | null;
         const jdUrl = formData.get('jdUrl') as string | null;
+        const instructions = (formData.get('instructions') as string | null)?.trim() || '';
+        const resumeLength = (formData.get('resumeLength') as string | null) || 'auto';
 
         // --- Build resume content ---
         let finalResume = resumeText?.trim() ?? '';
@@ -138,7 +140,7 @@ export async function POST(req: NextRequest) {
         }
 
         try {
-          const { textStream, usage } = await streamAnalysis(finalResume, finalJd);
+          const { textStream, usage } = await streamAnalysis(finalResume, finalJd, { instructions, resumeLength });
           await consumeStream(textStream);
           totalUsage.input_tokens += usage.input_tokens;
           totalUsage.output_tokens += usage.output_tokens;
@@ -200,7 +202,8 @@ export async function POST(req: NextRequest) {
               fullResult = {};
               const retry = await streamAnalysis(
                 finalResume,
-                finalJd + '\n\nIMPORTANT: Return ONLY valid JSON, no other text.'
+                finalJd + '\n\nIMPORTANT: Return ONLY valid JSON, no other text.',
+                { instructions, resumeLength }
               );
               await consumeStream(retry.textStream);
               totalUsage.input_tokens += retry.usage.input_tokens;

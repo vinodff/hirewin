@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAnthropicClient } from '@/lib/anthropic';
+import { createClient } from '@/lib/supabase/server';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 export const maxDuration = 30;
 export const dynamic = 'force-dynamic';
+
+const MAX_RESUME_CHARS = 20_000;
+const MAX_JD_CHARS = 10_000;
 
 const INTERVIEW_SYSTEM = `You are an expert interview coach. Given a candidate's resume and job details, generate 8 interview questions across 4 categories with sample answers.
 
@@ -29,10 +34,26 @@ Guidelines:
 
 export async function POST(req: NextRequest) {
   try {
+    // --- Auth ---
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return NextResponse.json({ error: 'Sign in required' }, { status: 401 });
+
+    // --- Rate limit ---
+    const { success } = await checkRateLimit(`interview:${user.id}`);
+    if (!success) return NextResponse.json({ error: 'Too many requests. Try again in an hour.' }, { status: 429 });
+
     const { resumeText, role, company, jdText } = await req.json();
 
-    if (!resumeText || !role || !company) {
+    if (typeof resumeText !== 'string' || typeof role !== 'string' || typeof company !== 'string' ||
+        !resumeText.trim() || !role.trim() || !company.trim()) {
       return NextResponse.json({ error: 'resumeText, role, and company are required.' }, { status: 400 });
+    }
+    if (resumeText.length > MAX_RESUME_CHARS) {
+      return NextResponse.json({ error: 'Resume too long' }, { status: 413 });
+    }
+    if (typeof jdText === 'string' && jdText.length > MAX_JD_CHARS) {
+      return NextResponse.json({ error: 'Job description too long' }, { status: 413 });
     }
 
     const userMsg = `Resume:\n${resumeText}\n\nRole: ${role}\nCompany: ${company}${jdText ? `\n\nJob Description:\n${jdText}` : ''}`;
@@ -44,9 +65,16 @@ export async function POST(req: NextRequest) {
       messages: [{ role: 'user', content: userMsg }],
     });
 
-    const raw = message.content[0].type === 'text' ? message.content[0].text : '';
+    const firstBlock = message.content?.[0];
+    const raw = firstBlock?.type === 'text' ? firstBlock.text : '';
     const cleaned = raw.replace(/^\s*```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '').trim();
-    const parsed = JSON.parse(cleaned);
+
+    let parsed;
+    try {
+      parsed = JSON.parse(cleaned);
+    } catch {
+      return NextResponse.json({ error: 'AI returned malformed response' }, { status: 500 });
+    }
 
     return NextResponse.json(parsed);
   } catch (e) {

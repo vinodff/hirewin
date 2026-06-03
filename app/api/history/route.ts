@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { PLAN_LIMITS } from '@/types';
+import { PLAN_LIMITS, APPLICATION_STATUSES, type ApplicationStatus } from '@/types';
+
+const MAX_NOTE_CHARS = 1000;
 
 export async function GET() {
   const supabase = await createClient();
@@ -31,7 +33,8 @@ export async function GET() {
     .limit(200);
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    console.error('[history GET]', error);
+    return NextResponse.json({ error: 'Failed to load history' }, { status: 500 });
   }
 
   return NextResponse.json({ versions: versions ?? [] });
@@ -46,7 +49,16 @@ export async function PATCH(req: NextRequest) {
   }
 
   const { id, application_status, pipeline_note } = await req.json();
-  if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 });
+  if (!id || typeof id !== 'string') return NextResponse.json({ error: 'id required' }, { status: 400 });
+
+  // Validate enum — reject arbitrary status strings.
+  if (application_status !== undefined && !APPLICATION_STATUSES.includes(application_status as ApplicationStatus)) {
+    return NextResponse.json({ error: 'Invalid application_status' }, { status: 400 });
+  }
+  // Validate note shape + length.
+  if (pipeline_note !== undefined && (typeof pipeline_note !== 'string' || pipeline_note.length > MAX_NOTE_CHARS)) {
+    return NextResponse.json({ error: 'Invalid pipeline_note' }, { status: 400 });
+  }
 
   const updates: Record<string, unknown> = {};
   if (application_status !== undefined) updates.application_status = application_status;
@@ -66,7 +78,10 @@ export async function PATCH(req: NextRequest) {
     .eq('id', id)
     .eq('user_id', user.id);
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    console.error('[history PATCH]', error);
+    return NextResponse.json({ error: 'Update failed' }, { status: 500 });
+  }
 
   return NextResponse.json({ ok: true });
 }
@@ -80,7 +95,7 @@ export async function DELETE(req: NextRequest) {
   }
 
   const { id } = await req.json();
-  if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 });
+  if (!id || typeof id !== 'string') return NextResponse.json({ error: 'id required' }, { status: 400 });
 
   const { error } = await supabase
     .from('resume_versions')
@@ -88,7 +103,10 @@ export async function DELETE(req: NextRequest) {
     .eq('id', id)
     .eq('user_id', user.id);
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    console.error('[history DELETE]', error);
+    return NextResponse.json({ error: 'Delete failed' }, { status: 500 });
+  }
 
   return NextResponse.json({ ok: true });
 }
