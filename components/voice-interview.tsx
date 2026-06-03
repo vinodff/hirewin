@@ -102,6 +102,7 @@ export default function VoiceInterview({ resumeText, role, company, jdText }: Pr
   const lipRef       = useRef<ReturnType<typeof setInterval> | null>(null);
   const autoListenRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const finalTxt     = useRef('');
+  const liveTxt      = useRef('');   // final + interim — the best-available answer text
   const historyRef   = useRef<QAPair[]>([]);
   const questionRef  = useRef('');
   const qNumRef      = useRef(0);
@@ -197,8 +198,9 @@ export default function VoiceInterview({ resumeText, role, company, jdText }: Pr
   }, []);
 
   const submitAnswer = useCallback(async (answer: string) => {
+    phaseRef.current = 'processing';   // sync — stops trailing STT results from re-submitting
     stopListening();
-    if (!answer.trim()) { setPhase('your-turn'); return; }
+    if (!answer.trim()) { phaseRef.current = 'your-turn'; setPhase('your-turn'); return; }
 
     const newHistory: QAPair[] = [
       ...historyRef.current,
@@ -211,6 +213,7 @@ export default function VoiceInterview({ resumeText, role, company, jdText }: Pr
     setTranscript('');
     setTypedAnswer('');
     finalTxt.current = '';
+    liveTxt.current  = '';
 
     try {
       const n = qNumRef.current;
@@ -266,29 +269,51 @@ export default function VoiceInterview({ resumeText, role, company, jdText }: Pr
     if (!SR) { setUseTyped(true); setPhase('your-turn'); return; }
 
     finalTxt.current = '';
+    liveTxt.current  = '';
     const rec = new SR();
     rec.continuous     = true;
     rec.interimResults = true;
     rec.lang           = 'en-US';
 
     rec.onresult = (ev: ISpeechRecognitionEvent) => {
+      // Ignore trailing results that arrive after we've stopped listening.
+      if (phaseRef.current !== 'listening') return;
+
       let interim = '';
       for (let i = ev.resultIndex; i < ev.results.length; i++) {
         const t = ev.results[i][0].transcript;
         if (ev.results[i].isFinal) finalTxt.current += t + ' ';
-        else interim = t;
+        else interim += t;
       }
-      setTranscript(finalTxt.current + interim);
+      // Live transcript = everything finalized so far + the current interim chunk.
+      // We submit from this (not just finalTxt) because in continuous mode some
+      // browsers deliver mostly interim results and rarely flip isFinal.
+      liveTxt.current = (finalTxt.current + interim).trim();
+      setTranscript(liveTxt.current);
+
+      // Reset the silence timer on every speech event; fire once the user pauses.
       if (silenceRef.current) clearTimeout(silenceRef.current);
-      if (finalTxt.current.trim().length > 8) {
-        silenceRef.current = setTimeout(() => submitAnswer(finalTxt.current.trim()), SILENCE);
+      if (liveTxt.current.length >= 2) {
+        silenceRef.current = setTimeout(() => {
+          if (phaseRef.current !== 'listening') return;
+          const ans = liveTxt.current.trim();
+          if (ans) submitAnswer(ans);
+        }, SILENCE);
       }
     };
 
-    rec.onerror = () => { setUseTyped(true); setPhase('your-turn'); };
+    rec.onerror = (ev: Event) => {
+      // 'no-speech' / 'aborted' are transient — don't fall back to typed for those.
+      const err = (ev as Event & { error?: string }).error;
+      if (err === 'no-speech' || err === 'aborted') return;
+      setUseTyped(true);
+      setPhase('your-turn');
+    };
     rec.onend   = () => {
-      if (recogRef.current === rec) {
-        try { rec.start(); } catch { /* already stopped */ }
+      // Auto-restart only while we're still actively listening (continuous mode
+      // ends every few seconds in some browsers).
+      if (recogRef.current === rec && phaseRef.current === 'listening') {
+        try { rec.start(); } catch { /* already running */ }
       }
     };
 
@@ -299,6 +324,7 @@ export default function VoiceInterview({ resumeText, role, company, jdText }: Pr
   /* ─── Auto-listen: recruiter finished → open mic hands-free ─── */
   const beginListening = useCallback(() => {
     setAvatarPhase('listening');
+    phaseRef.current = 'listening';   // sync immediately — onresult guards read this before the effect runs
     setPhase('listening');
     startListening();
   }, [startListening]);
@@ -344,7 +370,7 @@ export default function VoiceInterview({ resumeText, role, company, jdText }: Pr
   function handleMic() {
     if (autoListenRef.current) clearTimeout(autoListenRef.current);
     if (phase === 'listening') {
-      const ans = finalTxt.current.trim() || transcript.trim();
+      const ans = (liveTxt.current.trim() || finalTxt.current.trim() || transcript.trim());
       if (ans) submitAnswer(ans);
       else { stopListening(); setTranscript(''); setPhase('your-turn'); }
     } else if (phase === 'your-turn') {
@@ -360,7 +386,7 @@ export default function VoiceInterview({ resumeText, role, company, jdText }: Pr
     setQuestion(''); setQNum(0); setTranscript('');
     setTypedAnswer(''); setError(''); setMouthOpen(0);
     setAvatarPhase('idle');
-    finalTxt.current = ''; historyRef.current = [];
+    finalTxt.current = ''; liveTxt.current = ''; historyRef.current = [];
     questionRef.current = ''; qNumRef.current = 0;
   }
 
