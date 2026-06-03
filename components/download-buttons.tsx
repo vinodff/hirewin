@@ -33,8 +33,9 @@ export default function DownloadButtons({ optimizedResume, versionId, template, 
   const [signedIn, setSignedIn] = useState<boolean | null>(null);
 
   useEffect(() => {
-    if (!versionId) return;
-    fetch(`/api/share?versionId=${versionId}`)
+    // Always fetch — versionId is optional (only affects share count, not plan gate)
+    const url = versionId ? `/api/share?versionId=${versionId}` : '/api/share';
+    fetch(url)
       .then((r) => r.json())
       .then((d) => {
         if (typeof d.shareCount === 'number') setShareCount(d.shareCount);
