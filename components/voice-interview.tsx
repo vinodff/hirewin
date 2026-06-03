@@ -41,9 +41,10 @@ type Report = {
 type Props = { resumeText: string; role: string; company: string; jdText?: string };
 
 /* ─── Constants ──────────────────────────────────────────── */
-const MAX_Q     = 6;
-const SILENCE   = 3000;
-const CARD      = { background: '#0d1220', border: '1px solid rgba(255,255,255,0.07)' };
+const MAX_Q       = 10;    // hard ceiling (server decides actual end, usually 5–8)
+const SILENCE     = 2500;  // auto-submit after this much silence once they've spoken
+const AUTO_LISTEN_DELAY = 450; // ms after recruiter finishes before mic opens
+const CARD        = { background: '#0d1220', border: '1px solid rgba(255,255,255,0.07)' };
 
 /**
  * Mouth-openness pattern that mimics natural speech rhythm.
@@ -96,21 +97,32 @@ export default function VoiceInterview({ resumeText, role, company, jdText }: Pr
   const [visibleWords, setVisibleWords] = useState(0);   // word-by-word reveal
 
   // Stable refs to avoid stale closures
-  const recogRef    = useRef<ISpeechRecognition | null>(null);
-  const silenceRef  = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const lipRef      = useRef<ReturnType<typeof setInterval> | null>(null);
-  const finalTxt    = useRef('');
-  const historyRef  = useRef<QAPair[]>([]);
-  const questionRef = useRef('');
-  const qNumRef     = useRef(0);
+  const recogRef     = useRef<ISpeechRecognition | null>(null);
+  const silenceRef   = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lipRef       = useRef<ReturnType<typeof setInterval> | null>(null);
+  const autoListenRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const finalTxt     = useRef('');
+  const historyRef   = useRef<QAPair[]>([]);
+  const questionRef  = useRef('');
+  const qNumRef      = useRef(0);
+  // Refs mirrored from state — read inside scheduled timers without stale closures
+  const phaseRef     = useRef<Phase>('idle');
+  const useTypedRef  = useRef(false);
+  const sttAvailRef  = useRef(false);
+  const onRecruiterDoneRef = useRef<() => void>(() => {});
 
   useEffect(() => { historyRef.current  = history;  }, [history]);
   useEffect(() => { questionRef.current = question; }, [question]);
   useEffect(() => { qNumRef.current     = qNum;     }, [qNum]);
+  useEffect(() => { phaseRef.current    = phase;    }, [phase]);
+  useEffect(() => { useTypedRef.current = useTyped; }, [useTyped]);
+  useEffect(() => { sttAvailRef.current = sttAvail; }, [sttAvail]);
 
   useEffect(() => {
     const win = window as Window & { SpeechRecognition?: unknown; webkitSpeechRecognition?: unknown };
-    setSttAvail(!!(win.SpeechRecognition || win.webkitSpeechRecognition));
+    const avail = !!(win.SpeechRecognition || win.webkitSpeechRecognition);
+    setSttAvail(avail);
+    sttAvailRef.current = avail;
   }, []);
 
   /* ─── Lip sync ───────────────────────────────────────── */
@@ -219,7 +231,7 @@ export default function VoiceInterview({ resumeText, role, company, jdText }: Pr
         questionRef.current = data.question;
         setQNum(prev => { qNumRef.current = prev + 1; return prev + 1; });
         setPhase('speaking');
-        speak(data.question, () => setPhase('your-turn'));
+        speak(data.question, () => onRecruiterDoneRef.current());
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Something went wrong.');
@@ -284,6 +296,28 @@ export default function VoiceInterview({ resumeText, role, company, jdText }: Pr
     try { rec.start(); } catch (e) { setUseTyped(true); setPhase('your-turn'); console.error(e); }
   }, [submitAnswer]);
 
+  /* ─── Auto-listen: recruiter finished → open mic hands-free ─── */
+  const beginListening = useCallback(() => {
+    setAvatarPhase('listening');
+    setPhase('listening');
+    startListening();
+  }, [startListening]);
+
+  const onRecruiterDone = useCallback(() => {
+    setPhase('your-turn');
+    if (autoListenRef.current) clearTimeout(autoListenRef.current);
+    // Hands-free: if voice is available and the user isn't typing, open the mic automatically.
+    if (sttAvailRef.current && !useTypedRef.current) {
+      autoListenRef.current = setTimeout(() => {
+        // Only auto-start if the user hasn't already acted (still waiting their turn).
+        if (phaseRef.current === 'your-turn') beginListening();
+      }, AUTO_LISTEN_DELAY);
+    }
+  }, [beginListening]);
+
+  // Keep the ref pointing at the latest callback (used inside speak() closures).
+  useEffect(() => { onRecruiterDoneRef.current = onRecruiterDone; }, [onRecruiterDone]);
+
   async function startInterview() {
     setPhase('starting');
     setError('');
@@ -300,7 +334,7 @@ export default function VoiceInterview({ resumeText, role, company, jdText }: Pr
       setQuestion(data.question); questionRef.current = data.question;
       setQNum(1); qNumRef.current = 1;
       setPhase('speaking');
-      speak(data.question, () => setPhase('your-turn'));
+      speak(data.question, () => onRecruiterDoneRef.current());
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to start interview.');
       setPhase('idle');
@@ -308,20 +342,20 @@ export default function VoiceInterview({ resumeText, role, company, jdText }: Pr
   }
 
   function handleMic() {
+    if (autoListenRef.current) clearTimeout(autoListenRef.current);
     if (phase === 'listening') {
       const ans = finalTxt.current.trim() || transcript.trim();
       if (ans) submitAnswer(ans);
       else { stopListening(); setTranscript(''); setPhase('your-turn'); }
     } else if (phase === 'your-turn') {
-      setAvatarPhase('listening');
-      setPhase('listening');
-      startListening();
+      beginListening();
     }
   }
 
   function reset() {
     window.speechSynthesis?.cancel();
     stopListening(); stopLipSync();
+    if (autoListenRef.current) clearTimeout(autoListenRef.current);
     setPhase('idle'); setReport(null); setHistory([]);
     setQuestion(''); setQNum(0); setTranscript('');
     setTypedAnswer(''); setError(''); setMouthOpen(0);
@@ -334,6 +368,7 @@ export default function VoiceInterview({ resumeText, role, company, jdText }: Pr
     return () => {
       window.speechSynthesis?.cancel();
       stopListening(); stopLipSync();
+      if (autoListenRef.current) clearTimeout(autoListenRef.current);
     };
   }, [stopListening, stopLipSync]);
 
@@ -376,12 +411,13 @@ export default function VoiceInterview({ resumeText, role, company, jdText }: Pr
               Practice your {role} interview with an AI recruiter
             </p>
             <p className="text-xs text-slate-500 max-w-sm">
-              Alex — your AI interviewer — will ask {MAX_Q} adaptive questions,
-              listen to your voice answers, and give you a full performance report.
+              Alex — your AI interviewer — asks questions out loud, listens to your spoken
+              answers automatically, and decides how deep to go — just like a real interview.
+              You&apos;ll get a full performance report at the end.
             </p>
           </div>
           <div className="flex flex-wrap justify-center gap-2">
-            {['🎙️ Voice input', '🤖 Adaptive follow-ups', '📊 Selection score'].map(l => (
+            {['🎙️ Hands-free voice', '🤖 Adaptive depth', '📊 Selection score'].map(l => (
               <span key={l} className="text-xs px-3 py-1.5 rounded-full text-slate-400"
                 style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
                 {l}
@@ -422,12 +458,12 @@ export default function VoiceInterview({ resumeText, role, company, jdText }: Pr
               borderBottom: '1px solid rgba(255,255,255,0.06)',
             }}>
 
-            {/* Corner: progress indicator */}
+            {/* Corner: dynamic question counter — AI decides total, so no fixed denominator */}
             <div className="absolute top-3 right-4 flex items-center gap-1.5">
-              <span className="text-[10px] text-slate-600">Q{qNum}/{MAX_Q}</span>
+              <span className="text-[10px] text-slate-500 font-medium">Question {qNum}</span>
               <div className="flex gap-1">
-                {Array.from({ length: MAX_Q }).map((_, i) => (
-                  <div key={i} className="h-1 w-4 rounded-full transition-all duration-300"
+                {Array.from({ length: Math.max(qNum, 1) }).map((_, i) => (
+                  <div key={i} className="h-1 w-3 rounded-full transition-all duration-300"
                     style={{ background: i < qNum ? 'linear-gradient(135deg,#7c3aed,#3b82f6)' : 'rgba(255,255,255,0.08)' }} />
                 ))}
               </div>
@@ -549,7 +585,9 @@ export default function VoiceInterview({ resumeText, role, company, jdText }: Pr
                 {transcript ? (
                   <p className="text-sm text-slate-300 leading-relaxed">{transcript}</p>
                 ) : phase === 'your-turn' ? (
-                  <p className="text-sm text-slate-600 italic">Tap the mic button to start speaking…</p>
+                  <p className="text-sm text-slate-600 italic">Opening your mic… start speaking when you&apos;re ready.</p>
+                ) : phase === 'listening' ? (
+                  <p className="text-sm text-slate-600 italic">Listening… I&apos;ll capture your answer automatically when you pause.</p>
                 ) : null}
               </div>
             )}
