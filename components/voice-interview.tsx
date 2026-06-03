@@ -93,6 +93,7 @@ export default function VoiceInterview({ resumeText, role, company, jdText }: Pr
   const [sttAvail,     setSttAvail]     = useState(false);
   const [mouthOpen,    setMouthOpen]    = useState(0);   // 0–1 for lip sync
   const [avatarPhase,  setAvatarPhase]  = useState<'idle' | 'speaking' | 'thinking' | 'listening'>('idle');
+  const [visibleWords, setVisibleWords] = useState(0);   // word-by-word reveal
 
   // Stable refs to avoid stale closures
   const recogRef    = useRef<ISpeechRecognition | null>(null);
@@ -131,7 +132,7 @@ export default function VoiceInterview({ resumeText, role, company, jdText }: Pr
   /* ─── TTS ────────────────────────────────────────────── */
 
   const speak = useCallback((text: string, onEnd: () => void) => {
-    if (muted) { stopLipSync(); setAvatarPhase('idle'); onEnd(); return; }
+    if (muted) { stopLipSync(); setAvatarPhase('idle'); setVisibleWords(Number.MAX_SAFE_INTEGER); onEnd(); return; }
     window.speechSynthesis.cancel();
     const utt = new SpeechSynthesisUtterance(text);
     const voices = window.speechSynthesis.getVoices();
@@ -142,13 +143,34 @@ export default function VoiceInterview({ resumeText, role, company, jdText }: Pr
     if (pick) utt.voice = pick;
     utt.rate = 0.9; utt.pitch = 1.0;
 
-    utt.onstart  = () => { startLipSync(); setAvatarPhase('speaking'); };
-    utt.onend    = () => { stopLipSync();  setAvatarPhase('listening'); onEnd(); };
-    utt.onerror  = () => { stopLipSync();  setAvatarPhase('idle');     onEnd(); };
+    utt.onstart = () => {
+      startLipSync();
+      setAvatarPhase('speaking');
+      setVisibleWords(0);  // hide all words; reveal as speech proceeds
+    };
+    utt.onend = () => {
+      stopLipSync();
+      setAvatarPhase('listening');
+      // Show all words once TTS finishes
+      setVisibleWords(Number.MAX_SAFE_INTEGER);
+      onEnd();
+    };
+    utt.onerror = () => {
+      stopLipSync();
+      setAvatarPhase('idle');
+      setVisibleWords(Number.MAX_SAFE_INTEGER);
+      onEnd();
+    };
 
-    // Word-boundary accent: boost mouth on each word start
+    // Word-boundary: reveal each word as it's spoken + accent lip
     (utt as SpeechSynthesisUtterance & { onboundary?: (e: SpeechSynthesisEvent) => void }).onboundary = (e) => {
-      if (e.name === 'word') setMouthOpen(0.85);
+      if (e.name === 'word') {
+        // Count how many words precede charIndex, then +1 for the current word
+        const before = utt.text.substring(0, e.charIndex);
+        const count  = before.split(/\s+/).filter(w => w.length > 0).length;
+        setVisibleWords(count + 1);
+        setMouthOpen(0.85);
+      }
     };
 
     window.speechSynthesis.speak(utt);
@@ -447,9 +469,25 @@ export default function VoiceInterview({ resumeText, role, company, jdText }: Pr
               )}
             </div>
 
-            {/* Question text */}
-            <div className="mt-4 max-w-md text-center px-2">
-              <p className="text-sm sm:text-base text-slate-200 leading-relaxed">{question}</p>
+            {/* Question text — word-by-word reveal in sync with TTS */}
+            <div className="mt-4 max-w-md text-center px-2 min-h-[4rem]">
+              <p className="text-sm sm:text-base leading-relaxed">
+                {question.split(/\s+/).filter(w => w).map((word, i) => (
+                  <span
+                    key={i}
+                    style={{
+                      display: 'inline-block',
+                      marginRight: '0.3em',
+                      opacity: i < visibleWords ? 1 : 0,
+                      color: i === visibleWords - 1 ? '#ffffff' : '#94a3b8',
+                      fontWeight: i === visibleWords - 1 ? 600 : 400,
+                      transition: 'opacity 80ms ease, color 400ms ease',
+                    }}
+                  >
+                    {word}
+                  </span>
+                ))}
+              </p>
             </div>
           </div>
 
