@@ -31,7 +31,7 @@ type State = {
   fileName: string;
   fileData: string | null;
   instructions: string;
-  resumeLength: 'auto' | '1page' | '2page' | 'academic';
+  resumeLength: 'auto' | '1page' | '2page' | 'academic' | 'keyword-stuffing';
   error: string;
   partial: Partial<AnalysisResult>;
   result: AnalysisResult | null;
@@ -119,11 +119,12 @@ const inputStyle = {
 
 const cardStyle = { background: '#0f1629', border: '1px solid rgba(255,255,255,0.07)' };
 
-const LENGTH_OPTIONS: { key: State['resumeLength']; label: string; sub: string }[] = [
+const LENGTH_OPTIONS: { key: State['resumeLength']; label: string; sub: string; risky?: boolean }[] = [
   { key: 'auto', label: 'Auto-detect', sub: 'Let AI decide' },
   { key: '1page', label: '1 Page', sub: 'Preferred · 1 pg min' },
   { key: '2page', label: '2 Pages', sub: '1-2 pgs max' },
   { key: 'academic', label: 'Academic CV', sub: 'PhD / research / academia' },
+  { key: 'keyword-stuffing', label: '⚡ Keyword Stuffing', sub: 'ATS up to 90% · risky', risky: true },
 ];
 
 const INSTRUCTION_HINTS = [
@@ -415,23 +416,41 @@ export default function AnalyzePage() {
               <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
                 RESUME LENGTH
               </div>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                {LENGTH_OPTIONS.map(({ key, label, sub }) => (
-                  <button
-                    key={key}
-                    onClick={() => dispatch({ type: 'SET_LENGTH', length: key })}
-                    className="rounded-xl p-3 text-left transition-all"
-                    style={
-                      state.resumeLength === key
-                        ? { background: 'rgba(124,58,237,0.15)', border: '1px solid rgba(124,58,237,0.5)', color: '#fff' }
-                        : { ...cardStyle, color: '#94a3b8' }
-                    }
-                  >
-                    <div className="text-sm font-semibold">{label}</div>
-                    <div className="text-xs mt-0.5 opacity-70">{sub}</div>
-                  </button>
-                ))}
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
+                {LENGTH_OPTIONS.map(({ key, label, sub, risky }) => {
+                  const active = state.resumeLength === key;
+                  const activeStyle = risky
+                    ? { background: 'rgba(251,191,36,0.12)', border: '1px solid rgba(251,191,36,0.55)', color: '#fff' }
+                    : { background: 'rgba(124,58,237,0.15)', border: '1px solid rgba(124,58,237,0.5)', color: '#fff' };
+                  return (
+                    <button
+                      key={key}
+                      onClick={() => dispatch({ type: 'SET_LENGTH', length: key })}
+                      className="rounded-xl p-3 text-left transition-all"
+                      style={active ? activeStyle : { ...cardStyle, color: '#94a3b8' }}
+                    >
+                      <div className={`text-sm font-semibold ${risky && !active ? 'text-yellow-400/90' : ''}`}>{label}</div>
+                      <div className="text-xs mt-0.5 opacity-70">{sub}</div>
+                    </button>
+                  );
+                })}
               </div>
+
+              {/* Risk warning — shown only when keyword stuffing is selected */}
+              {state.resumeLength === 'keyword-stuffing' && (
+                <div className="mt-3 flex items-start gap-2.5 rounded-xl p-3.5 animate-in"
+                  style={{ background: 'rgba(251,191,36,0.07)', border: '1px solid rgba(251,191,36,0.25)' }}>
+                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-yellow-400" />
+                  <div className="text-xs leading-relaxed">
+                    <span className="font-bold text-yellow-300">Keyword stuffing can push your ATS score up to 90%</span>
+                    <span className="text-yellow-200/70">
+                      {' '}— but it&apos;s risky. The AI packs in every job-description keyword to beat the bots,
+                      which can read heavy-handed to a human recruiter. Best used when you&apos;re sure an automated
+                      ATS filter is the main gatekeeper. We never invent fake experience — only re-frame what&apos;s already yours.
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Error */}

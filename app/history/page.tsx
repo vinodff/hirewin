@@ -1,9 +1,10 @@
 'use client';
 
 import { useEffect, useState, useRef, useCallback } from 'react';
-import { Trash2, Plus, Search, Briefcase, TrendingUp, X, Check, ChevronRight, Edit3 } from 'lucide-react';
+import { Trash2, Plus, Search, Briefcase, TrendingUp, X, Check, ChevronRight, Edit3, FileText } from 'lucide-react';
 import Link from 'next/link';
 import AppNav from '@/components/app-nav';
+import ResumeViewerModal from '@/components/resume-viewer-modal';
 import type { ResumeVersion, ApplicationStatus } from '@/types';
 import { APPLICATION_STATUS_LABELS } from '@/types';
 
@@ -171,11 +172,12 @@ function NoteEditor({ versionId, note, onSave }: {
 }
 
 /* ─── Job card ─── */
-function JobCard({ v, index, onStatusChange, onDelete, onNoteChange }: {
+function JobCard({ v, index, onStatusChange, onDelete, onNoteChange, onView }: {
   v: ResumeVersion; index: number;
   onStatusChange: (id: string, s: ApplicationStatus) => void;
   onDelete: (id: string) => void;
   onNoteChange: (id: string, note: string) => void;
+  onView: (v: ResumeVersion) => void;
 }) {
   const [vis, setVis] = useState(false);
   const status = (v.application_status ?? 'evaluated') as ApplicationStatus;
@@ -236,15 +238,18 @@ function JobCard({ v, index, onStatusChange, onDelete, onNoteChange }: {
 
         {/* Actions */}
         <div className="flex items-center gap-1 shrink-0">
-          <Link href={`/history/${v.id}`}
-            className="p-2 rounded-lg text-slate-600 hover:text-slate-300 hover:bg-white/5 transition-all"
-            title="View details">
-            <ChevronRight className="w-4 h-4" />
-          </Link>
           <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); onView(v); }}
+            title="View resume"
+            className="p-2 rounded-lg text-slate-600 hover:text-purple-400 hover:bg-purple-500/10 transition-all">
+            <FileText className="w-4 h-4" />
+          </button>
+          <button
+            type="button"
             onClick={(e) => { e.stopPropagation(); onDelete(v.id); }}
-            className="p-2 rounded-lg text-slate-700 hover:text-red-400 hover:bg-red-500/10 transition-all"
-            title="Delete">
+            title="Delete"
+            className="p-2 rounded-lg text-slate-700 hover:text-red-400 hover:bg-red-500/10 transition-all">
             <Trash2 className="w-4 h-4" />
           </button>
         </div>
@@ -314,6 +319,7 @@ export default function HistoryPage() {
   const [error, setError]         = useState('');
   const [filter, setFilter]       = useState<ApplicationStatus | 'all'>('all');
   const [search, setSearch]       = useState('');
+  const [viewing, setViewing]     = useState<ResumeVersion | null>(null);
 
   useEffect(() => {
     fetch('/api/history')
@@ -491,6 +497,7 @@ export default function HistoryPage() {
               onStatusChange={handleStatusChange}
               onDelete={del}
               onNoteChange={handleNoteChange}
+              onView={setViewing}
             />
           ))}
         </div>
@@ -501,6 +508,9 @@ export default function HistoryPage() {
           </p>
         )}
       </div>
+
+      {/* Resume viewer modal */}
+      {viewing && <ResumeViewerModal v={viewing} onClose={() => setViewing(null)} />}
     </div>
   );
 }

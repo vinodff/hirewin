@@ -198,6 +198,17 @@ export async function streamAnalysis(
       }`
     : '';
 
+  // Keyword-stuffing mode: aggressively maximize ATS keyword density.
+  // The user has been explicitly warned this is risky in the UI.
+  const keywordStuffBlock = options?.resumeLength === 'keyword-stuffing'
+    ? `\n\nKEYWORD-STUFFING MODE (user explicitly opted in, warned of risk):
+- Maximize ATS keyword coverage above all else. Weave EVERY important keyword and phrase from the job description into the resume.
+- Add a dense "Core Competencies" / "Technical Skills" block near the top listing all JD keywords the candidate can plausibly claim.
+- Repeat critical JD keywords naturally across the summary, skills, and bullet points so ATS keyword-frequency scoring is maximized.
+- Stay within the bounds of the candidate's real experience — do NOT invent jobs, employers, degrees, or fabricated metrics. Re-frame and surface existing experience using JD vocabulary.
+- This optimizes for ATS pass-through (target 90%+ keyword match), accepting that a human recruiter may find the density heavy-handed.`
+    : '';
+
   const stream = await getAnthropicClient().messages.create({
     model: MODEL_NAME,
     max_tokens: 8192,
@@ -205,7 +216,7 @@ export async function streamAnalysis(
     messages: [
       {
         role: 'user',
-        content: `Resume:\n${resumeText}\n\nJob Description:\n${jobDescription}${instructionBlock}${lengthBlock}`,
+        content: `Resume:\n${resumeText}\n\nJob Description:\n${jobDescription}${instructionBlock}${lengthBlock}${keywordStuffBlock}`,
       },
     ],
     stream: true,
