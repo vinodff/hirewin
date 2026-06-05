@@ -10,6 +10,7 @@ import {
 import { trackEvent, getSessionHash } from '@/lib/analytics';
 import type { AnalysisResult, SSEEvent } from '@/types';
 import AppNav from '@/components/app-nav';
+import { BrandLoaderMark } from '@/components/brand-loader';
 
 const ScoreHero = dynamic(() => import('@/components/score-hero'), { ssr: false });
 const KeywordChips = dynamic(() => import('@/components/keyword-chips'), { ssr: false });
@@ -43,6 +44,8 @@ type State = {
 type Action =
   | { type: 'SET_RESUME_TEXT'; text: string }
   | { type: 'SET_FILE'; name: string; data: string }
+  | { type: 'SET_FILE_PARSED'; name: string; text: string }
+  | { type: 'SET_FILE_PARSING'; name: string }
   | { type: 'SET_JD_TEXT'; text: string }
   | { type: 'SET_JD_URL'; url: string }
   | { type: 'SET_JD_MODE'; mode: 'paste' | 'url' }
@@ -77,6 +80,8 @@ function reducer(state: State, action: Action): State {
   switch (action.type) {
     case 'SET_RESUME_TEXT': return { ...state, resumeText: action.text, fileData: null, fileName: '' };
     case 'SET_FILE': return { ...state, fileData: action.data, fileName: action.name, resumeText: '' };
+    case 'SET_FILE_PARSING': return { ...state, fileName: action.name, fileData: null, resumeText: '' };
+    case 'SET_FILE_PARSED': return { ...state, fileName: action.name, fileData: null, resumeText: action.text };
     case 'SET_JD_TEXT': return { ...state, jdText: action.text };
     case 'SET_JD_URL': return { ...state, jdUrl: action.url };
     case 'SET_JD_MODE': return { ...state, jdMode: action.mode };
@@ -100,7 +105,8 @@ function reducer(state: State, action: Action): State {
 }
 
 const FIELD_LABELS: Record<string, string> = {
-  atsScore: 'ATS Score',
+  atsScore: 'ATS Score (before)',
+  optimizedAtsScore: 'ATS Score (after)',
   jobFitScore: 'Job Fit Score',
   careerLevel: 'Career Level',
   keywordsMatched: 'Matched Keywords',
@@ -137,6 +143,8 @@ const INSTRUCTION_HINTS = [
 export default function AnalyzePage() {
   const [state, dispatch] = useReducer(reducer, initial);
   const abortRef = useRef<AbortController | null>(null);
+  const [pdfParsing, setPdfParsing] = useState(false);
+  const [pdfError, setPdfError] = useState('');
   // sessionHash reads localStorage — defer to effect to avoid SSR/CSR hydration mismatch.
   const [sessionHash, setSessionHash] = useState('');
   useEffect(() => { setSessionHash(getSessionHash()); }, []);
@@ -155,25 +163,36 @@ export default function AnalyzePage() {
     }
   }, []);
 
+  async function handleFile(file: File) {
+    dispatch({ type: 'SET_FILE_PARSING', name: file.name });
+    setPdfParsing(true);
+    setPdfError('');
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await fetch('/api/parse-pdf', { method: 'POST', body: fd });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? 'Could not read PDF');
+      dispatch({ type: 'SET_FILE_PARSED', name: file.name, text: data.text });
+    } catch (e) {
+      setPdfError(e instanceof Error ? e.message : 'Could not read PDF — paste text instead');
+      dispatch({ type: 'SET_FILE_PARSING', name: '' });
+    } finally {
+      setPdfParsing(false);
+    }
+  }
+
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      dispatch({ type: 'SET_FILE', name: file.name, data: reader.result as string });
-    };
-    reader.readAsDataURL(file);
+    handleFile(file);
   }
 
   function handleDrop(e: React.DragEvent) {
     e.preventDefault();
     const file = e.dataTransfer.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      dispatch({ type: 'SET_FILE', name: file.name, data: reader.result as string });
-    };
-    reader.readAsDataURL(file);
+    handleFile(file);
   }
 
   async function handleFetchJd() {
@@ -254,6 +273,9 @@ export default function AnalyzePage() {
             } else if (event.type === 'complete') {
               dispatch({ type: 'COMPLETE', versionId: event.versionId, result: event.result, originalResume: event.originalResume });
               trackEvent('analysis_complete', { company: event.result.company }, sessionHash);
+              if (event.versionId) {
+                window.history.replaceState(null, '', `/history/${event.versionId}`);
+              }
             } else if (event.type === 'error') {
               dispatch({ type: 'ERROR', message: event.message });
             }
@@ -313,9 +335,13 @@ export default function AnalyzePage() {
                 <div
                   onDrop={handleDrop}
                   onDragOver={(e) => e.preventDefault()}
-                  onClick={() => fileInputRef.current?.click()}
-                  className="mt-3 rounded-xl p-4 text-center cursor-pointer transition-all hover:border-purple-500/40"
-                  style={{ border: '2px dashed rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.02)' }}
+                  onClick={() => !pdfParsing && fileInputRef.current?.click()}
+                  className="mt-3 rounded-xl p-4 text-center transition-all"
+                  style={{
+                    border: '2px dashed rgba(255,255,255,0.08)',
+                    background: 'rgba(255,255,255,0.02)',
+                    cursor: pdfParsing ? 'default' : 'pointer',
+                  }}
                 >
                   <input
                     ref={fileInputRef}
@@ -324,10 +350,18 @@ export default function AnalyzePage() {
                     className="hidden"
                     onChange={handleFileChange}
                   />
-                  {state.fileName ? (
+                  {pdfParsing ? (
+                    <div className="flex items-center justify-center gap-2 text-purple-400">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span className="text-sm">Reading PDF…</span>
+                    </div>
+                  ) : state.fileName ? (
                     <div className="flex items-center justify-center gap-2 text-purple-400">
                       <FileText className="w-4 h-4" />
                       <span className="text-sm font-medium">{state.fileName}</span>
+                      {state.resumeText && (
+                        <span className="text-xs text-green-400 font-medium">· text extracted</span>
+                      )}
                     </div>
                   ) : (
                     <div className="flex flex-col items-center gap-1">
@@ -339,6 +373,9 @@ export default function AnalyzePage() {
                     </div>
                   )}
                 </div>
+                {pdfError && (
+                  <p className="mt-2 text-xs text-red-400">{pdfError}</p>
+                )}
               </div>
 
               {/* Job Description panel */}
@@ -494,10 +531,9 @@ export default function AnalyzePage() {
         {/* ANALYZING STEP */}
         {step === 'analyzing' && (
           <div className="max-w-lg mx-auto animate-in">
-            <div className="rounded-2xl p-8 text-center mb-6" style={cardStyle}>
-              <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4"
-                style={{ background: 'rgba(124,58,237,0.15)' }}>
-                <Loader2 className="w-7 h-7 text-purple-400 animate-spin" />
+            <div className="rounded-2xl p-8 text-center mb-6 flex flex-col items-center" style={cardStyle}>
+              <div className="mb-5">
+                <BrandLoaderMark />
               </div>
               <h2 className="font-semibold text-white text-lg mb-1">Improving your resume…</h2>
               <p className="text-sm text-slate-500">Results stream in as they&apos;re ready (~20 seconds)</p>
@@ -524,6 +560,9 @@ export default function AnalyzePage() {
                     <span className="text-sm font-medium text-slate-300">{label}</span>
                     {done && field === 'atsScore' && (
                       <span className="ml-auto text-purple-400 font-bold">{value as number}%</span>
+                    )}
+                    {done && field === 'optimizedAtsScore' && (
+                      <span className="ml-auto text-emerald-400 font-bold">{value as number}%</span>
                     )}
                     {done && field === 'jobFitScore' && (
                       <span className="ml-auto text-blue-400 font-bold">{value as number}/100</span>
@@ -563,10 +602,10 @@ export default function AnalyzePage() {
               </div>
               <div className="flex items-center gap-2 flex-wrap">
                 {versionId && (
-                  <Link href="/history"
+                  <Link href="/my-resumes?tab=optimized"
                     className="flex items-center gap-1.5 text-sm font-medium px-4 py-2.5 rounded-xl text-slate-300 transition-all hover:text-white shrink-0"
                     style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
-                    <Briefcase className="w-4 h-4" />Track Application
+                    <Briefcase className="w-4 h-4" />My Resumes
                   </Link>
                 )}
                 <button onClick={() => dispatch({ type: 'RESET' })}
@@ -577,57 +616,66 @@ export default function AnalyzePage() {
               </div>
             </div>
 
-            {/* Score Hero — most impactful element */}
-            <ScoreHero atsScore={result.atsScore} jobFitScore={result.jobFitScore} />
+            {/* 1 · Resume Score Analysis */}
+            <ScoreHero atsScore={result.atsScore} jobFitScore={result.jobFitScore} optimizedAtsScore={result.optimizedAtsScore} />
 
-            {/* Trust & Evidence — HireWin's differentiator */}
-            <TrustPanel
-              trustScore={result.trustScore}
-              skillEvidence={result.skillEvidence}
-              interviewRisks={result.interviewRisks}
-            />
-
-            {/* Keyword coverage */}
-            <KeywordChips matched={result.keywordsMatched} missing={result.keywordsMissing} />
-
-            {/* Before / After PDF preview */}
+            {/* 2 · Before / After */}
             <BeforeAfter
               original={state.originalResume || state.resumeText}
               optimized={result.optimizedResume}
               atsScore={result.atsScore}
               jobFitScore={result.jobFitScore}
+              optimizedAtsScore={result.optimizedAtsScore}
               onResumeUpdate={handleResumeUpdate}
             />
 
-            {/* Download — gated */}
+            {/* 3 · Download your resume — gated */}
             <DownloadButtons
               optimizedResume={state.editedResume || result.optimizedResume}
               versionId={versionId ?? undefined}
               beforeScore={result.atsScore}
+              afterScore={result.optimizedAtsScore}
             />
 
-            {/* Skill gaps */}
+            {/* 4 · Keyword Coverage */}
+            <KeywordChips matched={result.keywordsMatched} missing={result.keywordsMissing} />
+
+            {/* 5 · Trust & Evidence */}
+            <TrustPanel
+              variant="evidence"
+              trustScore={result.trustScore}
+              skillEvidence={result.skillEvidence}
+            />
+
+            {/* 6 · Skill Gaps */}
             <SkillGapList gaps={result.skillGaps} />
 
-            {/* Outreach */}
-            <OutreachSection
-              optimizedResume={state.editedResume || result.optimizedResume}
+            {/* 7 · Interview Risk Alerts */}
+            <TrustPanel
+              variant="risks"
+              interviewRisks={result.interviewRisks}
+            />
+
+            {/* 8 · Self-Introduction Generator */}
+            <SelfDescription
+              resumeText={state.editedResume || result.optimizedResume}
               role={result.role}
               company={result.company}
               jdText={state.jdText}
             />
 
-            {/* Live voice mock interview */}
+            {/* 9 · Live voice mock interview (HireWin Interview) */}
             <VoiceInterview
               resumeText={state.editedResume || result.optimizedResume}
               role={result.role}
               company={result.company}
               jdText={state.jdText}
+              versionId={versionId ?? undefined}
             />
 
-            {/* Self-introduction generator */}
-            <SelfDescription
-              resumeText={state.editedResume || result.optimizedResume}
+            {/* 10 · Cold Outreach */}
+            <OutreachSection
+              optimizedResume={state.editedResume || result.optimizedResume}
               role={result.role}
               company={result.company}
               jdText={state.jdText}

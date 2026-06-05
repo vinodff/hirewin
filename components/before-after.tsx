@@ -15,12 +15,17 @@ type Props = {
   optimized: string;
   atsScore?: number;
   jobFitScore?: number;
+  // The optimized resume's ATS score ("after"). Falls back to jobFitScore for
+  // older saved analyses that predate this field.
+  optimizedAtsScore?: number | null;
   onResumeUpdate?: (text: string) => void;
 };
 
 type ViewMode = 'compare' | 'edit' | 'preview';
 
-export default function BeforeAfter({ original, optimized, atsScore, jobFitScore, onResumeUpdate }: Props) {
+export default function BeforeAfter({ original, optimized, atsScore, jobFitScore, optimizedAtsScore, onResumeUpdate }: Props) {
+  // Prefer the real optimized ATS score; fall back to jobFitScore for old rows.
+  const afterScore = optimizedAtsScore ?? jobFitScore;
   const [copied, setCopied] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>('compare');
   const [editedText, setEditedText] = useState(optimized);
@@ -65,7 +70,7 @@ export default function BeforeAfter({ original, optimized, atsScore, jobFitScore
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-2 flex-wrap">
             <h3 className="font-semibold text-white">Before / After</h3>
-            {typeof atsScore === 'number' && typeof jobFitScore === 'number' && (
+            {typeof atsScore === 'number' && typeof afterScore === 'number' && (
               <div className="flex items-center gap-1.5">
                 <span className="text-xs font-bold px-2 py-0.5 rounded-md"
                   style={{ background: 'rgba(239,68,68,0.1)', color: '#fca5a5', border: '1px solid rgba(239,68,68,0.2)' }}>
@@ -74,10 +79,10 @@ export default function BeforeAfter({ original, optimized, atsScore, jobFitScore
                 <span className="text-slate-600 text-xs">→</span>
                 <span className="text-xs font-bold px-2 py-0.5 rounded-md"
                   style={{ background: 'rgba(16,185,129,0.1)', color: '#34d399', border: '1px solid rgba(16,185,129,0.2)' }}>
-                  {jobFitScore}
+                  {afterScore}
                 </span>
                 <span className="text-xs font-semibold text-emerald-400">
-                  +{jobFitScore - atsScore} pts
+                  +{Math.max(0, afterScore - atsScore)} pts
                 </span>
               </div>
             )}
@@ -152,7 +157,7 @@ export default function BeforeAfter({ original, optimized, atsScore, jobFitScore
               style={mobileTab === 'optimized'
                 ? { background: 'rgba(16,185,129,0.18)', color: '#34d399' }
                 : { color: '#64748b' }}>
-              After{typeof jobFitScore === 'number' && <span className="ml-1 opacity-70">({jobFitScore})</span>}
+              After{typeof afterScore === 'number' && <span className="ml-1 opacity-70">({afterScore})</span>}
             </button>
           </div>
 
@@ -180,10 +185,10 @@ export default function BeforeAfter({ original, optimized, atsScore, jobFitScore
                 label="After"
                 badge={
                   <div className="flex items-center gap-2">
-                    {typeof jobFitScore === 'number' && (
+                    {typeof afterScore === 'number' && (
                       <span className="text-xs font-bold px-2.5 py-1 rounded-lg"
                         style={{ background: 'rgba(16,185,129,0.12)', color: '#34d399', border: '1px solid rgba(16,185,129,0.25)' }}>
-                        Score: {jobFitScore}
+                        Score: {afterScore}
                       </span>
                     )}
                     <span className="text-xs font-bold px-2.5 py-1 rounded-lg"

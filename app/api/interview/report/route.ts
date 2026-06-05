@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
     const { success } = await checkRateLimit(`interview-report:${user.id}`);
     if (!success) return NextResponse.json({ error: 'Too many requests.' }, { status: 429 });
 
-    const { history, resumeText, role, company, jdText } = await req.json();
+    const { history, resumeText, role, company, jdText, versionId } = await req.json();
 
     if (!Array.isArray(history) || history.length === 0) {
       return NextResponse.json({ error: 'No interview history provided.' }, { status: 400 });
@@ -83,6 +83,23 @@ export async function POST(req: NextRequest) {
     let parsed;
     try { parsed = JSON.parse(cleaned); }
     catch { return NextResponse.json({ error: 'AI returned malformed response.' }, { status: 500 }); }
+
+    // Save interview results to database if versionId is provided
+    if (versionId) {
+      const { error: updateError } = await supabase
+        .from('resume_versions')
+        .update({
+          interview_questions: history,
+          evaluation_report: JSON.stringify(parsed),
+        })
+        .eq('id', versionId)
+        .eq('user_id', user.id);
+
+      if (updateError) {
+        console.error('[interview/report] Failed to save results:', updateError);
+        // Don't fail the request, just log it
+      }
+    }
 
     return NextResponse.json(parsed);
   } catch (e) {

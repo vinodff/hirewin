@@ -19,9 +19,12 @@ type Props = {
   versionId?: string;
   template?: string;
   beforeScore?: number;
+  // The real optimized ATS score. When provided, used for the share text and
+  // "before → after" badge instead of the old hardcoded estimate.
+  afterScore?: number;
 };
 
-export default function DownloadButtons({ optimizedResume, versionId, template, beforeScore }: Props) {
+export default function DownloadButtons({ optimizedResume, versionId, template, beforeScore, afterScore: afterScoreProp }: Props) {
   const [pdfLoading, setPdfLoading]     = useState(false);
   const [docxLoading, setDocxLoading]   = useState(false);
   const [showUnlock, setShowUnlock]     = useState(false);
@@ -51,7 +54,9 @@ export default function DownloadButtons({ optimizedResume, versionId, template, 
   const canDownload = planUnlimited || hasFreeDownload || sharesUnlocked;
 
   const siteUrl = 'https://hirewin.live';
-  const afterScore = beforeScore !== undefined ? Math.min(beforeScore + 52, 95) : 87;
+  // Prefer the real optimized score; fall back to a rough estimate for older
+  // callers that don't pass it.
+  const afterScore = afterScoreProp ?? (beforeScore !== undefined ? Math.min(beforeScore + 52, 95) : 87);
 
   const whatsappMsg =
     beforeScore !== undefined

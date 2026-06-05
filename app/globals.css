@@ -17,6 +17,12 @@ body {
   100% { transform: scaleY(1);    }
 }
 
+/* ───────── Live transcript cursor blink ───────── */
+@keyframes av-blink-cursor {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
+}
+
 /* ───────── Cinematic background keyframes ───────── */
 
 @keyframes grid-drift {
@@ -111,6 +117,126 @@ body {
 .glow-breathe      { animation: glow-breathe 3.5s ease-in-out infinite; }
 .tilt-3d           { animation: tilt-3d 7s ease-in-out infinite; }
 
+/* ─── HireWin brand loader ───────────────────────────────────────────
+   Layered: a breathing halo, two counter-rotating gradient rings, an
+   orbiting comet, and a glass core whose bars "climb" under a sweeping
+   light — a resume score rising. Used as the site-wide loading state. */
+@keyframes hw-spin-cw  { to { transform: rotate(360deg);  } }
+@keyframes hw-spin-ccw { to { transform: rotate(-360deg); } }
+
+@keyframes hw-halo {
+  0%, 100% { transform: scale(0.9);  opacity: 0.55; }
+  50%      { transform: scale(1.12); opacity: 1;    }
+}
+
+@keyframes hw-bar-rise {
+  0%, 100% { transform: scaleY(0.28); opacity: 0.5; }
+  50%      { transform: scaleY(1);    opacity: 1;   }
+}
+
+@keyframes hw-core-pulse {
+  0%, 100% { box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 0 0 0 rgba(124,58,237,0); }
+  50%      { box-shadow: inset 0 1px 0 rgba(255,255,255,0.14), 0 0 30px 2px rgba(124,58,237,0.45); }
+}
+
+@keyframes hw-shine {
+  0%       { transform: translateX(-130%) skewX(-12deg); }
+  55%,100% { transform: translateX(130%)  skewX(-12deg); }
+}
+
+@keyframes hw-dots {
+  0%   { content: ''; }
+  25%  { content: '.'; }
+  50%  { content: '..'; }
+  75%  { content: '...'; }
+  100% { content: ''; }
+}
+
+.hw-loader-wrap { position: relative; width: 104px; height: 104px; display: grid; place-items: center; }
+
+/* breathing glow behind everything */
+.hw-loader-halo {
+  position: absolute;
+  inset: 6px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(124,58,237,0.40) 0%, rgba(59,130,246,0.14) 45%, transparent 70%);
+  filter: blur(7px);
+  animation: hw-halo 2.4s ease-in-out infinite;
+}
+
+.hw-loader-ring { position: absolute; border-radius: 50%; }
+
+.hw-loader-ring--outer {
+  inset: 0;
+  background: conic-gradient(from 0deg,
+    rgba(34,211,238,0) 0%, #22d3ee 16%, #3b82f6 40%, #7c3aed 60%, rgba(124,58,237,0) 80%);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3.5px));
+          mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3.5px));
+  animation: hw-spin-cw 1.4s cubic-bezier(0.65, 0.15, 0.35, 0.85) infinite;
+}
+
+.hw-loader-ring--inner {
+  inset: 13px;
+  background: conic-gradient(from 180deg,
+    rgba(236,72,153,0) 0%, #a78bfa 24%, #ec4899 54%, rgba(236,72,153,0) 76%);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2.5px));
+          mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2.5px));
+  animation: hw-spin-ccw 1.05s linear infinite;
+  opacity: 0.9;
+}
+
+/* comet that orbits the outer ring */
+.hw-loader-orbit { position: absolute; inset: 0; animation: hw-spin-cw 1.9s linear infinite; }
+.hw-loader-comet {
+  position: absolute;
+  top: -2px;
+  left: 50%;
+  width: 7px;
+  height: 7px;
+  margin-left: -3.5px;
+  border-radius: 50%;
+  background: #ede9fe;
+  box-shadow: 0 0 10px 2px rgba(168,85,247,0.9), 0 0 20px 5px rgba(59,130,246,0.45);
+}
+
+.hw-loader-core {
+  position: relative;
+  width: 56px;
+  height: 56px;
+  border-radius: 17px;
+  background: linear-gradient(160deg, rgba(30,27,75,0.92) 0%, rgba(12,16,24,0.96) 100%);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 5px;
+  padding: 14px 0;
+  overflow: hidden;
+  animation: hw-core-pulse 1.8s ease-in-out infinite;
+}
+
+.hw-loader-bar {
+  width: 7px;
+  height: 26px;
+  border-radius: 4px;
+  transform-origin: bottom center;
+  background: linear-gradient(180deg, #c4b5fd 0%, #7c3aed 55%, #3b82f6 100%);
+  animation: hw-bar-rise 1.1s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+.hw-loader-bar:nth-child(1) { animation-delay: 0s;    }
+.hw-loader-bar:nth-child(2) { animation-delay: 0.18s; }
+.hw-loader-bar:nth-child(3) { animation-delay: 0.36s; }
+
+/* light sweep across the bars */
+.hw-loader-shine {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, transparent 35%, rgba(255,255,255,0.22) 50%, transparent 65%);
+  animation: hw-shine 2.1s ease-in-out infinite;
+}
+
+.hw-loader-label { color: #94a3b8; font-size: 13px; font-weight: 500; letter-spacing: 0.01em; }
+.hw-loader-label::after { content: ''; animation: hw-dots 1.4s steps(1, end) infinite; }
+
 .shimmer-text {
   background: linear-gradient(90deg, #c4b5fd 0%, #ffffff 30%, #93c5fd 60%, #c4b5fd 100%);
   background-size: 200% 100%;
@@ -127,9 +253,19 @@ body {
   .char-pop,
   .glow-breathe,
   .tilt-3d,
-  .shimmer-text {
+  .shimmer-text,
+  .hw-loader-core,
+  .hw-loader-halo,
+  .hw-loader-orbit,
+  .hw-loader-shine,
+  .hw-loader-label::after {
     animation: none !important;
   }
+  /* Keep one ring turning slowly so users still get a "working" cue. */
+  .hw-loader-ring--outer { animation-duration: 2.4s; }
+  .hw-loader-ring--inner { animation: none !important; }
+  .hw-loader-bar  { animation: none !important; transform: scaleY(0.7); }
+  .hw-loader-comet { display: none; }
 }
 
 @layer utilities {

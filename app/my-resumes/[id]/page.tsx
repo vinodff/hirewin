@@ -11,6 +11,7 @@ import {
   type Education, type SkillGroup, type Project, type Certification,
 } from '@/lib/resume-store';
 import AppNav from '@/components/app-nav';
+import BrandLoader from '@/components/brand-loader';
 
 /* ─── tiny helpers ───────────────────────────────────────── */
 const uid = () => Math.random().toString(36).slice(2, 9);
@@ -393,11 +394,7 @@ export default function ResumeEditorPage() {
   }
 
   if (!resume) {
-    return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: '#07070f' }}>
-        <Loader2 className="w-6 h-6 text-purple-400 animate-spin" />
-      </div>
-    );
+    return <BrandLoader background="#07070f" label="Loading resume" />;
   }
 
   return (

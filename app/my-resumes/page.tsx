@@ -22,6 +22,7 @@ type OptimizedVersion = {
   company: string | null;
   role: string | null;
   ats_score: number;
+  optimized_ats_score: number | null;
   job_fit_score: number;
   original_resume: string | null;
   optimized_resume: string | null;
@@ -92,20 +93,26 @@ export default function MyResumesPage() {
   const [optLoading, setOptLoading] = useState(false);
   const [optLoaded, setOptLoaded]   = useState(false);
   const [optError, setOptError]     = useState('');
+  const [signedIn, setSignedIn]     = useState<boolean | null>(null);
   const [viewing, setViewing]       = useState<ViewableResume | null>(null);
 
+  // Load builder resumes AND optimized resumes up front. Loading optimized
+  // eagerly (not lazily on tab open) lets us show a count badge and auto-open
+  // the optimized tab — so AI-optimized resumes are never hidden behind a tab
+  // the user didn't think to click.
   useEffect(() => {
-    setResumes(loadResumes());
+    const builderResumes = loadResumes();
+    setResumes(builderResumes);
     setMounted(true);
-  }, []);
 
-  // Lazy-load optimized resumes when the tab is first opened
-  useEffect(() => {
-    if (tab !== 'optimized' || optLoaded || optLoading) return;
+    const wantOptimized = new URLSearchParams(window.location.search).get('tab') === 'optimized';
+    if (wantOptimized) setTab('optimized');
+
     setOptLoading(true);
     fetch('/api/history')
       .then(r => {
-        if (r.status === 401) { window.location.href = '/auth/login?next=/my-resumes'; return null; }
+        if (r.status === 401) { setSignedIn(false); return null; }
+        setSignedIn(true);
         return r.json();
       })
       .then(d => {
@@ -113,11 +120,25 @@ export default function MyResumesPage() {
           // Only keep entries that actually have an optimized resume
           const list = (d.versions ?? []).filter((v: OptimizedVersion) => v.optimized_resume);
           setOptimized(list);
+          // If the user has optimized resumes but hasn't built any, show the
+          // optimized tab by default so their work isn't behind an empty tab.
+          if (!wantOptimized && list.length > 0 && builderResumes.length === 0) {
+            setTab('optimized');
+          }
         }
       })
       .catch(() => setOptError('Failed to load optimized resumes.'))
       .finally(() => { setOptLoading(false); setOptLoaded(true); });
-  }, [tab, optLoaded, optLoading]);
+  }, []);
+
+  // If a signed-out user clicks the AI Optimized tab, send them to login.
+  function selectTab(next: Tab) {
+    if (next === 'optimized' && signedIn === false) {
+      window.location.href = '/auth/login?next=/my-resumes?tab=optimized';
+      return;
+    }
+    setTab(next);
+  }
 
   function handleNew() {
     if (resumes.length >= FREE_LIMIT) return;
@@ -175,12 +196,12 @@ export default function MyResumesPage() {
         {/* Tab switcher */}
         <div className="flex gap-2 mb-8">
           {([
-            { key: 'builder',   label: 'Built by me',   icon: FileEdit },
-            { key: 'optimized', label: 'AI Optimized',  icon: Sparkles },
-          ] as const).map(({ key, label, icon: Icon }) => (
+            { key: 'builder',   label: 'Built by me',   icon: FileEdit, count: mounted ? resumes.length : null },
+            { key: 'optimized', label: 'AI Optimized',  icon: Sparkles, count: optLoaded ? optimized.length : null },
+          ] as const).map(({ key, label, icon: Icon, count }) => (
             <button
               key={key}
-              onClick={() => setTab(key)}
+              onClick={() => selectTab(key)}
               className="flex items-center gap-2 text-sm font-semibold px-4 py-2.5 rounded-xl transition-all"
               style={tab === key
                 ? { background: 'rgba(124,58,237,0.15)', color: '#c4b5fd', border: '1px solid rgba(124,58,237,0.35)' }
@@ -188,6 +209,14 @@ export default function MyResumesPage() {
             >
               <Icon className="w-4 h-4" />
               {label}
+              {typeof count === 'number' && count > 0 && (
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full font-bold"
+                  style={tab === key
+                    ? { background: 'rgba(196,181,253,0.2)', color: '#ddd6fe' }
+                    : { background: 'rgba(255,255,255,0.06)', color: '#94a3b8' }}>
+                  {count}
+                </span>
+              )}
             </button>
           ))}
         </div>
@@ -331,7 +360,7 @@ export default function MyResumesPage() {
                           {timeAgo(v.created_at)}
                         </p>
                       </div>
-                      <AtsRing score={v.ats_score} />
+                      <AtsRing score={v.optimized_ats_score ?? v.ats_score} />
                     </div>
 
                     <button

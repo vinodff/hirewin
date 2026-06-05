@@ -167,6 +167,7 @@ export type InterviewRisk = {
 
 export type AnalysisResult = {
   atsScore: number;
+  optimizedAtsScore: number;
   jobFitScore: number;
   trustScore?: number;
   careerLevel: CareerLevel;
@@ -191,7 +192,11 @@ export type ResumeVersion = {
   role: string;
   company_type: CompanyType;
   ats_score: number;
+  optimized_ats_score: number | null;
   job_fit_score: number;
+  trust_score: number | null;
+  skill_evidence: SkillEvidence[] | null;
+  interview_risks: InterviewRisk[] | null;
   career_level: CareerLevel;
   original_resume: string;
   optimized_resume: string;

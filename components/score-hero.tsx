@@ -54,53 +54,40 @@ function Bar({ pct, color, delay = 0 }: BarProps) {
   );
 }
 
-type ScoreCardProps = {
+type FlowScoreProps = {
   label: string;
   sublabel: string;
   score: number;
   isAfter?: boolean;
   delay?: number;
 };
-function ScoreCard({ label, sublabel, score, isAfter, delay = 0 }: ScoreCardProps) {
+function FlowScore({ label, sublabel, score, isAfter, delay = 0 }: FlowScoreProps) {
   const g = grade(score);
   const display = useCountUp(score, delay);
 
   return (
-    <div className="flex-1 rounded-2xl p-5 sm:p-6 relative overflow-hidden"
-      style={{
-        background: isAfter ? 'rgba(16,185,129,0.05)' : 'rgba(255,255,255,0.03)',
-        border: `1px solid ${isAfter ? 'rgba(16,185,129,0.2)' : 'rgba(255,255,255,0.08)'}`,
-      }}>
-      {isAfter && (
-        <div className="absolute top-0 left-0 right-0 h-px"
-          style={{ background: 'linear-gradient(90deg,transparent,rgba(16,185,129,0.5),transparent)' }} />
-      )}
-
-      {/* Header */}
-      <div className="flex items-start justify-between mb-4">
-        <div>
-          <div className="text-xs font-semibold uppercase tracking-widest text-slate-500">{label}</div>
-          <div className="text-[11px] text-slate-700 mt-0.5">{sublabel}</div>
-        </div>
-        {/* Grade badge */}
-        <div
-          className="w-9 h-9 rounded-xl flex items-center justify-center text-sm font-black text-white shrink-0"
-          style={{ background: g.color, boxShadow: `0 4px 14px ${g.glow}` }}>
-          {g.letter}
-        </div>
-      </div>
-
-      {/* Score */}
-      <div className="flex items-end gap-1.5 mb-1">
-        <span className="text-5xl sm:text-6xl font-black leading-none" style={{ color: g.color }}>
+    <div className="flex flex-col items-center gap-2 shrink-0">
+      <div className="relative rounded-2xl px-5 sm:px-8 py-3 sm:py-4 overflow-hidden"
+        style={{
+          background: isAfter ? 'rgba(16,185,129,0.06)' : 'rgba(255,255,255,0.03)',
+          border: `1px solid ${isAfter ? 'rgba(16,185,129,0.25)' : 'rgba(255,255,255,0.08)'}`,
+          boxShadow: isAfter ? `0 6px 26px ${g.glow}` : 'none',
+        }}>
+        {isAfter && (
+          <div className="absolute top-0 left-0 right-0 h-px"
+            style={{ background: 'linear-gradient(90deg,transparent,rgba(16,185,129,0.6),transparent)' }} />
+        )}
+        <span className="text-5xl sm:text-7xl font-black leading-none tabular-nums" style={{ color: g.color }}>
           {display}
         </span>
-        <span className="text-xl text-slate-600 font-bold mb-1">/100</span>
       </div>
-      <div className="text-sm font-semibold mb-4" style={{ color: g.color }}>{g.label}</div>
-
-      {/* Bar */}
-      <Bar pct={score} color={g.color} delay={delay} />
+      <div className="text-center">
+        <div className="text-[11px] font-bold uppercase tracking-widest"
+          style={{ color: isAfter ? '#34d399' : '#64748b' }}>
+          {label}
+        </div>
+        <div className="text-[10px] text-slate-600 mt-0.5">{sublabel}</div>
+      </div>
     </div>
   );
 }
@@ -108,10 +95,14 @@ function ScoreCard({ label, sublabel, score, isAfter, delay = 0 }: ScoreCardProp
 type Props = {
   atsScore: number;
   jobFitScore: number;
+  // The optimized resume's ATS score ("after"). Falls back to jobFitScore for
+  // older saved analyses that predate this field.
+  optimizedAtsScore?: number | null;
 };
 
-export default function ScoreHero({ atsScore, jobFitScore }: Props) {
-  const delta = jobFitScore - atsScore;
+export default function ScoreHero({ atsScore, jobFitScore, optimizedAtsScore }: Props) {
+  const afterScore = optimizedAtsScore ?? jobFitScore;
+  const delta = afterScore - atsScore;
   const coverageGain = delta > 0;
 
   return (
@@ -139,41 +130,37 @@ export default function ScoreHero({ atsScore, jobFitScore }: Props) {
         )}
       </div>
 
-      {/* Cards */}
-      <div className="p-4 sm:p-5 flex flex-col sm:flex-row items-stretch gap-3 sm:gap-4">
-        <ScoreCard
-          label="Before · Original"
-          sublabel="Your resume vs. job description"
-          score={atsScore}
-          delay={0}
-        />
-
-        {/* Arrow divider */}
-        <div className="flex sm:flex-col items-center justify-center gap-2 px-2 py-1 sm:py-4">
-          <div className="hidden sm:block w-px flex-1 rounded-full" style={{ background: 'rgba(255,255,255,0.06)' }} />
-          <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
-            style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}>
-            <ArrowRight className="w-4 h-4 text-slate-500 sm:rotate-0 -rotate-90 hidden sm:block" />
-            <ArrowRight className="w-4 h-4 text-slate-500 sm:hidden" />
-          </div>
-          <div className="hidden sm:block w-px flex-1 rounded-full" style={{ background: 'rgba(255,255,255,0.06)' }} />
+      {/* Before → After flow: 28 → 91 · +63 pts */}
+      <div className="px-5 sm:px-6 pt-6 pb-6">
+        <div className="text-[11px] font-semibold uppercase tracking-[0.25em] text-slate-500 text-center mb-5">
+          Before / After
         </div>
+        <div className="flex items-center justify-center gap-3 sm:gap-6">
+          <FlowScore label="Before" sublabel="Original" score={atsScore} delay={0} />
 
-        <ScoreCard
-          label="After · Optimized"
-          sublabel="Skills & keyword match"
-          score={jobFitScore}
-          isAfter
-          delay={300}
-        />
+          <ArrowRight className="w-6 h-6 sm:w-8 sm:h-8 text-slate-600 shrink-0 mb-6" />
+
+          <FlowScore label="After" sublabel="Optimized" score={afterScore} isAfter delay={300} />
+
+          {coverageGain && (
+            <div className="flex flex-col items-center justify-center pl-1 sm:pl-4 mb-6 shrink-0">
+              <span className="text-3xl sm:text-4xl font-black text-emerald-400 leading-none tabular-nums">
+                +{delta}
+              </span>
+              <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-500/80 mt-1">
+                pts
+              </span>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Category progress rows */}
       <div className="px-4 sm:px-5 pb-5 grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <MetricRow label="Keyword Match" pct={Math.round((atsScore / 100) * 80 + 20)} delay={200} color="#7c3aed" />
-        <MetricRow label="Impact Language"  pct={Math.round((jobFitScore / 100) * 90 + 5)}  delay={350} color="#3b82f6" />
-        <MetricRow label="ATS Compatibility" pct={Math.min(98, Math.round(jobFitScore * 0.95 + 5))} delay={500} color="#10b981" />
-        <MetricRow label="Role Alignment"    pct={Math.round((jobFitScore + atsScore) / 2 + 5)}      delay={650} color="#f59e0b" />
+        <MetricRow label="Keyword Match" pct={Math.round((afterScore / 100) * 85 + 10)} delay={200} color="#7c3aed" />
+        <MetricRow label="Impact Language"  pct={Math.round((afterScore / 100) * 90 + 5)}  delay={350} color="#3b82f6" />
+        <MetricRow label="ATS Compatibility" pct={Math.min(98, Math.round(afterScore * 0.95 + 5))} delay={500} color="#10b981" />
+        <MetricRow label="Role Alignment"    pct={Math.round((jobFitScore + afterScore) / 2 + 5)}      delay={650} color="#f59e0b" />
       </div>
     </div>
   );

@@ -9,6 +9,7 @@ export type ViewableResume = {
   company?: string | null;
   created_at?: string;
   ats_score?: number;
+  optimized_ats_score?: number | null;
   job_fit_score?: number;
   original_resume?: string | null;
   optimized_resume?: string | null;
@@ -85,7 +86,7 @@ export default function ResumeViewerModal({ v, onClose }: { v: ViewableResume; o
             </h2>
             <div className="flex items-center gap-3 mt-1 flex-wrap">
               {v.created_at && <span className="text-xs text-slate-500">{fmtDate(v.created_at)}</span>}
-              {typeof v.ats_score === 'number' && <span className="text-xs text-purple-400 font-semibold">ATS {v.ats_score}</span>}
+              {typeof (v.optimized_ats_score ?? v.ats_score) === 'number' && <span className="text-xs text-purple-400 font-semibold">ATS {v.optimized_ats_score ?? v.ats_score}</span>}
               {typeof v.job_fit_score === 'number' && <span className="text-xs text-blue-400 font-semibold">Fit {v.job_fit_score}</span>}
             </div>
           </div>

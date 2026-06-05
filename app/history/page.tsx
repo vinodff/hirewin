@@ -233,8 +233,8 @@ function JobCard({ v, index, onStatusChange, onDelete, onNoteChange, onView }: {
           </div>
         </div>
 
-        {/* ATS ring */}
-        <Ring score={v.ats_score} />
+        {/* ATS ring — show the optimized "after" score (fall back to before for old rows) */}
+        <Ring score={v.optimized_ats_score ?? v.ats_score} />
 
         {/* Actions */}
         <div className="flex items-center gap-1 shrink-0">

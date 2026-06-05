@@ -238,7 +238,10 @@ export async function POST(req: NextRequest) {
         // --- Save to Supabase + increment usage ---
         let versionId = uuidv4();
         if (user) {
-          const { data: saved } = await supabase
+          // Note: outreach_email / outreach_linkedin are NOT NULL DEFAULT '' in the
+          // schema — omit them so the DB default applies. Passing null here would
+          // raise a not-null violation and the resume would never be saved.
+          const { data: saved, error: saveError } = await supabase
             .from('resume_versions')
             .insert({
               user_id: user.id,
@@ -246,19 +249,29 @@ export async function POST(req: NextRequest) {
               role: result.role,
               company_type: result.companyType,
               ats_score: result.atsScore,
+              optimized_ats_score: result.optimizedAtsScore,
               job_fit_score: result.jobFitScore,
+              trust_score: result.trustScore ?? null,
+              skill_evidence: result.skillEvidence ?? null,
+              interview_risks: result.interviewRisks ?? null,
               career_level: result.careerLevel,
               original_resume: finalResume,
               optimized_resume: result.optimizedResume,
               keywords_matched: result.keywordsMatched,
               keywords_missing: result.keywordsMissing,
               skill_gaps: result.skillGaps,
-              outreach_email: null,
-              outreach_linkedin: null,
+              // Persist the JD so saved-resume features (mock interview,
+              // self-intro) have the job context when reopened from history.
+              jd_text: finalJd,
             })
             .select('id')
             .single();
 
+          if (saveError) {
+            // Don't fail the whole analysis — the user still sees results — but log
+            // loudly so saved-history regressions are visible instead of silent.
+            console.error('[analyze] Failed to save resume_versions:', saveError);
+          }
           if (saved) versionId = saved.id;
         }
 

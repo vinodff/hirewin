@@ -2,15 +2,22 @@
 
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import { Calendar, Building2, Loader2, Copy, Check } from 'lucide-react';
+import { Calendar, Building2, Loader2, Copy, Check, CheckCircle, TrendingUp } from 'lucide-react';
 import type { ResumeVersion } from '@/types';
 import AppNav from '@/components/app-nav';
-import AtsGauge from '@/components/ats-gauge';
+import ScoreHero from '@/components/score-hero';
+import TrustPanel from '@/components/trust-panel';
 import BeforeAfter from '@/components/before-after';
 import KeywordChips from '@/components/keyword-chips';
 import SkillGapList from '@/components/skill-gap-list';
 import DownloadButtons from '@/components/download-buttons';
+import BrandLoader from '@/components/brand-loader';
+
+// Browser-only features (mic, speech) — load client-side, same as the analyze page.
+const VoiceInterview = dynamic(() => import('@/components/voice-interview'), { ssr: false });
+const SelfDescription = dynamic(() => import('@/components/self-description'), { ssr: false });
 
 const cardStyle = { background: '#0f1629', border: '1px solid rgba(255,255,255,0.07)' };
 
@@ -49,7 +56,9 @@ export default function HistoryDetailPage() {
 
       <div className="max-w-5xl mx-auto px-4 py-8 space-y-5">
         {loading && (
-          <div className="rounded-2xl p-12 text-center text-slate-500" style={cardStyle}>Loading…</div>
+          <div className="rounded-2xl py-16 flex justify-center" style={cardStyle}>
+            <BrandLoader inline label="Loading analysis" />
+          </div>
         )}
 
         {error && (
@@ -88,35 +97,68 @@ export default function HistoryDetailPage() {
               </div>
             </header>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              <AtsGauge
-                score={version.ats_score}
-                label="ATS Score"
-                sublabel="Applicant Tracking System match"
-              />
-              <AtsGauge
-                score={version.job_fit_score}
-                label="Job Fit Score"
-                sublabel="How well you match this role"
-                color="emerald"
-              />
-            </div>
+            {/* 1 · Resume Score Analysis */}
+            <ScoreHero
+              atsScore={version.ats_score}
+              jobFitScore={version.job_fit_score}
+              optimizedAtsScore={version.optimized_ats_score}
+            />
 
-            <DownloadButtons optimizedResume={version.optimized_resume} versionId={version.id} beforeScore={version.ats_score} />
-
+            {/* 2 · Before / After */}
             <BeforeAfter
               original={version.original_resume}
               optimized={version.optimized_resume}
               atsScore={version.ats_score}
+              jobFitScore={version.job_fit_score}
+              optimizedAtsScore={version.optimized_ats_score}
             />
 
+            {/* 3 · Download your resume */}
+            <DownloadButtons optimizedResume={version.optimized_resume} versionId={version.id} beforeScore={version.ats_score} afterScore={version.optimized_ats_score ?? undefined} />
+
+            {/* 4 · Keyword Coverage */}
             <KeywordChips
               matched={version.keywords_matched ?? []}
               missing={version.keywords_missing ?? []}
             />
 
+            {/* 5 · Trust & Evidence */}
+            <TrustPanel
+              variant="evidence"
+              trustScore={version.trust_score ?? undefined}
+              skillEvidence={version.skill_evidence ?? undefined}
+            />
+
+            {/* 6 · Skill Gaps */}
             <SkillGapList gaps={version.skill_gaps ?? []} />
 
+            {/* 7 · Interview Risk Alerts */}
+            <TrustPanel
+              variant="risks"
+              interviewRisks={version.interview_risks ?? undefined}
+            />
+
+            {/* 8 · Self-Introduction Generator */}
+            <SelfDescription
+              resumeText={version.optimized_resume}
+              role={version.role}
+              company={version.company}
+              jdText={version.jd_text ?? undefined}
+            />
+
+            {/* 9 · HireWin Interview (live voice mock interview) */}
+            <VoiceInterview
+              resumeText={version.optimized_resume}
+              role={version.role}
+              company={version.company}
+              jdText={version.jd_text ?? undefined}
+              versionId={version.id}
+            />
+
+            {/* Saved interview report, if one exists */}
+            {version.evaluation_report && <InterviewResultsSection report={JSON.parse(version.evaluation_report)} />}
+
+            {/* 10 · Cold Outreach */}
             <OutreachSection
               optimizedResume={version.optimized_resume}
               role={version.role}
@@ -126,6 +168,124 @@ export default function HistoryDetailPage() {
             />
           </>
         )}
+      </div>
+    </div>
+  );
+}
+
+type InterviewReport = {
+  overallScore: number;
+  selectionChance: 'High' | 'Medium' | 'Low';
+  summary: string;
+  strengths: string[];
+  improvements: string[];
+  questionFeedback: Array<{
+    question: string;
+    score: number;
+    feedback: string;
+    betterAnswer: string;
+  }>;
+};
+
+const CHANCE_STYLES = {
+  High:   { color: '#34d399', bg: 'rgba(52,211,153,0.1)',  border: 'rgba(52,211,153,0.25)',  icon: '🎯' },
+  Medium: { color: '#fbbf24', bg: 'rgba(251,191,36,0.1)',  border: 'rgba(251,191,36,0.25)',  icon: '⚡' },
+  Low:    { color: '#f87171', bg: 'rgba(248,113,113,0.1)', border: 'rgba(248,113,113,0.25)', icon: '📈' },
+};
+
+function InterviewResultsSection({ report }: { report: InterviewReport }) {
+  const r = 36, circ = 2 * Math.PI * r, dash = (report.overallScore / 100) * circ;
+  const scoreColor = report.overallScore >= 75 ? '#34d399' : report.overallScore >= 55 ? '#fbbf24' : '#f87171';
+  const chance = CHANCE_STYLES[report.selectionChance];
+
+  return (
+    <div className="space-y-5">
+      <div className="rounded-xl p-5 flex flex-col sm:flex-row items-center gap-5"
+        style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.07)' }}>
+        <div className="relative w-24 h-24 flex items-center justify-center shrink-0">
+          <svg className="absolute inset-0 -rotate-90" width="96" height="96">
+            <circle cx="48" cy="48" r={r} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="6" />
+            <circle cx="48" cy="48" r={r} fill="none" stroke={scoreColor} strokeWidth="6"
+              strokeDasharray={`${dash} ${circ}`} strokeLinecap="round" />
+          </svg>
+          <div className="text-center z-10">
+            <div className="text-2xl font-black text-white leading-none">{report.overallScore}</div>
+            <div className="text-[9px] text-slate-500 uppercase tracking-wider mt-0.5">Score</div>
+          </div>
+        </div>
+        <div className="flex-1 text-center sm:text-left">
+          <div className="flex items-center gap-2 justify-center sm:justify-start mb-1.5 flex-wrap">
+            <span className="text-base font-bold text-white">Interview Report</span>
+            <span className="text-xs font-bold px-2.5 py-1 rounded-full"
+              style={{ background: chance.bg, border: `1px solid ${chance.border}`, color: chance.color }}>
+              {chance.icon} {report.selectionChance === 'High' ? 'High chance of selection' : report.selectionChance === 'Medium' ? 'Medium — strengthen key answers' : 'Low — significant practice needed'}
+            </span>
+          </div>
+          <p className="text-sm text-slate-300 leading-relaxed">{report.summary}</p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="rounded-xl p-4"
+          style={{ background: 'rgba(52,211,153,0.06)', border: '1px solid rgba(52,211,153,0.18)' }}>
+          <div className="flex items-center gap-1.5 mb-2.5">
+            <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
+            <span className="text-[11px] font-bold text-emerald-400 uppercase tracking-wider">Strengths</span>
+          </div>
+          <ul className="space-y-1.5">
+            {report.strengths.map((s, i) => (
+              <li key={i} className="text-sm text-slate-300 flex items-start gap-1.5">
+                <span className="text-emerald-400 shrink-0 text-xs mt-0.5">✓</span>{s}
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div className="rounded-xl p-4"
+          style={{ background: 'rgba(251,191,36,0.06)', border: '1px solid rgba(251,191,36,0.18)' }}>
+          <div className="flex items-center gap-1.5 mb-2.5">
+            <TrendingUp className="w-3.5 h-3.5 text-yellow-400" />
+            <span className="text-[11px] font-bold text-yellow-400 uppercase tracking-wider">Areas to Improve</span>
+          </div>
+          <ul className="space-y-1.5">
+            {report.improvements.map((s, i) => (
+              <li key={i} className="text-sm text-slate-300 flex items-start gap-1.5">
+                <span className="text-yellow-400 shrink-0 text-xs mt-0.5">↗</span>{s}
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+
+      <div>
+        <h4 className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-3">
+          Question Breakdown
+        </h4>
+        <div className="space-y-3">
+          {report.questionFeedback.map((qf, i) => {
+            const sc = qf.score >= 8 ? '#34d399' : qf.score >= 6 ? '#fbbf24' : '#f87171';
+            return (
+              <div key={i} className="rounded-xl p-4"
+                style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <span className="text-[11px] font-bold text-slate-500">Q{i + 1}</span>
+                  <span className="text-xs font-black shrink-0" style={{ color: sc }}>{qf.score}/10</span>
+                </div>
+                <p className="text-sm font-medium text-slate-200 mb-2 leading-snug">{qf.question}</p>
+                <div className="h-1 rounded-full mb-2.5" style={{ background: 'rgba(255,255,255,0.06)' }}>
+                  <div className="h-full rounded-full" style={{ width: `${qf.score * 10}%`, background: sc }} />
+                </div>
+                <p className="text-xs text-slate-400 leading-relaxed mb-2">{qf.feedback}</p>
+                {qf.betterAnswer && (
+                  <div className="rounded-lg p-3"
+                    style={{ background: 'rgba(124,58,237,0.07)', border: '1px solid rgba(124,58,237,0.15)' }}>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-purple-400 mb-1">Stronger Answer</p>
+                    <p className="text-xs text-slate-300 leading-relaxed">{qf.betterAnswer}</p>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );

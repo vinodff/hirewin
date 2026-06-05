@@ -26,7 +26,7 @@ export async function GET() {
 
   const { data: versions, error } = await supabase
     .from('resume_versions')
-    .select('id, created_at, company, role, company_type, ats_score, job_fit_score, career_level, original_resume, optimized_resume, keywords_matched, keywords_missing, skill_gaps, application_status, applied_at, responded_at, interview_at, closed_at, pipeline_note')
+    .select('id, created_at, company, role, company_type, ats_score, optimized_ats_score, job_fit_score, career_level, original_resume, optimized_resume, keywords_matched, keywords_missing, skill_gaps, application_status, applied_at, responded_at, interview_at, closed_at, pipeline_note')
     .eq('user_id', user.id)
     .gte('created_at', cutoff.toISOString())
     .order('created_at', { ascending: false })
