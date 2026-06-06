@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Mail, MessageSquare, Clock, CheckCircle2 } from 'lucide-react';
+import { Mail, MessageSquare, Clock, CheckCircle2, MapPin } from 'lucide-react';
 import AppNav from '@/components/app-nav';
 import Footer from '@/components/footer';
 
@@ -62,6 +62,16 @@ export default function ContactPage() {
                 support@hirewin.live
               </a>
               <p className="text-xs text-slate-500 mt-1">For all inquiries and support</p>
+            </div>
+
+            <div className="rounded-2xl p-5" style={cardStyle}>
+              <MapPin className="w-5 h-5 text-pink-400 mb-3" />
+              <h3 className="font-semibold text-white text-sm mb-1">Registered Address</h3>
+              <p className="text-xs text-slate-300 font-medium">Kondeti Vinod Kumar</p>
+              <address className="text-xs text-slate-400 mt-1 not-italic leading-relaxed">
+                1-264, Laku Peta, Sakhinetipalli<br />
+                Laku, Sakhinetipalli, Sakhinetipalle
+              </address>
             </div>
 
             <div className="rounded-2xl p-5" style={cardStyle}>
