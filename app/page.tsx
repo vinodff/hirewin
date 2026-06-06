@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { ArrowRight, Sparkles } from 'lucide-react';
 import AppNav from '@/components/app-nav';
+import Footer from '@/components/footer';
 import ScrollReveal from '@/components/scroll-reveal';
 import BulletRewriter from '@/components/bullet-rewriter';
 import TestimonialMarquee from '@/components/testimonial-marquee';
@@ -115,17 +116,7 @@ export default function LandingPage() {
         </ScrollReveal>
       </section>
 
-      {/* ── FOOTER ────────────────────────────────────────── */}
-      <footer className="relative max-w-6xl mx-auto px-4 sm:px-6 py-8 border-t" style={{ borderColor: 'rgba(255,255,255,0.05)' }}>
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-600">
-          <span>© 2026 HireWin · Built for jobseekers</span>
-          <div className="flex items-center gap-5">
-            <Link href="/pricing" className="hover:text-slate-300 transition-colors">Pricing</Link>
-            <Link href="/auth/login" className="hover:text-slate-300 transition-colors">Sign in</Link>
-            <a href="mailto:hello@hirewin.live" className="hover:text-slate-300 transition-colors">Contact</a>
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }
