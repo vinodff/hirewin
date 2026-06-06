@@ -80,7 +80,7 @@ export default function TermsPage() {
               HireWin offers both free and paid plans. Paid plans include one-time purchases and subscriptions. All prices are in Indian Rupees (₹) and inclusive of applicable taxes unless stated otherwise.
             </p>
             <p>
-              Payments are processed by Razorpay. By making a payment, you agree to Razorpay&rsquo;s terms of service. We do not store your card or banking details.
+              Payments are processed by PayU. By making a payment, you agree to PayU&rsquo;s terms of service. We do not store your card or banking details.
             </p>
             <p>
               Subscription plans auto-renew unless cancelled before the renewal date. You can cancel your subscription at any time from your billing settings.

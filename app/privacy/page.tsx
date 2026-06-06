@@ -42,7 +42,7 @@ export default function PrivacyPage() {
               <li><strong className="text-white">Account information:</strong> Name, email address, and profile photo (via Google OAuth).</li>
               <li><strong className="text-white">Resume content:</strong> The resume text or PDF you upload for optimization. This is used solely to generate your optimized resume.</li>
               <li><strong className="text-white">Job descriptions:</strong> Text or URLs of job descriptions you provide.</li>
-              <li><strong className="text-white">Payment information:</strong> We do not store card details. Payments are processed securely by Razorpay.</li>
+              <li><strong className="text-white">Payment information:</strong> We do not store card details. Payments are processed securely by PayU.</li>
               <li><strong className="text-white">Usage data:</strong> Pages visited, features used, and timestamps — for analytics and improving the product.</li>
               <li><strong className="text-white">Device information:</strong> IP address, browser type, and OS — for security and rate limiting.</li>
             </ul>
@@ -89,7 +89,7 @@ export default function PrivacyPage() {
             <ul className="list-disc list-inside space-y-1.5 pl-2">
               <li><strong className="text-white">Supabase</strong> — database and authentication</li>
               <li><strong className="text-white">Anthropic (Claude)</strong> — AI resume optimization</li>
-              <li><strong className="text-white">Razorpay</strong> — payment processing</li>
+              <li><strong className="text-white">PayU</strong> — payment processing</li>
               <li><strong className="text-white">Vercel</strong> — hosting and CDN</li>
             </ul>
             <p>Each provider has its own privacy policy governing their data handling.</p>

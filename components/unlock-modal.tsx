@@ -124,55 +124,34 @@ export default function UnlockModal({ onClose, onPaid }: Props) {
         return;
       }
 
-      const { orderId, amount, currency, keyId, userName, userEmail, error: err } = await res.json();
-      if (err) { alert(err); setPaying(null); return; }
+      const data = await res.json();
+      if (data.error) { alert(data.error); setPaying(null); return; }
 
-      const plan = PLANS.find(p => p.id === planId)!;
+      const { key, txnid, amount, productinfo, firstname, email, udf1, hash, surl, furl, payuUrl } = data;
 
-      const openRzp = () => {
-        // @ts-expect-error Razorpay global
-        const rzp = new window.Razorpay({
-          key: keyId,
-          amount,
-          currency,
-          name: 'HireWin',
-          description: `${plan.name} Plan — Resume Download`,
-          image: '/logo.png',
-          order_id: orderId,
-          prefill: { name: userName || '', email: userEmail || '', contact: '' },
-          theme: { color: '#7c3aed' },
-          modal: { ondismiss: () => setPaying(null) },
-          handler: async (response: Record<string, string>) => {
-            try {
-              const verifyRes = await fetch('/api/payment/verify', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(response),
-              });
-              const data = await verifyRes.json();
-              if (data.ok) {
-                onPaid?.();
-                window.location.href = `/payment/success?plan=${planId}`;
-              } else {
-                window.location.href = `/payment/failed?reason=${encodeURIComponent(data.error ?? 'unknown')}`;
-              }
-            } catch {
-              window.location.href = '/payment/failed?reason=network';
-            }
-          },
-        });
-        rzp.open();
+      // Build a hidden form and submit it — PayU requires a full-page redirect POST
+      const form = document.createElement('form');
+      form.method = 'POST';
+      form.action = payuUrl;
+
+      const fields: Record<string, string> = {
+        key, txnid, amount, productinfo, firstname, email,
+        udf1, hash, surl, furl,
+        service_provider: 'payu_paisa',
+        phone: '',
       };
 
-      // @ts-expect-error Razorpay global
-      if (typeof window.Razorpay !== 'undefined') {
-        openRzp();
-      } else {
-        const script = document.createElement('script');
-        script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-        script.onload = openRzp;
-        document.head.appendChild(script);
+      for (const [name, value] of Object.entries(fields)) {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = name;
+        input.value = value;
+        form.appendChild(input);
       }
+
+      document.body.appendChild(form);
+      form.submit();
+      // Keep spinner up — user is being redirected away
     } catch {
       alert('Something went wrong. Please try again.');
       setPaying(null);
@@ -356,7 +335,7 @@ export default function UnlockModal({ onClose, onPaid }: Props) {
           <div className="flex items-center justify-center gap-4 mt-4 text-[10px] text-slate-600">
             <div className="flex items-center gap-1">
               <Shield className="w-3 h-3 text-purple-500 shrink-0" />
-              Razorpay secured
+              PayU secured
             </div>
             <div className="flex items-center gap-1">
               <Zap className="w-3 h-3 text-purple-500 shrink-0" />

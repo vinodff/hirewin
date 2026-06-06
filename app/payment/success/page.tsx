@@ -96,7 +96,7 @@ function SuccessContent() {
       </div>
 
       <p className="text-xs text-slate-700 mt-6">
-        A confirmation has been sent to your email · Powered by Razorpay
+        A confirmation has been sent to your email · Secured by PayU
       </p>
     </div>
   );

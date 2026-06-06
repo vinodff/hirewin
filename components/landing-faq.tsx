@@ -30,7 +30,7 @@ const FAQS = [
   },
   {
     q: 'What payment methods are supported?',
-    a: 'All major credit/debit cards, UPI, and net banking via Razorpay.',
+    a: 'All major credit/debit cards, UPI, and net banking via PayU.',
   },
 ];
 

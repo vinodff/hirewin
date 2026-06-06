@@ -96,7 +96,7 @@ export default function RefundPage() {
             <ul className="list-disc list-inside space-y-1.5 pl-2">
               <li>Your registered email address</li>
               <li>The date of purchase</li>
-              <li>Your Razorpay payment ID (found in your payment confirmation email)</li>
+              <li>Your PayU transaction ID (found in your payment confirmation email)</li>
               <li>A brief description of the issue</li>
             </ul>
             <p>We will respond within <strong className="text-white">2 business days</strong>. If approved, refunds are credited to your original payment method within 5–7 business days, depending on your bank.</p>

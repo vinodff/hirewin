@@ -103,7 +103,7 @@ const teamFeatures = [
 const faqs = [
   { q: 'Can I see my results before paying?', a: 'Yes — the full ATS analysis, keyword matching, and resume preview are always free. You only pay to download the PDF or DOCX file.' },
   { q: 'What is the Starter plan?', a: '₹99 is a one-time purchase that gives you 1 resume download and 1 cover letter download. No subscription, no recurring charges. Perfect if you only need it once.' },
-  { q: 'Is my payment secure?', a: 'Yes. Payments are processed by Razorpay — PCI-DSS compliant. We never store your card details. Your data is encrypted end-to-end.' },
+  { q: 'Is my payment secure?', a: 'Yes. Payments are processed by PayU — PCI-DSS compliant. We never store your card details. Your data is encrypted end-to-end.' },
   { q: 'What counts as a "skill roadmap"?', a: 'Each skill you select and generate a learning plan for counts as 1 roadmap. Pro users get 15 per month, Power users get 60 per month.' },
   { q: 'Can I cancel my subscription?', a: 'Yes, anytime. Your plan stays active until the end of the billing period, then you return to the free tier. No pro-rated refunds for unused time.' },
   { q: 'What is the difference between monthly and yearly?', a: 'Same features, different billing. Yearly plans work out to 2 months free compared to paying monthly.' },
@@ -188,7 +188,7 @@ function CheckoutModal({
         {/* Trust badges */}
         <div className="flex flex-wrap gap-2 mb-5">
           {[
-            { icon: Shield, text: 'Secure payment by Razorpay' },
+            { icon: Shield, text: 'Secure payment by PayU' },
             { icon: Zap,    text: 'Instant access' },
             { icon: Lock,   text: 'Cancel anytime' },
           ].map(({ icon: Icon, text }) => (
@@ -266,64 +266,35 @@ export default function PricingPage() {
         return;
       }
 
-      const { orderId, amount, currency, keyId, userName, userEmail, error: err } = await res.json();
-      if (err) { alert(err); setPaying(false); return; }
+      const data = await res.json();
+      if (data.error) { alert(data.error); setPaying(false); return; }
 
-      const planName = checkoutPlan.name;
+      const { key, txnid, amount, productinfo, firstname, email, udf1, hash, surl, furl, payuUrl } = data;
 
-      const openRzp = () => {
-        // @ts-expect-error Razorpay global
-        const rzp = new window.Razorpay({
-          key: keyId,
-          amount,
-          currency,
-          name: 'HireWin',
-          description: `${planName} Plan — Instant Access`,
-          image: 'https://hirewin.live/logo.png',
-          order_id: orderId,
-          prefill: {
-            name:    userName  || '',
-            email:   userEmail || '',
-            contact: '',
-          },
-          theme: { color: '#7c3aed' },
-          modal: {
-            ondismiss: () => setPaying(false),
-          },
-          handler: async (response: Record<string, string>) => {
-            try {
-              const verifyRes = await fetch('/api/payment/verify', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(response),
-              });
-              const data = await verifyRes.json();
-              if (data.ok) {
-                window.location.href = `/payment/success?plan=${checkoutPlan.id}`;
-              } else {
-                console.error('[payment] verify failed:', data.error, 'status:', verifyRes.status);
-                window.location.href = `/payment/failed?reason=${encodeURIComponent(data.error ?? 'unknown')}`;
-              }
-            } catch (err) {
-              console.error('[payment] verify request threw:', err);
-              window.location.href = '/payment/failed?reason=network';
-            }
-          },
-        });
-        rzp.open();
-        setCheckoutPlan(null);
-        setPaying(false);
+      // Build a hidden form and submit — PayU requires a full-page redirect POST
+      const form = document.createElement('form');
+      form.method = 'POST';
+      form.action = payuUrl;
+
+      const payuFields: Record<string, string> = {
+        key, txnid, amount, productinfo, firstname, email,
+        udf1, hash, surl, furl,
+        service_provider: 'payu_paisa',
+        phone: '',
       };
 
-      // @ts-expect-error Razorpay global
-      if (typeof window.Razorpay !== 'undefined') {
-        openRzp();
-      } else {
-        const script = document.createElement('script');
-        script.src   = 'https://checkout.razorpay.com/v1/checkout.js';
-        script.onload = openRzp;
-        document.head.appendChild(script);
+      for (const [name, value] of Object.entries(payuFields)) {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = name;
+        input.value = value;
+        form.appendChild(input);
       }
+
+      document.body.appendChild(form);
+      form.submit();
+      setCheckoutPlan(null);
+      // Keep spinner — user is being redirected
     } catch {
       alert('Something went wrong. Please try again.');
       setPaying(false);
@@ -388,7 +359,7 @@ export default function PricingPage() {
         {/* Trust strip */}
         <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 mb-8 text-xs text-slate-500">
           {[
-            { icon: Shield, text: 'Secure payments by Razorpay' },
+            { icon: Shield, text: 'Secure payments by PayU' },
             { icon: Zap,    text: 'Instant access after payment' },
             { icon: Lock,   text: 'Cancel anytime' },
           ].map(({ icon: Icon, text }) => (
@@ -527,7 +498,7 @@ export default function PricingPage() {
           </div>
 
           <p className="text-center text-xs text-slate-600 mt-8">
-            🔒 Powered by Razorpay · PCI-DSS Compliant · Cancel anytime
+            🔒 Powered by PayU · PCI-DSS Compliant · Cancel anytime
           </p>
         </div>
       </div>

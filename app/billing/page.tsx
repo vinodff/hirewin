@@ -258,7 +258,7 @@ export default function BillingPage() {
 
             {/* Footer */}
             <p className="text-center text-xs text-slate-600 pb-4">
-              Powered by Razorpay · Secure payments · Cancel anytime
+              Secured by PayU · Secure payments · Cancel anytime
             </p>
           </div>
         )}
