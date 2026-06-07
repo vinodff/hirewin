@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { Check, Zap, X, Shield, Clock, Lock } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Check, Zap, Shield, Lock } from 'lucide-react';
 import AppNav from '@/components/app-nav';
 
 /* ── plan data ── */
@@ -111,210 +112,20 @@ const faqs = [
 
 const cardStyle = { background: '#0f1629', border: '1px solid rgba(255,255,255,0.07)' };
 
-/* ── Checkout confirmation modal ── */
-function CheckoutModal({
-  plan,
-  isYearly,
-  onConfirm,
-  onClose,
-  loading,
-}: {
-  plan: typeof plans[number];
-  isYearly: boolean;
-  onConfirm: () => void;
-  onClose: () => void;
-  loading: boolean;
-}) {
-  const price  = isYearly ? plan.price.yearly  : plan.price.monthly;
-  const period = isYearly ? plan.period.yearly : plan.period.monthly;
-
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
-      style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(6px)' }}
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
-    >
-      <div
-        className="w-full max-w-md rounded-2xl p-6 animate-slide-up-sm"
-        style={{
-          background: '#0f1629',
-          border: '1px solid rgba(124,58,237,0.3)',
-          boxShadow: '0 32px 80px rgba(0,0,0,0.6)',
-        }}
-      >
-        {/* Header */}
-        <div className="flex items-start justify-between mb-5">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <img src="/logo.png" alt="HireWin" className="w-6 h-6 object-contain" />
-              <span className="font-bold text-white">HireWin</span>
-            </div>
-            <h2 className="text-xl font-extrabold text-white">{plan.name} Plan</h2>
-          </div>
-          <button onClick={onClose} className="text-slate-500 hover:text-slate-300 transition-colors p-1">
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        {/* Price */}
-        <div
-          className="rounded-xl p-4 mb-5 flex items-center justify-between"
-          style={{ background: 'rgba(124,58,237,0.08)', border: '1px solid rgba(124,58,237,0.2)' }}
-        >
-          <div>
-            <div className="text-xs text-slate-400 mb-0.5">You pay today</div>
-            <div className="text-3xl font-extrabold gradient-text">{price}</div>
-            <div className="text-xs text-slate-500">{period}</div>
-          </div>
-          <div className="text-right">
-            <div className="text-xs text-green-400 font-semibold mb-1">⚡ Instant access</div>
-            <div className="text-xs text-slate-500">After payment</div>
-          </div>
-        </div>
-
-        {/* What you get */}
-        <div className="mb-5">
-          <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">What you get</div>
-          <ul className="space-y-2">
-            {plan.features.slice(0, 5).map((f) => (
-              <li key={f} className="flex items-start gap-2 text-sm text-slate-300">
-                <Check className="w-4 h-4 text-green-400 shrink-0 mt-0.5" />
-                {f}
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        {/* Trust badges */}
-        <div className="flex flex-wrap gap-2 mb-5">
-          {[
-            { icon: Shield, text: 'Secure payment by PayU' },
-            { icon: Zap,    text: 'Instant access' },
-            { icon: Lock,   text: 'Cancel anytime' },
-          ].map(({ icon: Icon, text }) => (
-            <div
-              key={text}
-              className="flex items-center gap-1.5 text-xs text-slate-400 px-2.5 py-1.5 rounded-lg"
-              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}
-            >
-              <Icon className="w-3 h-3 text-purple-400 shrink-0" />
-              {text}
-            </div>
-          ))}
-        </div>
-
-        {/* Pay button */}
-        <button
-          onClick={onConfirm}
-          disabled={loading}
-          className="w-full py-4 rounded-xl font-bold text-white text-base transition-all hover:opacity-90 active:scale-[0.98] disabled:opacity-60 flex items-center justify-center gap-2"
-          style={{ background: 'linear-gradient(135deg, #7c3aed, #3b82f6)', minHeight: '54px' }}
-        >
-          {loading ? (
-            <>
-              <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
-              </svg>
-              Opening secure checkout…
-            </>
-          ) : (
-            <>
-              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                <rect x="1" y="4" width="22" height="16" rx="2" />
-                <line x1="1" y1="10" x2="23" y2="10" />
-              </svg>
-              Pay {price} securely
-            </>
-          )}
-        </button>
-
-        <p className="text-center text-xs text-slate-600 mt-3">
-          🔒 256-bit SSL encryption · PCI DSS compliant
-        </p>
-      </div>
-    </div>
-  );
-}
-
 /* ── Main page ── */
 export default function PricingPage() {
+  const router = useRouter();
   const [yearly, setYearly]         = useState(true);
   const [openFaq, setOpenFaq]       = useState<number | null>(null);
-  const [checkoutPlan, setCheckoutPlan] = useState<typeof plans[number] | null>(null);
-  const [paying, setPaying]         = useState(false);
 
+  // Send the shopper to the cart/checkout page with their selection.
   function openCheckout(plan: typeof plans[number]) {
-    setCheckoutPlan(plan);
-  }
-
-  async function handlePay() {
-    if (!checkoutPlan) return;
-    setPaying(true);
-
-    try {
-      const res = await fetch('/api/payment/create-order', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plan: checkoutPlan.id, isYearly: yearly }),
-      });
-
-      if (res.status === 401) { window.location.href = '/auth/login'; return; }
-      if (res.status === 503) {
-        alert('Payments coming soon! Check back shortly.');
-        setPaying(false);
-        return;
-      }
-
-      const data = await res.json();
-      if (data.error) { alert(data.error); setPaying(false); return; }
-
-      const { key, txnid, amount, productinfo, firstname, email, udf1, hash, surl, furl, payuUrl } = data;
-
-      // Build a hidden form and submit — PayU requires a full-page redirect POST
-      const form = document.createElement('form');
-      form.method = 'POST';
-      form.action = payuUrl;
-
-      const payuFields: Record<string, string> = {
-        key, txnid, amount, productinfo, firstname, email,
-        udf1, hash, surl, furl,
-        service_provider: 'payu_paisa',
-        phone: '',
-      };
-
-      for (const [name, value] of Object.entries(payuFields)) {
-        const input = document.createElement('input');
-        input.type = 'hidden';
-        input.name = name;
-        input.value = value;
-        form.appendChild(input);
-      }
-
-      document.body.appendChild(form);
-      form.submit();
-      setCheckoutPlan(null);
-      // Keep spinner — user is being redirected
-    } catch {
-      alert('Something went wrong. Please try again.');
-      setPaying(false);
-    }
+    router.push(`/cart?plan=${plan.id}&yearly=${yearly}`);
   }
 
   return (
     <div className="min-h-screen" style={{ background: '#080d1a' }}>
       <AppNav />
-
-      {/* Checkout modal */}
-      {checkoutPlan && (
-        <CheckoutModal
-          plan={checkoutPlan}
-          isYearly={yearly}
-          onConfirm={handlePay}
-          onClose={() => { setCheckoutPlan(null); setPaying(false); }}
-          loading={paying}
-        />
-      )}
 
       <div className="max-w-6xl mx-auto px-4 py-10 sm:py-12">
 
