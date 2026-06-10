@@ -15,6 +15,7 @@ const links = {
     { label: 'Privacy Policy', href: '/privacy' },
     { label: 'Terms of Service', href: '/terms' },
     { label: 'Refund Policy',  href: '/refund' },
+    { label: 'Shipping & Delivery', href: '/shipping' },
   ],
 };
 
@@ -70,10 +71,11 @@ export default function Footer() {
           style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}
         >
           <span>© {new Date().getFullYear()} HireWin. All rights reserved.</span>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 flex-wrap justify-center">
             <Link href="/privacy" className="hover:text-slate-400 transition-colors">Privacy</Link>
             <Link href="/terms"   className="hover:text-slate-400 transition-colors">Terms</Link>
             <Link href="/refund"  className="hover:text-slate-400 transition-colors">Refund</Link>
+            <Link href="/shipping" className="hover:text-slate-400 transition-colors">Shipping</Link>
             <Link href="/contact" className="hover:text-slate-400 transition-colors">Contact</Link>
           </div>
         </div>

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Mail, MessageSquare, Clock, CheckCircle2, MapPin } from 'lucide-react';
+import { Mail, MessageSquare, Clock, CheckCircle2, MapPin, Phone } from 'lucide-react';
 import AppNav from '@/components/app-nav';
 import Footer from '@/components/footer';
 
@@ -65,6 +65,15 @@ export default function ContactPage() {
             </div>
 
             <div className="rounded-2xl p-5" style={cardStyle}>
+              <Phone className="w-5 h-5 text-green-400 mb-3" />
+              <h3 className="font-semibold text-white text-sm mb-1">Call / WhatsApp</h3>
+              <a href="tel:+918019238515" className="text-xs text-green-400 hover:text-green-300 transition-colors">
+                +91 80192 38515
+              </a>
+              <p className="text-xs text-slate-500 mt-1">Mon–Sat, 9 AM – 6 PM IST</p>
+            </div>
+
+            <div className="rounded-2xl p-5" style={cardStyle}>
               <MapPin className="w-5 h-5 text-pink-400 mb-3" />
               <h3 className="font-semibold text-white text-sm mb-1">Registered Address</h3>
               <p className="text-xs text-slate-300 font-medium">Kondeti Vinod Kumar</p>
@@ -72,6 +81,9 @@ export default function ContactPage() {
                 1-264, Laku Peta, Sakhinetipalli<br />
                 Laku, Sakhinetipalli, Sakhinetipalle
               </address>
+              <p className="text-[11px] text-slate-500 mt-2 pt-2 border-t border-white/[0.06]">
+                Operated by <span className="text-slate-300">Kondeti Vinod Kumar</span> (Sole Proprietorship trading as HireWin)
+              </p>
             </div>
 
             <div className="rounded-2xl p-5" style={cardStyle}>

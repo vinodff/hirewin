@@ -164,7 +164,7 @@ export default function PricingPage() {
             </button>
           </div>
 
-          <p className="text-xs text-slate-600 mt-2">Prices shown for IN · GST may apply</p>
+          <p className="text-xs text-slate-600 mt-2">All prices in INR · inclusive of applicable taxes</p>
         </div>
 
         {/* Trust strip */}

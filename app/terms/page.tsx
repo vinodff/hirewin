@@ -29,7 +29,12 @@ export default function TermsPage() {
         >
           <Section title="1. Acceptance of Terms">
             <p>
-              By accessing or using HireWin at <strong className="text-white">hirewin.live</strong>, you agree to be bound by these Terms of Service. If you do not agree, please do not use our service.
+              HireWin (<strong className="text-white">hirewin.live</strong>) is owned and operated by
+              {' '}<strong className="text-white">Kondeti Vinod Kumar</strong>, a Sole Proprietorship registered in
+              Andhra Pradesh, India (&ldquo;HireWin&rdquo;, &ldquo;we&rdquo;, &ldquo;us&rdquo;).
+            </p>
+            <p>
+              By accessing or using HireWin, you agree to be bound by these Terms of Service. If you do not agree, please do not use our service.
             </p>
             <p>
               We reserve the right to update these terms at any time. Continued use of the platform after changes constitutes acceptance of the revised terms.
