@@ -160,13 +160,25 @@ export default function JobScanPage() {
         }),
       });
 
-      const data = await res.json();
-      
+      const rawText = await res.text();
+      let data;
+      try {
+        data = JSON.parse(rawText);
+      } catch (jsonErr) {
+        let errMsg = 'Failed to complete job scan. The server took too long to respond. Please try again.';
+        if (rawText && rawText.length > 0 && rawText.length < 200) {
+          errMsg = rawText;
+        } else if (rawText && (rawText.includes('504') || rawText.toLowerCase().includes('gateway timeout') || rawText.toLowerCase().includes('timed out'))) {
+          errMsg = 'The job search timed out. Job portals might be slow today. Please try again with a simpler role or location.';
+        }
+        throw new Error(errMsg);
+      }
+
       if (!res.ok) {
         if (data.error === 'limit_reached') {
           throw new Error('limit_reached');
         }
-        throw new Error(data.error ?? 'Failed to complete job scan. Please try again.');
+        throw new Error(data.error || 'Failed to complete job scan. Please try again.');
       }
 
       setJobs(data.jobs || []);

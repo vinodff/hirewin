@@ -1,78 +1,52 @@
-/* HireWin — LinkedIn profile scraper + floating CTA.
-   Runs on https://www.linkedin.com/in/*  (your own or anyone's profile).
-   Scrapes the visible profile sections, stashes them in extension storage,
-   then opens the HireWin optimizer where the heavy lifting happens. */
+/* HireWin — in-page LinkedIn optimizer panel.
+   Scrapes the profile, computes a completeness score + section checklist,
+   runs AI optimization via the HireWin API (through the background worker),
+   and lets the user copy or apply each optimized section. */
 
 (() => {
-  const DEFAULT_BASE = 'https://hirewin.live';
+  if (window.__hwPanelLoaded) return;
+  window.__hwPanelLoaded = true;
 
-  // Base URL is configurable from the popup (so you can test against
-  // http://localhost:3001 during development). Cached synchronously at load
-  // so the click handler can open the tab inside the user gesture.
-  let baseUrl = DEFAULT_BASE;
-  try {
-    chrome.storage.local.get('hirewin_base', (d) => {
-      if (d && d.hirewin_base) baseUrl = d.hirewin_base;
-    });
-  } catch (_) { /* context not ready */ }
-
-  function optimizerUrl() {
-    return `${baseUrl.replace(/\/$/, '')}/linkedin-optimizer?source=extension`;
-  }
-
-  /* ---- scraping helpers ---------------------------------------------- */
+  /* ============ scraping ============ */
 
   function cleanText(el) {
     if (!el) return '';
     const pref = el.querySelector('span[aria-hidden="true"]');
-    const t = (pref || el).innerText || '';
-    return t.replace(/\s+/g, ' ').trim();
+    return ((pref || el).innerText || '').replace(/\s+/g, ' ').trim();
   }
-
-  function sectionFor(anchorId) {
-    const anchor = document.getElementById(anchorId);
-    if (!anchor) return null;
-    return anchor.closest('section');
+  function sectionFor(id) {
+    const a = document.getElementById(id);
+    return a ? a.closest('section') : null;
   }
-
   function getName() {
     const h1 = document.querySelector('main h1');
     return h1 ? h1.innerText.replace(/\s+/g, ' ').trim() : '';
   }
-
   function getHeadline() {
     const el = document.querySelector('main .text-body-medium.break-words')
       || document.querySelector('main div.text-body-medium');
     return el ? el.innerText.replace(/\s+/g, ' ').trim() : '';
   }
-
   function getAbout() {
     const sec = sectionFor('about');
     if (!sec) return '';
-    const span = sec.querySelector('.display-flex.full-width span[aria-hidden="true"]')
-      || sec.querySelector('.inline-show-more-text span[aria-hidden="true"]')
+    const span = sec.querySelector('.inline-show-more-text span[aria-hidden="true"]')
+      || sec.querySelector('.display-flex.full-width span[aria-hidden="true"]')
       || sec.querySelector('span[aria-hidden="true"]');
     return span ? span.innerText.replace(/\n{3,}/g, '\n\n').trim() : '';
   }
-
   function getExperience() {
     const sec = sectionFor('experience');
     if (!sec) return [];
-    const items = sec.querySelectorAll('li.artdeco-list__item');
     const out = [];
-    items.forEach((li) => {
+    sec.querySelectorAll('li.artdeco-list__item').forEach((li) => {
       const title = cleanText(li.querySelector('.t-bold')) || cleanText(li.querySelector('.mr1.t-bold'));
-      const company = cleanText(li.querySelector('.t-14.t-normal:not(.t-black--light)'))
-        || cleanText(li.querySelector('span.t-14.t-normal'));
-      const desc = cleanText(li.querySelector('.inline-show-more-text'))
-        || cleanText(li.querySelector('.pvs-list__outer-container .t-14.t-normal.t-black'));
-      if (title) {
-        out.push({ title, company: company.split('·')[0].trim(), description: desc });
-      }
+      const company = cleanText(li.querySelector('.t-14.t-normal:not(.t-black--light)')) || cleanText(li.querySelector('span.t-14.t-normal'));
+      const desc = cleanText(li.querySelector('.inline-show-more-text'));
+      if (title) out.push({ title, company: (company || '').split('·')[0].trim(), description: desc });
     });
     return out.slice(0, 8);
   }
-
   function getSkills() {
     const sec = sectionFor('skills');
     if (!sec) return [];
@@ -83,20 +57,35 @@
     });
     return names.slice(0, 50);
   }
-
   function getEducation() {
     const sec = sectionFor('education');
     if (!sec) return '';
     const items = [];
     sec.querySelectorAll('li.artdeco-list__item').forEach((li) => {
       const school = cleanText(li.querySelector('.t-bold'));
-      const degree = cleanText(li.querySelector('.t-14.t-normal'));
-      if (school) items.push([school, degree].filter(Boolean).join(' — '));
+      if (school) items.push(school);
     });
     return items.join('\n');
   }
+  function hasPhoto() {
+    const img = document.querySelector('main img.pv-top-card-profile-picture__image, main .pv-top-card-profile-picture img, main button img.evi-image');
+    if (!img) return false;
+    const src = img.getAttribute('src') || '';
+    return src.includes('media') || src.includes('licdn') ? !/ghost/i.test(src) : false;
+  }
+  function hasBanner() {
+    if (document.querySelector('.profile-background-image--default')) return false;
+    return !!document.querySelector('.profile-background-image img, .pv-top-card__non-self-photo, .profile-background-image');
+  }
+  function isOpenToWork() {
+    return /open to work/i.test(document.querySelector('main')?.innerText || '');
+  }
+  function getLocation() {
+    const el = document.querySelector('main .text-body-small.inline.t-black--light.break-words');
+    return el ? el.innerText.replace(/\s+/g, ' ').trim() : '';
+  }
 
-  function scrapeProfile() {
+  function scrape() {
     return {
       name: getName(),
       headline: getHeadline(),
@@ -104,71 +93,340 @@
       experience: getExperience(),
       skills: getSkills(),
       education: getEducation(),
+      photo: hasPhoto(),
+      banner: hasBanner(),
+      openToWork: isOpenToWork(),
+      location: getLocation(),
     };
   }
 
-  /* ---- floating button UI -------------------------------------------- */
+  /* ============ scoring + checklist ============ */
 
-  function injectButton() {
-    if (document.getElementById('hirewin-fab')) return;
-    const btn = document.createElement('button');
-    btn.id = 'hirewin-fab';
-    btn.type = 'button';
-    btn.innerHTML = `
-      <span class="hw-fab-icon">in</span>
-      <span class="hw-fab-label">Optimize with HireWin</span>
+  // Each check: id, label, icon, points, evaluate(profile) -> {status, detail}
+  const CHECKS = [
+    { id: 'photo',     label: 'Profile Photo', icon: '📷', pts: 10, opt: false,
+      ev: (p) => p.photo ? ok('Photo present') : issue('Add a professional headshot') },
+    { id: 'banner',    label: 'Banner',        icon: '🖼️', pts: 8, opt: false,
+      ev: (p) => p.banner ? ok('Custom banner set') : suggestion('Add a banner image related to your field') },
+    { id: 'headline',  label: 'Headline',      icon: '🏷️', pts: 18, opt: true,
+      ev: (p) => !p.headline ? issue('Missing headline') : p.headline.length < 50 ? suggestion('Headline is short — add keywords') : ok('Strong headline') },
+    { id: 'about',     label: 'About',         icon: '📄', pts: 18, opt: true,
+      ev: (p) => !p.about ? issue('Missing About section') : p.about.length < 200 ? suggestion('About is thin — expand your story') : ok('Detailed About') },
+    { id: 'experience',label: 'Experience',    icon: '💼', pts: 16, opt: true,
+      ev: (p) => !p.experience.length ? issue('No experience listed') : p.experience.some(e => !e.description) ? suggestion('Add descriptions to your roles') : ok('Experience detailed') },
+    { id: 'skills',    label: 'Skills',        icon: '🧩', pts: 14, opt: true,
+      ev: (p) => p.skills.length >= 5 ? ok(p.skills.length + ' skills listed') : suggestion('Add more skills (aim for 10+)') },
+    { id: 'openToWork',label: 'Open To Work',  icon: '🤝', pts: 6, opt: false,
+      ev: (p) => p.openToWork ? ok('Open to Work is on') : suggestion('Turn on Open to Work for recruiters') },
+    { id: 'education',  label: 'Education',     icon: '🎓', pts: 5, opt: false,
+      ev: (p) => p.education ? ok('Education listed') : suggestion('Add your education') },
+    { id: 'location',   label: 'Location',      icon: '📍', pts: 5, opt: false,
+      ev: (p) => p.location ? ok('Location set') : suggestion('Add your location') },
+  ];
+  function ok(d)         { return { status: 'done', detail: d }; }
+  function suggestion(d) { return { status: 'suggestion', detail: d }; }
+  function issue(d)      { return { status: 'issue', detail: d }; }
+
+  function scoreOf(profile) {
+    let got = 0, total = 0;
+    CHECKS.forEach((c) => {
+      total += c.pts;
+      const r = c.ev(profile);
+      if (r.status === 'done') got += c.pts;
+      else if (r.status === 'suggestion') got += c.pts * 0.4;
+    });
+    return Math.round((got / total) * 100);
+  }
+
+  /* ============ React-safe field setter (for Apply) ============ */
+  function setNativeValue(el, value) {
+    const proto = el.tagName === 'TEXTAREA' ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
+    const setter = Object.getOwnPropertyDescriptor(proto, 'value').set;
+    setter.call(el, value);
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+    el.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+
+  function clickEdit(ariaIncludes) {
+    const btn = [...document.querySelectorAll('button[aria-label]')]
+      .find((b) => b.getAttribute('aria-label').toLowerCase().includes(ariaIncludes));
+    if (btn) { btn.click(); return true; }
+    return false;
+  }
+
+  async function applyHeadline(text) {
+    if (!clickEdit('edit intro')) return false;
+    await wait(700);
+    const field = document.querySelector('textarea[id*="headline" i], input[id*="headline" i], textarea[name="headline"]')
+      || [...document.querySelectorAll('.artdeco-modal textarea, .artdeco-modal input')].find(el => /headline/i.test(el.id + el.name));
+    if (!field) return false;
+    setNativeValue(field, text);
+    return true;
+  }
+
+  async function applyAbout(text) {
+    if (!clickEdit('edit about')) return false;
+    await wait(700);
+    const field = document.querySelector('.artdeco-modal textarea');
+    if (!field) return false;
+    setNativeValue(field, text);
+    return true;
+  }
+
+  const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+  function copy(text) { try { navigator.clipboard.writeText(text); } catch (_) {} }
+
+  /* ============ panel UI ============ */
+
+  let profile = null;
+  let optimized = null; // AI result
+
+  function el(tag, cls, html) {
+    const e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (html != null) e.innerHTML = html;
+    return e;
+  }
+
+  function ring(pct) {
+    const r = 32, c = 2 * Math.PI * r;
+    const off = c * (1 - pct / 100);
+    const color = pct >= 70 ? '#34d399' : pct >= 40 ? '#fbbf24' : '#f87171';
+    return `<div class="hw-ring">
+      <svg width="76" height="76">
+        <circle cx="38" cy="38" r="${r}" stroke="rgba(255,255,255,0.1)" stroke-width="7" fill="none"/>
+        <circle cx="38" cy="38" r="${r}" stroke="${color}" stroke-width="7" fill="none"
+          stroke-dasharray="${c}" stroke-dashoffset="${off}" stroke-linecap="round"/>
+      </svg>
+      <div class="hw-ring-val">${pct}%</div>
+    </div>`;
+  }
+
+  function buildPanel() {
+    profile = scrape();
+    const pct = scoreOf(profile);
+
+    const panel = el('div');
+    panel.id = 'hw-panel';
+    panel.innerHTML = `
+      <div class="hw-head">
+        <div class="hw-brand"><span class="hw-mark">in</span> Hire<span>Win</span></div>
+        <button class="hw-x" title="Close">&times;</button>
+      </div>
+      <div class="hw-body">
+        <div class="hw-score">
+          ${ring(pct)}
+          <div class="hw-score-txt">
+            <h3>Let's Optimize</h3>
+            <p>Your profile is ${pct}% recruiter-ready. Run AI to rewrite every weak section from your resume.</p>
+          </div>
+        </div>
+        <button class="hw-cta" id="hw-run"><span class="hw-mark" style="width:18px;height:18px;font-size:10px;">✨</span> Optimize with AI</button>
+        <div id="hw-msg"></div>
+        <div id="hw-list"></div>
+      </div>
+      <div class="hw-foot">Review every change before saving on LinkedIn.</div>
     `;
-    btn.addEventListener('click', onClick);
-    document.body.appendChild(btn);
+    document.body.appendChild(panel);
+
+    panel.querySelector('.hw-x').addEventListener('click', () => panel.classList.remove('hw-open'));
+    panel.querySelector('#hw-run').addEventListener('click', runOptimize);
+
+    renderList();
+    requestAnimationFrame(() => panel.classList.add('hw-open'));
   }
 
-  function setLabel(text, revert = true) {
-    const label = document.querySelector('#hirewin-fab .hw-fab-label');
-    if (!label) return;
-    label.textContent = text;
-    if (revert) setTimeout(() => { label.textContent = 'Optimize with HireWin'; }, 2400);
-  }
-
-  function onClick() {
-    // 1) Open the tab SYNCHRONOUSLY inside the user gesture so Chrome's
-    //    popup blocker doesn't kill it. (This was the "nothing happens" bug.)
-    let win;
-    try {
-      win = window.open(optimizerUrl(), '_blank');
-    } catch (_) { /* ignore */ }
-
-    // 2) Scrape and stash. The bridge content script on the HireWin page
-    //    reads this and prefills the form. Guard against an invalidated
-    //    extension context (happens if you reload the extension but don't
-    //    refresh this LinkedIn tab).
-    let profile;
-    try {
-      profile = scrapeProfile();
-    } catch (_) {
-      profile = null;
-    }
-
-    try {
-      chrome.storage.local.set({
-        hirewin_pending_profile: profile || {},
-        hirewin_pending_ts: Date.now(),
+  function renderList() {
+    const list = document.getElementById('hw-list');
+    if (!list) return;
+    list.innerHTML = '';
+    CHECKS.forEach((c) => {
+      const r = c.ev(profile);
+      const card = el('div', 'hw-card');
+      card.dataset.id = c.id;
+      card.innerHTML = `
+        <div class="hw-card-head">
+          <span class="hw-card-ico">${c.icon}</span>
+          <span class="hw-card-title">${c.label}</span>
+          <span class="hw-badge ${r.status}">${r.status === 'done' ? 'Done' : r.status === 'issue' ? 'Fix' : 'Tip'}</span>
+          <span class="hw-chev">▼</span>
+        </div>
+        <div class="hw-card-body"></div>
+      `;
+      card.querySelector('.hw-card-head').addEventListener('click', () => {
+        card.classList.toggle('hw-exp');
+        fillBody(card, c, r);
       });
-      setLabel('Opening HireWin…');
-    } catch (e) {
-      // Context invalidated — tell the user to refresh
-      setLabel('Refresh this page & retry');
-      if (!win) {
-        // open failed too — surface a hint
-        alert('HireWin: please refresh this LinkedIn page and click again (the extension was updated).');
-      }
+      list.appendChild(card);
+    });
+  }
+
+  function fillBody(card, check, r) {
+    const body = card.querySelector('.hw-card-body');
+    if (!body || body.dataset.filled === '1') return;
+    body.dataset.filled = '1';
+
+    // current value
+    const current =
+      check.id === 'headline' ? profile.headline :
+      check.id === 'about' ? profile.about :
+      check.id === 'skills' ? profile.skills.join(', ') : '';
+
+    let html = `<div class="hw-field-label">${r.detail}</div>`;
+    if (current) html += `<div class="hw-field-label">Current</div><div class="hw-text">${escapeHtml(current)}</div>`;
+    body.innerHTML = html;
+
+    renderOptimizedInto(body, check);
+  }
+
+  function renderOptimizedInto(body, check) {
+    if (!optimized) return;
+    if (check.id === 'headline' && optimized.headlines?.length) {
+      const wrap = el('div');
+      wrap.innerHTML = `<div class="hw-field-label hw-opt-label" style="color:#34d399;">AI suggestions</div>`;
+      optimized.headlines.forEach((h, i) => {
+        const t = el('div', 'hw-text hw-opt'); t.style.marginTop = '7px'; t.textContent = h;
+        const acts = el('div', 'hw-actions');
+        acts.appendChild(btn('Copy', () => copy(h), 'hw-primary'));
+        if (i === 0) acts.appendChild(btn('Apply to LinkedIn', () => doApply('headline', h)));
+        wrap.appendChild(t); wrap.appendChild(acts);
+      });
+      body.appendChild(wrap);
+    }
+    if (check.id === 'about' && optimized.about) {
+      const t = el('div', 'hw-text hw-opt'); t.style.marginTop = '7px'; t.textContent = optimized.about;
+      const acts = el('div', 'hw-actions');
+      acts.appendChild(btn('Copy', () => copy(optimized.about), 'hw-primary'));
+      acts.appendChild(btn('Apply to LinkedIn', () => doApply('about', optimized.about)));
+      body.appendChild(labeled('AI rewrite')); body.appendChild(t); body.appendChild(acts);
+    }
+    if (check.id === 'skills' && optimized.skills?.length) {
+      const chips = el('div', 'hw-chips'); chips.style.marginTop = '7px';
+      optimized.skills.forEach((s) => { const c = el('span', 'hw-chip'); c.textContent = s; chips.appendChild(c); });
+      const acts = el('div', 'hw-actions');
+      acts.appendChild(btn('Copy all', () => copy(optimized.skills.join(', ')), 'hw-primary'));
+      body.appendChild(labeled('Recommended skills')); body.appendChild(chips); body.appendChild(acts);
+    }
+    if (check.id === 'experience' && optimized.experience?.length) {
+      body.appendChild(labeled('AI rewrites'));
+      optimized.experience.forEach((exp) => {
+        const t = el('div', 'hw-text hw-opt'); t.style.marginTop = '7px';
+        t.textContent = (exp.title ? exp.title + '\n' : '') + exp.bullets.map((b) => '• ' + b).join('\n');
+        const acts = el('div', 'hw-actions');
+        acts.appendChild(btn('Copy', () => copy(exp.bullets.map((b) => '• ' + b).join('\n')), 'hw-primary'));
+        body.appendChild(t); body.appendChild(acts);
+      });
     }
   }
 
-  // LinkedIn is a SPA — keep the button present across client-side navs.
-  function ensureButton() {
-    if (location.pathname.startsWith('/in/')) injectButton();
+  function labeled(text) { const d = el('div', 'hw-field-label'); d.style.color = '#34d399'; d.textContent = text; return d; }
+  function btn(label, fn, extra) {
+    const b = el('button', 'hw-btn' + (extra ? ' ' + extra : ''));
+    b.textContent = label;
+    b.addEventListener('click', async () => { await fn(); if (label.startsWith('Copy')) { b.textContent = 'Copied ✓'; b.classList.add('hw-ok'); setTimeout(() => { b.textContent = label; b.classList.remove('hw-ok'); }, 1500); } });
+    return b;
   }
-  ensureButton();
-  const obs = new MutationObserver(ensureButton);
-  obs.observe(document.body, { childList: true, subtree: true });
+  function escapeHtml(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+  async function doApply(kind, text) {
+    let okApplied = false;
+    try {
+      okApplied = kind === 'headline' ? await applyHeadline(text) : await applyAbout(text);
+    } catch (_) { okApplied = false; }
+    if (!okApplied) {
+      copy(text);
+      alert("HireWin: couldn't open LinkedIn's editor automatically. The text is copied — click the edit pencil and paste with Ctrl+V.");
+    }
+  }
+
+  /* ============ AI optimize ============ */
+
+  function setMsg(html) { const m = document.getElementById('hw-msg'); if (m) m.innerHTML = html; }
+
+  async function runOptimize() {
+    const runBtn = document.getElementById('hw-run');
+    if (runBtn) { runBtn.disabled = true; runBtn.innerHTML = '<span class="hw-spin"></span> Optimizing…'; }
+    setMsg('');
+
+    const payload = {
+      name: profile.name,
+      headline: profile.headline,
+      about: profile.about,
+      experience: profile.experience,
+      skills: profile.skills,
+      education: profile.education,
+    };
+
+    let resp;
+    try {
+      resp = await chrome.runtime.sendMessage({ type: 'HIREWIN_OPTIMIZE', payload });
+    } catch (e) {
+      finishRun();
+      setMsg('<div class="hw-note">Extension was updated — please refresh this page and try again.</div>');
+      return;
+    }
+
+    finishRun();
+
+    if (!resp) { setMsg('<div class="hw-note">No response. Try again.</div>'); return; }
+
+    if (resp.status === 401) {
+      const base = resp.base || 'https://hirewin.live';
+      setMsg(`<div class="hw-note">Please <a id="hw-signin">sign in to HireWin</a> first (same browser), then run again.</div>`);
+      const a = document.getElementById('hw-signin');
+      if (a) a.addEventListener('click', () => window.open(base + '/auth/login', '_blank'));
+      return;
+    }
+    if (!resp.ok) {
+      setMsg(`<div class="hw-note">${(resp.data && resp.data.error) || 'Optimization failed. Try again.'}</div>`);
+      return;
+    }
+
+    optimized = resp.data.result;
+    if (resp.data.locked) {
+      const base = resp.base || 'https://hirewin.live';
+      setMsg(`<div class="hw-note">Free preview: headlines, skills & tips unlocked. <a id="hw-up">Upgrade</a> for full About + Experience rewrites.</div>`);
+      const a = document.getElementById('hw-up');
+      if (a) a.addEventListener('click', () => window.open(base + '/pricing', '_blank'));
+    } else {
+      setMsg('<div class="hw-note" style="color:#34d399;background:rgba(52,211,153,0.08);border-color:rgba(52,211,153,0.2);">Done! Expand any section below to copy or apply your AI rewrite.</div>');
+    }
+
+    // Re-render so new optimized content shows; auto-expand the first actionable card.
+    document.querySelectorAll('#hw-list .hw-card').forEach((card) => {
+      const b = card.querySelector('.hw-card-body'); if (b) { b.dataset.filled = ''; b.innerHTML = ''; }
+      if (card.classList.contains('hw-exp')) {
+        const id = card.dataset.id; const check = CHECKS.find((c) => c.id === id);
+        if (check) fillBody(card, check, check.ev(profile));
+      }
+    });
+    const headlineCard = document.querySelector('#hw-list .hw-card[data-id="headline"]');
+    if (headlineCard && !headlineCard.classList.contains('hw-exp')) {
+      headlineCard.classList.add('hw-exp');
+      const check = CHECKS.find((c) => c.id === 'headline');
+      fillBody(headlineCard, check, check.ev(profile));
+    }
+  }
+
+  function finishRun() {
+    const runBtn = document.getElementById('hw-run');
+    if (runBtn) { runBtn.disabled = false; runBtn.innerHTML = '<span class="hw-mark" style="width:18px;height:18px;font-size:10px;">✨</span> Re-run AI'; }
+  }
+
+  /* ============ launcher + mount ============ */
+
+  function injectLauncher() {
+    if (document.getElementById('hw-launch') || document.getElementById('hw-panel')) return;
+    const b = el('button'); b.id = 'hw-launch';
+    b.innerHTML = `<span class="hw-l-icon">in</span> Optimize with HireWin`;
+    b.addEventListener('click', () => {
+      b.remove();
+      buildPanel();
+    });
+    document.body.appendChild(b);
+  }
+
+  function ensure() { if (location.pathname.startsWith('/in/')) injectLauncher(); }
+  ensure();
+  new MutationObserver(ensure).observe(document.body, { childList: true, subtree: true });
 })();

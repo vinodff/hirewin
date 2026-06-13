@@ -46,3 +46,6 @@ client_secret*.json
 .mcp.json
 .claude/
 .gstack/
+
+# job-scan debug dumps
+jina-search-result.txt

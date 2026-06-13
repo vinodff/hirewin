@@ -126,19 +126,23 @@ export async function POST(req: NextRequest) {
     if (!searchLocation) searchLocation = 'India';
 
     // --- Call Jina Search ---
-    const searchQuery = `"${searchRole}" jobs in "${searchLocation}" linkedin or indeed or naukri or internshala`;
+    const searchQuery = `${searchRole} jobs in ${searchLocation}`;
     const jinaUrl = `https://s.jina.ai/${encodeURIComponent(searchQuery)}`;
     
     console.log(`[job-scan] Query: ${searchQuery}`);
     let searchMarkdown = '';
 
+    const jinaHeaders = {
+      Authorization: `Bearer ${process.env.JINA_API_KEY}`,
+      Accept: 'text/plain',
+      'X-With-Images-Summary': 'false',
+      'X-With-Links-Summary': 'false',
+    };
+
     try {
       const jinaRes = await fetch(jinaUrl, {
-        headers: {
-          Authorization: `Bearer ${process.env.JINA_API_KEY}`,
-          Accept: 'text/plain',
-        },
-        signal: AbortSignal.timeout(30000), // 30s timeout
+        headers: jinaHeaders,
+        signal: AbortSignal.timeout(20000), // 20s timeout
       });
 
       if (jinaRes.ok) {
@@ -147,23 +151,7 @@ export async function POST(req: NextRequest) {
         throw new Error(`Jina Search failed with status ${jinaRes.status}`);
       }
     } catch (e) {
-      console.error('[job-scan] Jina Search fetch failed:', e);
-      // Fallback search without specific sites if restricted query fails
-      try {
-        const fallbackQuery = `"${searchRole}" jobs in ${searchLocation}`;
-        const fallbackRes = await fetch(`https://s.jina.ai/${encodeURIComponent(fallbackQuery)}`, {
-          headers: {
-            Authorization: `Bearer ${process.env.JINA_API_KEY}`,
-            Accept: 'text/plain',
-          },
-          signal: AbortSignal.timeout(15000),
-        });
-        if (fallbackRes.ok) {
-          searchMarkdown = await fallbackRes.text();
-        }
-      } catch (err) {
-        console.error('[job-scan] Fallback Jina Search failed:', err);
-      }
+      console.error('[job-scan] Jina Search fetch failed or timed out:', e);
     }
 
     if (!searchMarkdown || searchMarkdown.length < 200) {
@@ -179,7 +167,7 @@ export async function POST(req: NextRequest) {
     // --- Evaluate Fit with Claude 4.5 ---
     const evaluationPrompt = `You are an expert AI job matcher.
 Your task is to take a candidate's resume and a list of job search results from the web (in Markdown format).
-You will analyze the candidate's resume, and for each job listed in the search results, you will:
+You will analyze the candidate's resume, and select up to 10 jobs from the search results that are the best potential matches for the candidate. For each of these selected jobs, you will:
 1. Extract the Job Title, Company Name, Location, Job Application URL (jobUrl), and the Portal Source (e.g. LinkedIn, Naukri, Indeed, Glassdoor, Internshala).
 2. Calculate a "Job Fit Score" (0 to 100) based on how well the candidate's skills, qualifications, and experience match the job requirements. Be realistic and honest:
    - Match exact tech skills.
@@ -206,11 +194,11 @@ Your output must be a valid JSON object matching this schema:
   ]
 }
 
-Return ONLY the JSON object. Do not wrap it in markdown code fences, do not include any other text or explanation. Only return a valid JSON.`;
+Return ONLY the JSON object. Do not wrap it in markdown code fences, do not include any other text or explanation. Only return a valid JSON containing at most 10 job matches.`;
 
     const claudeRes = await anthropic.messages.create({
       model: MODEL_NAME, // Standard Claude 3.5 Sonnet is highly reliable and fast for JSON structured calls
-      max_tokens: 3000,
+      max_tokens: 4000,
       system: evaluationPrompt,
       messages: [
         {

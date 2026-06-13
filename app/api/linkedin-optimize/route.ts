@@ -15,17 +15,44 @@ function clamp(v: unknown): string | undefined {
   return t.slice(0, MAX_FIELD_CHARS);
 }
 
+/* CORS — the Chrome extension calls this endpoint from its background service
+   worker (origin: chrome-extension://<id>). Echo that origin and allow
+   credentials so the user's hirewin.live session cookie authenticates them. */
+function corsHeaders(origin: string | null): Record<string, string> {
+  if (origin && origin.startsWith('chrome-extension://')) {
+    return {
+      'Access-Control-Allow-Origin': origin,
+      'Access-Control-Allow-Credentials': 'true',
+      'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type',
+      'Vary': 'Origin',
+    };
+  }
+  return {};
+}
+
+function withCors(res: NextResponse, origin: string | null): NextResponse {
+  for (const [k, v] of Object.entries(corsHeaders(origin))) res.headers.set(k, v);
+  return res;
+}
+
+export async function OPTIONS(req: NextRequest) {
+  const origin = req.headers.get('origin');
+  return new NextResponse(null, { status: 204, headers: corsHeaders(origin) });
+}
+
 export async function POST(req: NextRequest) {
+  const origin = req.headers.get('origin');
   try {
     // --- Auth ---
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return NextResponse.json({ error: 'Sign in required' }, { status: 401 });
+    if (!user) return withCors(NextResponse.json({ error: 'Sign in required' }, { status: 401 }), origin);
 
     // --- Rate limit ---
     const { success } = await checkRateLimit(`linkedin-optimize:${user.id}`);
     if (!success) {
-      return NextResponse.json({ error: 'Too many requests. Try again in an hour.' }, { status: 429 });
+      return withCors(NextResponse.json({ error: 'Too many requests. Try again in an hour.' }, { status: 429 }), origin);
     }
 
     // --- Plan (gates About + Experience rewrites) ---
@@ -40,7 +67,7 @@ export async function POST(req: NextRequest) {
     // --- Parse + sanitize input ---
     const body = await req.json().catch(() => null);
     if (!body || typeof body !== 'object') {
-      return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+      return withCors(NextResponse.json({ error: 'Invalid request body' }, { status: 400 }), origin);
     }
 
     const rawExp = Array.isArray(body.experience) ? body.experience.slice(0, 10) : [];
@@ -66,10 +93,24 @@ export async function POST(req: NextRequest) {
       jobDescription: clamp(body.jobDescription),
     };
 
+    // Auto-load the user's latest HireWin resume as context when the caller
+    // didn't supply one (e.g. the Chrome extension). Resume is the source of truth.
+    if (!input.resumeText) {
+      const { data: latest } = await supabase
+        .from('resume_versions')
+        .select('optimized_resume, original_resume')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      const resume = (latest?.optimized_resume || latest?.original_resume || '').trim();
+      if (resume) input.resumeText = resume.slice(0, MAX_FIELD_CHARS);
+    }
+
     // Need at least something to work with
     const hasInput = input.headline || input.about || input.experience?.length || input.skills?.length || input.resumeText;
     if (!hasInput) {
-      return NextResponse.json({ error: 'Paste at least your headline, about, or experience to optimize.' }, { status: 400 });
+      return withCors(NextResponse.json({ error: 'Paste at least your headline, about, or experience to optimize.' }, { status: 400 }), origin);
     }
 
     const { result, usage } = await optimizeLinkedIn(input, { freeTier });
@@ -82,12 +123,12 @@ export async function POST(req: NextRequest) {
       outputTokens: usage.output_tokens,
     });
 
-    return NextResponse.json({
+    return withCors(NextResponse.json({
       result,
       locked: freeTier, // frontend shows upgrade CTA for About + Experience
-    });
+    }), origin);
   } catch (err) {
     console.error('[linkedin-optimize]', err);
-    return NextResponse.json({ error: 'Failed to optimize profile. Please try again.' }, { status: 500 });
+    return withCors(NextResponse.json({ error: 'Failed to optimize profile. Please try again.' }, { status: 500 }), origin);
   }
 }

@@ -2,15 +2,26 @@
 
 Pulls your LinkedIn profile into HireWin and rewrites every section with AI so recruiters can find you.
 
-## How it works
+## How it works (in-page panel, v2)
 
 1. You open your LinkedIn profile (`linkedin.com/in/...`).
-2. The extension injects a floating **"Optimize with HireWin"** button.
-3. Click it — the extension scrapes your visible profile sections (name, headline, About, experience, skills, education) and opens **hirewin.live/linkedin-optimizer** in a new tab.
-4. A bridge content script hands the scraped data to the HireWin page, which prefills the form.
-5. HireWin (where you're already logged in) runs the AI optimization, applies your plan, and shows the rewritten sections with copy buttons.
+2. The extension injects a floating **"Optimize with HireWin"** button. Clicking it opens an in-page side panel.
+3. The panel scrapes your visible profile and shows a **recruiter-readiness score** + a **section checklist** (Photo, Banner, Headline, About, Experience, Skills, Open to Work, Education, Location) with done / tip / fix status.
+4. Click **Optimize with AI** — the background service worker calls `hirewin.live/api/linkedin-optimize` with your session cookie. The API auto-loads your latest HireWin resume as the source of truth and returns rewritten sections.
+5. Expand any section to **Copy** the AI rewrite or **Apply to LinkedIn** (opens LinkedIn's native editor and prefills the field; you review and hit LinkedIn's Save).
 
-**Why this design:** the extension stays thin (just scrape + hand off). All auth, AI, payments, and UI live in the Next.js app — no API tokens, no CORS, no cookie/SameSite issues.
+**Auth:** the panel runs on linkedin.com, so it can't send hirewin.live cookies directly. The background service worker (extension origin, with host permission for hirewin.live) makes the credentialed call. The API echoes CORS for `chrome-extension://` origins. If you're not signed in, the panel shows a "sign in" link.
+
+## Files
+
+| File | Purpose |
+|---|---|
+| `manifest.json` | MV3 manifest, permissions, content script + background worker |
+| `content-linkedin.js` | Scrapes profile, builds the panel, score, checklist, AI optimize, apply |
+| `background.js` | Service worker that proxies the credentialed API call to HireWin |
+| `panel.css` | Panel + launcher styles |
+| `popup.html` / `popup.js` | Toolbar popup with instructions + base-URL setting (localhost vs prod) |
+| `icons/` | Extension icons |
 
 ## Load it locally (development)
 
@@ -19,17 +30,6 @@ Pulls your LinkedIn profile into HireWin and rewrites every section with AI so r
 3. Click **Load unpacked**
 4. Select this `extension/` folder
 5. Open any LinkedIn profile and look for the button bottom-right
-
-## Files
-
-| File | Purpose |
-|---|---|
-| `manifest.json` | MV3 manifest, permissions, content-script registration |
-| `content-linkedin.js` | Scrapes the profile + injects the floating button (runs on linkedin.com/in/*) |
-| `content-hirewin.js` | Bridge: hands scraped data to the HireWin page (runs on hirewin.live/linkedin-optimizer) |
-| `inject.css` | Styles for the floating button |
-| `popup.html` | Toolbar popup with instructions |
-| `icons/` | Extension icons (16/48/128) |
 
 ## Notes & limitations
 

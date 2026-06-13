@@ -1,0 +1,144 @@
+/* HireWin in-page LinkedIn panel */
+
+#hw-panel, #hw-panel * { box-sizing: border-box; }
+
+#hw-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 380px;
+  max-width: 92vw;
+  height: 100vh;
+  z-index: 2147483646;
+  background: #0b1120;
+  color: #e2e8f0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  box-shadow: -8px 0 40px rgba(0,0,0,0.4);
+  display: flex;
+  flex-direction: column;
+  transform: translateX(100%);
+  transition: transform 0.25s ease;
+}
+#hw-panel.hw-open { transform: translateX(0); }
+
+/* Floating launcher button */
+#hw-launch {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 2147483645;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 11px 17px;
+  border: none;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #0a66c2, #3b82f6);
+  color: #fff;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 8px 28px rgba(10,102,194,0.45);
+  transition: transform 0.15s ease;
+}
+#hw-launch:hover { transform: translateY(-2px) scale(1.03); }
+#hw-launch .hw-l-icon {
+  width: 22px; height: 22px; border-radius: 5px;
+  background: rgba(255,255,255,0.2);
+  display: inline-flex; align-items: center; justify-content: center;
+  font-weight: 800; font-size: 12px;
+}
+
+/* Header */
+.hw-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 16px; border-bottom: 1px solid rgba(255,255,255,0.07);
+  background: linear-gradient(135deg, rgba(10,102,194,0.18), rgba(59,130,246,0.10));
+}
+.hw-head .hw-brand { display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 15px; }
+.hw-head .hw-mark {
+  width: 24px; height: 24px; border-radius: 6px;
+  background: linear-gradient(135deg, #0a66c2, #3b82f6);
+  display: flex; align-items: center; justify-content: center; font-size: 12px; color: #fff; font-weight: 800;
+}
+.hw-head .hw-brand span { color: #5ea9ff; }
+.hw-x { background: none; border: none; color: #94a3b8; cursor: pointer; font-size: 20px; line-height: 1; padding: 4px; }
+.hw-x:hover { color: #fff; }
+
+/* Body scroll */
+.hw-body { flex: 1; overflow-y: auto; padding: 16px; }
+
+/* Score block */
+.hw-score {
+  display: flex; align-items: center; gap: 16px;
+  padding: 16px; border-radius: 14px; margin-bottom: 14px;
+  background: linear-gradient(135deg, rgba(124,58,237,0.12), rgba(59,130,246,0.08));
+  border: 1px solid rgba(124,58,237,0.22);
+}
+.hw-ring { position: relative; width: 76px; height: 76px; flex-shrink: 0; }
+.hw-ring svg { transform: rotate(-90deg); }
+.hw-ring .hw-ring-val {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  font-size: 19px; font-weight: 800; color: #fff;
+}
+.hw-score .hw-score-txt h3 { margin: 0 0 4px; font-size: 14px; color: #fff; }
+.hw-score .hw-score-txt p { margin: 0; font-size: 12px; color: #94a3b8; line-height: 1.45; }
+
+.hw-cta {
+  width: 100%; padding: 12px; border: none; border-radius: 11px; margin-bottom: 16px;
+  background: linear-gradient(135deg, #0a66c2, #3b82f6); color: #fff;
+  font-size: 14px; font-weight: 700; cursor: pointer; transition: opacity 0.15s ease;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.hw-cta:hover { opacity: 0.92; }
+.hw-cta:disabled { opacity: 0.55; cursor: default; }
+
+.hw-note {
+  font-size: 12px; color: #fbbf24; background: rgba(251,191,36,0.08);
+  border: 1px solid rgba(251,191,36,0.2); border-radius: 10px; padding: 10px 12px; margin-bottom: 14px;
+}
+.hw-note a { color: #5ea9ff; text-decoration: underline; cursor: pointer; }
+
+/* Checklist cards */
+.hw-card { border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; margin-bottom: 10px; overflow: hidden; background: #0f1629; }
+.hw-card-head {
+  display: flex; align-items: center; gap: 10px; padding: 12px 14px; cursor: pointer;
+}
+.hw-card-head:hover { background: rgba(255,255,255,0.02); }
+.hw-card-ico { font-size: 15px; width: 20px; text-align: center; }
+.hw-card-title { flex: 1; font-size: 13.5px; font-weight: 600; color: #e2e8f0; }
+.hw-badge { font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 999px; text-transform: uppercase; letter-spacing: 0.03em; }
+.hw-badge.done { background: rgba(52,211,153,0.15); color: #34d399; }
+.hw-badge.suggestion { background: rgba(251,191,36,0.15); color: #fbbf24; }
+.hw-badge.issue { background: rgba(239,68,68,0.15); color: #f87171; }
+.hw-chev { color: #64748b; font-size: 12px; transition: transform 0.2s ease; }
+.hw-card.hw-exp .hw-chev { transform: rotate(180deg); }
+
+.hw-card-body { display: none; padding: 0 14px 14px; }
+.hw-card.hw-exp .hw-card-body { display: block; }
+.hw-field-label { font-size: 11px; color: #64748b; margin: 10px 0 5px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em; }
+.hw-text {
+  font-size: 12.5px; color: #cbd5e1; line-height: 1.55; white-space: pre-wrap;
+  background: #0a1020; border: 1px solid rgba(255,255,255,0.06); border-radius: 9px; padding: 10px;
+}
+.hw-text.hw-opt { border-color: rgba(52,211,153,0.25); }
+.hw-tip { font-size: 12.5px; color: #cbd5e1; line-height: 1.5; }
+
+.hw-actions { display: flex; gap: 7px; margin-top: 9px; flex-wrap: wrap; }
+.hw-btn {
+  font-size: 12px; font-weight: 700; padding: 7px 12px; border-radius: 8px; cursor: pointer;
+  border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.06); color: #cbd5e1;
+  display: inline-flex; align-items: center; gap: 5px;
+}
+.hw-btn:hover { background: rgba(255,255,255,0.1); }
+.hw-btn.hw-primary { background: linear-gradient(135deg, #0a66c2, #3b82f6); color: #fff; border: none; }
+.hw-btn.hw-ok { color: #34d399; }
+
+.hw-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.hw-chip { font-size: 11.5px; padding: 5px 9px; border-radius: 7px; background: rgba(244,114,182,0.1); border: 1px solid rgba(244,114,182,0.2); color: #e2e8f0; }
+
+.hw-spin { width: 15px; height: 15px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: hw-rot 0.7s linear infinite; }
+@keyframes hw-rot { to { transform: rotate(360deg); } }
+
+.hw-foot { padding: 10px 16px; border-top: 1px solid rgba(255,255,255,0.07); font-size: 11px; color: #64748b; text-align: center; }
