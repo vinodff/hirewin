@@ -301,3 +301,10 @@ export type Order = {
   is_yearly: boolean;
   created_at: string;
 };
+
+declare global {
+  interface Window {
+    Cashfree?: any;
+  }
+}
+

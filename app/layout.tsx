@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import PresenceBeat from '@/components/presence-beat';
+import Script from 'next/script';
 
 /* ── Next.js font optimization ──────────────────────────────────
    Replaces the render-blocking @import in CSS.
@@ -47,6 +48,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <PresenceBeat />
         {children}
+        <Script src="https://sdk.cashfree.com/js/v3/cashfree.js" strategy="afterInteractive" />
       </body>
     </html>
   );

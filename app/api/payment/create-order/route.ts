@@ -2,24 +2,16 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { PLAN_PRICES } from '@/lib/usage';
 import { checkRateLimit } from '@/lib/rate-limit';
-import crypto from 'crypto';
 
 const VALID_PLANS = new Set(['starter', 'pro', 'power']);
 
-const PRODUCT_LABELS: Record<string, string> = {
-  starter: 'HireWin Starter Plan',
-  pro:     'HireWin Pro Plan',
-  power:   'HireWin Power Plan',
-};
-
-function payuHash(key: string, txnid: string, amount: string, productinfo: string, firstname: string, email: string, udf1: string, salt: string): string {
-  // PayU forward hash: key|txnid|amount|productinfo|firstname|email|udf1|udf2|udf3|udf4|udf5||||||SALT
-  const str = [key, txnid, amount, productinfo, firstname, email, udf1, '', '', '', '', '', '', '', '', '', salt].join('|');
-  return crypto.createHash('sha512').update(str).digest('hex');
-}
-
 export async function POST(req: NextRequest) {
-  if (!process.env.PAYU_KEY || !process.env.PAYU_SALT) {
+  console.log('CASHFREE KEYS:', {
+    CASHFREE_APP_ID: process.env.CASHFREE_APP_ID,
+    CASHFREE_SECRET_KEY: process.env.CASHFREE_SECRET_KEY ? 'present' : 'missing',
+  });
+
+  if (!process.env.CASHFREE_APP_ID || !process.env.CASHFREE_SECRET_KEY) {
     return NextResponse.json({ error: 'Payments not configured yet' }, { status: 503 });
   }
 
@@ -43,7 +35,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid plan' }, { status: 400 });
     }
 
-    // Amount in paise for DB storage, convert to INR string for PayU
+    // Amount in paise for DB storage, convert to INR string/number for Cashfree
     let amountPaise = 0;
     if (plan === 'starter') {
       amountPaise = PLAN_PRICES.starter.one_time_paise;
@@ -57,22 +49,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid plan amount' }, { status: 400 });
     }
 
-    const amountINR = (amountPaise / 100).toFixed(2); // PayU needs INR as decimal string
+    const amountINR = (amountPaise / 100).toFixed(2);
     const txnid     = `hw_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
-    const firstname = ((user.user_metadata?.full_name as string) || (user.user_metadata?.name as string) || 'User').split(' ')[0];
     const email     = user.email ?? '';
-    const productinfo = PRODUCT_LABELS[plan];
-
-    const hash = payuHash(
-      process.env.PAYU_KEY,
-      txnid,
-      amountINR,
-      productinfo,
-      firstname,
-      email,
-      plan, // udf1 stores plan for callback lookup
-      process.env.PAYU_SALT,
-    );
 
     // Save order to DB (reuse razorpay_order_id column for txnid)
     const serviceSupabase = await createServiceClient();
@@ -92,19 +71,47 @@ export async function POST(req: NextRequest) {
     }
 
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? 'https://hirewin.live';
+    const isProd = process.env.CASHFREE_ENV === 'production';
+    const cashfreeUrl = isProd 
+      ? 'https://api.cashfree.com/pg/orders' 
+      : 'https://sandbox.cashfree.com/pg/orders';
 
+    // Call Cashfree API to create the order
+    const response = await fetch(cashfreeUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-client-id': process.env.CASHFREE_APP_ID,
+        'x-client-secret': process.env.CASHFREE_SECRET_KEY,
+        'x-api-version': '2023-08-01',
+      },
+      body: JSON.stringify({
+        order_id: txnid,
+        order_amount: Number(amountINR),
+        order_currency: 'INR',
+        customer_details: {
+          customer_id: user.id,
+          customer_email: email,
+          customer_phone: user.phone || '9999999999', // Cashfree requires valid 10-digit number
+        },
+        order_meta: {
+          return_url: `${baseUrl}/api/payment/verify?order_id={order_id}`,
+        },
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('[create-order] Cashfree API failed:', errorText);
+      return NextResponse.json({ error: 'Failed to create order on payment gateway' }, { status: 500 });
+    }
+
+    const cfData = await response.json();
+    
     return NextResponse.json({
-      key:         process.env.PAYU_KEY,
-      txnid,
-      amount:      amountINR,
-      productinfo,
-      firstname,
-      email,
-      udf1:        plan,
-      hash,
-      surl:        `${baseUrl}/api/payment/verify`,
-      furl:        `${baseUrl}/payment/failed?reason=cancelled`,
-      payuUrl:     process.env.PAYU_URL ?? 'https://secure.payu.in/_payment',
+      payment_session_id: cfData.payment_session_id,
+      order_id: txnid,
+      cf_env: isProd ? 'production' : 'sandbox',
     });
   } catch (e) {
     console.error('Order creation error:', e);

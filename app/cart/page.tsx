@@ -24,7 +24,7 @@ const PRODUCTS: Record<CartPlan['id'], CartPlan> = {
     name: 'Starter',
     tagline: 'One-time purchase · no subscription',
     oneTime: true,
-    price: { monthly: 99, yearly: 99 },
+    price: { monthly: 29, yearly: 29 },
     features: [
       '1 resume download (PDF + DOCX)',
       '1 cover letter download (PDF + DOCX)',
@@ -100,26 +100,22 @@ export default function CartPage() {
       const data = await res.json();
       if (data.error) { setError(data.error); setPaying(false); return; }
 
-      const { key, txnid, amount: amt, productinfo, firstname, email, udf1, hash, surl, furl, payuUrl } = data;
+      const { payment_session_id, cf_env } = data;
 
-      // PayU requires a full-page redirect POST.
-      const form = document.createElement('form');
-      form.method = 'POST';
-      form.action = payuUrl;
-      const fields: Record<string, string> = {
-        key, txnid, amount: amt, productinfo, firstname, email,
-        udf1, hash, surl, furl, service_provider: 'payu_paisa', phone: '',
-      };
-      for (const [name, value] of Object.entries(fields)) {
-        const input = document.createElement('input');
-        input.type = 'hidden';
-        input.name = name;
-        input.value = value;
-        form.appendChild(input);
+      if (!window.Cashfree) {
+        setError('Payment checkout library is loading. Please try again in a few seconds.');
+        setPaying(false);
+        return;
       }
-      document.body.appendChild(form);
-      form.submit();
-      // Keep the spinner — the browser is navigating to PayU.
+
+      const cashfree = window.Cashfree({
+        mode: cf_env === 'production' ? 'production' : 'sandbox',
+      });
+
+      cashfree.checkout({
+        paymentSessionId: payment_session_id,
+        redirectTarget: '_self',
+      });
     } catch {
       setError('Something went wrong. Please try again.');
       setPaying(false);
@@ -282,7 +278,7 @@ export default function CartPage() {
               {/* Trust badges */}
               <div className="mt-4 space-y-2">
                 {[
-                  { icon: Shield, text: 'Secure payment by PayU' },
+                  { icon: Shield, text: 'Secure payment by Cashfree' },
                   { icon: Zap, text: 'Instant access after payment' },
                   { icon: Lock, text: 'PCI-DSS · 256-bit SSL encryption' },
                 ].map(({ icon: Icon, text }) => (

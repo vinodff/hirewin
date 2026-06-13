@@ -96,7 +96,7 @@ function SuccessContent() {
       </div>
 
       <p className="text-xs text-slate-700 mt-6">
-        A confirmation has been sent to your email · Secured by PayU
+        A confirmation has been sent to your email · Secured by Cashfree
       </p>
     </div>
   );

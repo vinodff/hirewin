@@ -29,10 +29,10 @@ const plans = [
   {
     id: 'starter',
     name: 'Starter',
-    price: { monthly: '₹99', yearly: '₹99' },
+    price: { monthly: '₹29', yearly: '₹29' },
     period: { monthly: 'one-time', yearly: 'one-time' },
     badge: 'No subscription',
-    cta: 'Buy ₹99',
+    cta: 'Buy ₹29',
     ctaHref: null,
     highlight: false,
     features: [
@@ -103,8 +103,8 @@ const teamFeatures = [
 
 const faqs = [
   { q: 'Can I see my results before paying?', a: 'Yes — the full ATS analysis, keyword matching, and resume preview are always free. You only pay to download the PDF or DOCX file.' },
-  { q: 'What is the Starter plan?', a: '₹99 is a one-time purchase that gives you 1 resume download and 1 cover letter download. No subscription, no recurring charges. Perfect if you only need it once.' },
-  { q: 'Is my payment secure?', a: 'Yes. Payments are processed by PayU — PCI-DSS compliant. We never store your card details. Your data is encrypted end-to-end.' },
+  { q: 'What is the Starter plan?', a: '₹29 is a one-time purchase that gives you 1 resume download and 1 cover letter download. No subscription, no recurring charges. Perfect if you only need it once.' },
+  { q: 'Is my payment secure?', a: 'Yes. Payments are processed by Cashfree — PCI-DSS compliant. We never store your card details. Your data is encrypted end-to-end.' },
   { q: 'What counts as a "skill roadmap"?', a: 'Each skill you select and generate a learning plan for counts as 1 roadmap. Pro users get 15 per month, Power users get 60 per month.' },
   { q: 'Can I cancel my subscription?', a: 'Yes, anytime. Your plan stays active until the end of the billing period, then you return to the free tier. No pro-rated refunds for unused time.' },
   { q: 'What is the difference between monthly and yearly?', a: 'Same features, different billing. Yearly plans work out to 2 months free compared to paying monthly.' },
@@ -170,7 +170,7 @@ export default function PricingPage() {
         {/* Trust strip */}
         <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 mb-8 text-xs text-slate-500">
           {[
-            { icon: Shield, text: 'Secure payments by PayU' },
+            { icon: Shield, text: 'Secure payments by Cashfree' },
             { icon: Zap,    text: 'Instant access after payment' },
             { icon: Lock,   text: 'Cancel anytime' },
           ].map(({ icon: Icon, text }) => (
@@ -309,7 +309,7 @@ export default function PricingPage() {
           </div>
 
           <p className="text-center text-xs text-slate-600 mt-8">
-            🔒 Powered by PayU · PCI-DSS Compliant · Cancel anytime
+            🔒 Powered by Cashfree · PCI-DSS Compliant · Cancel anytime
           </p>
         </div>
       </div>

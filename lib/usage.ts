@@ -41,7 +41,7 @@ export function getCurrentMonth(): string {
 }
 
 export const PLAN_PRICES = {
-  starter: { one_time_paise: 9900, label: '₹99 one-time' },
+  starter: { one_time_paise: 2900, label: '₹29 one-time' },
   pro: { monthly_paise: 19900, yearly_paise: 199000, label: '₹199/mo' },
   power: { monthly_paise: 39900, yearly_paise: 399000, label: '₹399/mo' },
 };

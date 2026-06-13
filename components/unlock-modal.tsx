@@ -127,31 +127,22 @@ export default function UnlockModal({ onClose, onPaid }: Props) {
       const data = await res.json();
       if (data.error) { alert(data.error); setPaying(null); return; }
 
-      const { key, txnid, amount, productinfo, firstname, email, udf1, hash, surl, furl, payuUrl } = data;
+      const { payment_session_id, cf_env } = data;
 
-      // Build a hidden form and submit it — PayU requires a full-page redirect POST
-      const form = document.createElement('form');
-      form.method = 'POST';
-      form.action = payuUrl;
-
-      const fields: Record<string, string> = {
-        key, txnid, amount, productinfo, firstname, email,
-        udf1, hash, surl, furl,
-        service_provider: 'payu_paisa',
-        phone: '',
-      };
-
-      for (const [name, value] of Object.entries(fields)) {
-        const input = document.createElement('input');
-        input.type = 'hidden';
-        input.name = name;
-        input.value = value;
-        form.appendChild(input);
+      if (!window.Cashfree) {
+        alert('Payment checkout library is loading. Please try again in a few seconds.');
+        setPaying(null);
+        return;
       }
 
-      document.body.appendChild(form);
-      form.submit();
-      // Keep spinner up — user is being redirected away
+      const cashfree = window.Cashfree({
+        mode: cf_env === 'production' ? 'production' : 'sandbox',
+      });
+
+      cashfree.checkout({
+        paymentSessionId: payment_session_id,
+        redirectTarget: '_self',
+      });
     } catch {
       alert('Something went wrong. Please try again.');
       setPaying(null);
@@ -335,7 +326,7 @@ export default function UnlockModal({ onClose, onPaid }: Props) {
           <div className="flex items-center justify-center gap-4 mt-4 text-[10px] text-slate-600">
             <div className="flex items-center gap-1">
               <Shield className="w-3 h-3 text-purple-500 shrink-0" />
-              PayU secured
+              Cashfree secured
             </div>
             <div className="flex items-center gap-1">
               <Zap className="w-3 h-3 text-purple-500 shrink-0" />

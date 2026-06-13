@@ -87,7 +87,7 @@ export default function ShippingPage() {
             </p>
             <ul className="list-disc list-inside space-y-1.5 pl-2">
               <li>Your registered email address</li>
-              <li>Your PayU transaction ID (from your payment confirmation email)</li>
+              <li>Your Cashfree transaction ID (from your payment confirmation email)</li>
               <li>A short description of the issue</li>
             </ul>
           </Section>
