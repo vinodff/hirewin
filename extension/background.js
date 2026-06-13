@@ -5,26 +5,35 @@
 
 const DEFAULT_BASE = 'https://hirewin.live';
 
-async function getBase() {
-  const { hirewin_base } = await chrome.storage.local.get('hirewin_base');
-  return (hirewin_base || DEFAULT_BASE).replace(/\/$/, '');
+async function getConfig() {
+  const { hirewin_base, hirewin_token } = await chrome.storage.local.get(['hirewin_base', 'hirewin_token']);
+  return {
+    base: (hirewin_base || DEFAULT_BASE).replace(/\/$/, ''),
+    token: hirewin_token || '',
+  };
 }
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   if (msg && msg.type === 'HIREWIN_OPTIMIZE') {
     (async () => {
+      let base = DEFAULT_BASE;
       try {
-        const base = await getBase();
+        const cfg = await getConfig();
+        base = cfg.base;
+        const headers = { 'Content-Type': 'application/json' };
+        // Primary auth: connection token (reliable cross-origin).
+        if (cfg.token) headers['Authorization'] = `Bearer ${cfg.token}`;
         const res = await fetch(`${base}/api/linkedin-optimize`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
+          headers,
+          credentials: 'include', // cookie fallback if no token
           body: JSON.stringify(msg.payload || {}),
         });
         const data = await res.json().catch(() => ({}));
-        sendResponse({ ok: res.ok, status: res.status, data, base });
+        sendResponse({ ok: res.ok, status: res.status, data, base, hasToken: !!cfg.token });
       } catch (e) {
-        sendResponse({ ok: false, status: 0, error: String(e) });
+        // Network / CORS / unreachable — status 0
+        sendResponse({ ok: false, status: 0, error: String(e), base });
       }
     })();
     return true; // keep the message channel open for the async response

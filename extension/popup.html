@@ -62,6 +62,15 @@
     <a class="btn" href="https://www.linkedin.com/in/me/" target="_blank">Open my LinkedIn profile</a>
 
     <div class="settings">
+      <label>Connection code — <a id="getcode" href="#">get yours here</a></label>
+      <div class="row">
+        <input id="token" type="text" placeholder="Paste your connection code" />
+        <button id="savetoken">Save</button>
+      </div>
+      <div class="saved" id="savedtoken"></div>
+    </div>
+
+    <div class="settings">
       <label>Optimizer site (use http://localhost:3001 for local testing)</label>
       <div class="row">
         <input id="base" type="text" placeholder="https://hirewin.live" />

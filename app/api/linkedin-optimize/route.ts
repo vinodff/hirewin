@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { optimizeLinkedIn, type LinkedInProfileInput } from '@/lib/linkedin';
 import { logUsage } from '@/lib/usage-log';
+import { verifyToken } from '@/lib/extension-token';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 export const maxDuration = 60;
 
@@ -44,22 +46,37 @@ export async function OPTIONS(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const origin = req.headers.get('origin');
   try {
-    // --- Auth ---
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return withCors(NextResponse.json({ error: 'Sign in required' }, { status: 401 }), origin);
+    // --- Auth: Bearer token (extension) first, cookie session (web) fallback ---
+    let userId: string | null = null;
+    let db: SupabaseClient;
+
+    const authHeader = req.headers.get('authorization');
+    const bearer = authHeader?.startsWith('Bearer ') ? authHeader.slice(7).trim() : '';
+    if (bearer) {
+      userId = verifyToken(bearer);
+      if (!userId) {
+        return withCors(NextResponse.json({ error: 'Invalid or expired connection code. Reconnect the extension.' }, { status: 401 }), origin);
+      }
+      db = await createServiceClient();
+    } else {
+      const supabase = await createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return withCors(NextResponse.json({ error: 'Sign in required' }, { status: 401 }), origin);
+      userId = user.id;
+      db = supabase;
+    }
 
     // --- Rate limit ---
-    const { success } = await checkRateLimit(`linkedin-optimize:${user.id}`);
+    const { success } = await checkRateLimit(`linkedin-optimize:${userId}`);
     if (!success) {
       return withCors(NextResponse.json({ error: 'Too many requests. Try again in an hour.' }, { status: 429 }), origin);
     }
 
     // --- Plan (gates About + Experience rewrites) ---
-    const { data: profile } = await supabase
+    const { data: profile } = await db
       .from('profiles')
       .select('plan')
-      .eq('id', user.id)
+      .eq('id', userId)
       .single();
     const plan = (profile?.plan ?? 'free') as string;
     const freeTier = plan === 'free';
@@ -96,10 +113,10 @@ export async function POST(req: NextRequest) {
     // Auto-load the user's latest HireWin resume as context when the caller
     // didn't supply one (e.g. the Chrome extension). Resume is the source of truth.
     if (!input.resumeText) {
-      const { data: latest } = await supabase
+      const { data: latest } = await db
         .from('resume_versions')
         .select('optimized_resume, original_resume')
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();
@@ -117,7 +134,7 @@ export async function POST(req: NextRequest) {
 
     // Best-effort usage logging (don't block on failure)
     await logUsage({
-      userId: user.id,
+      userId,
       endpoint: 'linkedin-optimize',
       inputTokens: usage.input_tokens,
       outputTokens: usage.output_tokens,

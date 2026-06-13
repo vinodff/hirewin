@@ -176,6 +176,23 @@
   const wait = (ms) => new Promise((r) => setTimeout(r, ms));
   function copy(text) { try { navigator.clipboard.writeText(text); } catch (_) {} }
 
+  /* ============ scroll-to + highlight the matching LinkedIn section ============ */
+  function sectionEl(id) {
+    if (id === 'experience') return document.getElementById('experience')?.closest('section');
+    if (id === 'skills') return document.getElementById('skills')?.closest('section');
+    if (id === 'education') return document.getElementById('education')?.closest('section');
+    if (id === 'about') return document.getElementById('about')?.closest('section');
+    // photo, banner, headline, location, openToWork live in the top card (first <section> in <main>)
+    return document.querySelector('main section');
+  }
+  function goToSection(id) {
+    const el = sectionEl(id);
+    if (!el) return;
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    el.classList.add('hw-highlight');
+    setTimeout(() => el.classList.remove('hw-highlight'), 2400);
+  }
+
   /* ============ panel UI ============ */
 
   let profile = null;
@@ -254,8 +271,10 @@
         <div class="hw-card-body"></div>
       `;
       card.querySelector('.hw-card-head').addEventListener('click', () => {
+        const opening = !card.classList.contains('hw-exp');
         card.classList.toggle('hw-exp');
         fillBody(card, c, r);
+        if (opening) goToSection(c.id); // scroll the profile to this section + highlight it
       });
       list.appendChild(card);
     });
@@ -272,9 +291,14 @@
       check.id === 'about' ? profile.about :
       check.id === 'skills' ? profile.skills.join(', ') : '';
 
-    let html = `<div class="hw-field-label">${r.detail}</div>`;
+    let html = `<div class="hw-field-label">${escapeHtml(r.detail)}</div>`;
     if (current) html += `<div class="hw-field-label">Current</div><div class="hw-text">${escapeHtml(current)}</div>`;
     body.innerHTML = html;
+
+    // "Go to section" — scrolls + highlights the matching part of the profile
+    const nav = el('div', 'hw-actions');
+    nav.appendChild(btn('Go to section', () => goToSection(check.id)));
+    body.appendChild(nav);
 
     renderOptimizedInto(body, check);
   }
@@ -368,17 +392,30 @@
 
     finishRun();
 
-    if (!resp) { setMsg('<div class="hw-note">No response. Try again.</div>'); return; }
+    const base = (resp && resp.base) || 'https://hirewin.live';
 
-    if (resp.status === 401) {
-      const base = resp.base || 'https://hirewin.live';
-      setMsg(`<div class="hw-note">Please <a id="hw-signin">sign in to HireWin</a> first (same browser), then run again.</div>`);
-      const a = document.getElementById('hw-signin');
+    if (!resp) { setMsg('<div class="hw-note">No response from the extension. Refresh and try again.</div>'); return; }
+
+    // Network / CORS / unreachable
+    if (resp.status === 0) {
+      setMsg(`<div class="hw-note">Couldn't reach HireWin at <b>${escapeHtml(base)}</b>. Make sure you're <a id="hw-open">signed in there</a> in this browser (and the site is running if using localhost), then click Re-run AI.</div>`);
+      const a = document.getElementById('hw-open');
       if (a) a.addEventListener('click', () => window.open(base + '/auth/login', '_blank'));
       return;
     }
+
+    if (resp.status === 401) {
+      const why = resp.hasToken
+        ? 'Your connection code is invalid or expired.'
+        : 'Connect the extension to your HireWin account.';
+      setMsg(`<div class="hw-note">${why} <a id="hw-connect">Get a connection code</a>, paste it in the extension popup, then click Re-run AI.</div>`);
+      const a = document.getElementById('hw-connect');
+      if (a) a.addEventListener('click', () => window.open(base + '/connect-extension', '_blank'));
+      return;
+    }
     if (!resp.ok) {
-      setMsg(`<div class="hw-note">${(resp.data && resp.data.error) || 'Optimization failed. Try again.'}</div>`);
+      const detail = (resp.data && resp.data.error) || `status ${resp.status}`;
+      setMsg(`<div class="hw-note">Optimization failed (${escapeHtml(String(detail))}). Click Re-run AI to retry.</div>`);
       return;
     }
 
