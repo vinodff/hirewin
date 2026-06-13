@@ -81,6 +81,31 @@ export default function LinkedInOptimizerPage() {
   const [fromExtension, setFromExtension] = useState(false);
   const resultsRef = useRef<HTMLDivElement | null>(null);
 
+  // Auto-loaded resume context (from the user's latest HireWin resume).
+  const [resumeMeta, setResumeMeta] = useState<{ role?: string; company?: string } | null>(null);
+  const [useResume, setUseResume] = useState(true);
+  const [showResume, setShowResume] = useState(false);
+
+  // Pull the user's most recent HireWin resume to use as optimization context.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch('/api/history');
+        if (!res.ok) return;
+        const { versions } = await res.json();
+        const latest = Array.isArray(versions) ? versions[0] : null;
+        if (!latest || cancelled) return;
+        const text = (latest.optimized_resume || latest.original_resume || '').trim();
+        if (text) {
+          setResumeText(text);
+          setResumeMeta({ role: latest.role, company: latest.company });
+        }
+      } catch { /* not signed in or no history — fine, optional context */ }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
   // Listen for profile data injected by the HireWin Chrome extension.
   // The extension posts { type: 'HIREWIN_LINKEDIN_PROFILE', profile } after
   // scraping the user's LinkedIn page.
@@ -158,7 +183,7 @@ export default function LinkedInOptimizerPage() {
         education: education || undefined,
         targetRole: targetRole || undefined,
         jobDescription: jobDescription || undefined,
-        resumeText: resumeText || undefined,
+        resumeText: useResume && resumeText ? resumeText : undefined,
       };
 
       const res = await fetch('/api/linkedin-optimize', {
@@ -181,7 +206,7 @@ export default function LinkedInOptimizerPage() {
     }
   }
 
-  const canSubmit = !!(headline || about || experienceRaw || skillsRaw || resumeText);
+  const canSubmit = !!(headline || about || experienceRaw || skillsRaw || (useResume && resumeText));
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: '#080d1a' }}>
@@ -211,6 +236,45 @@ export default function LinkedInOptimizerPage() {
             style={{ background: 'rgba(52,211,153,0.08)', border: '1px solid rgba(52,211,153,0.2)', color: '#6ee7b7' }}>
             <Check className="w-4 h-4 shrink-0" />
             Profile imported from the HireWin extension. Review and optimize below.
+          </div>
+        )}
+
+        {/* Resume context banner — the optimizer uses your real resume as the source of truth */}
+        {resumeMeta && (
+          <div className="mb-5 rounded-xl px-4 py-3.5"
+            style={{ background: 'rgba(124,58,237,0.08)', border: '1px solid rgba(124,58,237,0.22)' }}>
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <FileText className="w-4 h-4 shrink-0 text-purple-400" />
+                <div className="min-w-0">
+                  <div className="text-sm font-semibold text-white truncate">
+                    Optimizing from your resume{resumeMeta.role ? ` — ${resumeMeta.role}` : ''}
+                  </div>
+                  <div className="text-xs text-slate-400">
+                    {resumeMeta.company ? `${resumeMeta.company} · ` : ''}We rewrite your LinkedIn from your real experience.
+                  </div>
+                </div>
+              </div>
+              <label className="flex items-center gap-2 shrink-0 cursor-pointer">
+                <input type="checkbox" checked={useResume} onChange={(e) => setUseResume(e.target.checked)}
+                  className="w-4 h-4 accent-purple-500" />
+                <span className="text-xs text-slate-300">Use</span>
+              </label>
+            </div>
+            <button onClick={() => setShowResume((v) => !v)}
+              className="mt-2 flex items-center gap-1.5 text-xs font-medium text-slate-400 hover:text-slate-200 transition-colors">
+              {showResume ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+              {showResume ? 'Hide' : 'View / edit'} resume text
+            </button>
+            {showResume && (
+              <textarea
+                value={resumeText}
+                onChange={(e) => setResumeText(e.target.value)}
+                rows={6}
+                className="mt-2 w-full px-3.5 py-2.5 rounded-xl text-xs text-slate-300 placeholder:text-slate-600 outline-none transition-all focus:border-purple-500/50 resize-y"
+                style={{ background: '#0a1020', border: '1px solid rgba(255,255,255,0.08)' }}
+              />
+            )}
           </div>
         )}
 

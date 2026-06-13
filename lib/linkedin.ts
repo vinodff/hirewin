@@ -71,11 +71,11 @@ SECTION RULES:
    - Weave in searchable keywords naturally. End with a soft call to action ("Open to ... / Let's connect about ...").
    - Use short paragraphs and the occasional line break for readability. No corporate jargon.
 
-3. EXPERIENCE (rewrite each role provided; 3-4 bullets each):
+3. EXPERIENCE (rewrite each role; 3-4 bullets each):
    - Each bullet: strong verb + what you did + impact. Keep LinkedIn-friendly (slightly fuller than resume bullets but still tight).
    - Use ONLY metrics present in the source. If none, describe impact qualitatively. Never fabricate numbers.
    - Embed role-relevant keywords. Keep the exact title and company from the source.
-   - If no experience is provided, return an empty experience array.
+   - SOURCE PRIORITY: If LinkedIn experience entries are provided, rewrite those. If none are provided but a RESUME is, derive 2-4 experience entries (title, company, bullets) directly from the resume's work history, internships, or projects. Only return an empty experience array if there is genuinely no work history in either source.
 
 4. SKILLS (up to 20):
    - The most valuable, searchable skills for this person and (if given) the target role.
