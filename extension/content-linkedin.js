@@ -231,11 +231,11 @@
         <button class="hw-x" title="Close">&times;</button>
       </div>
       <div class="hw-body">
-        <div class="hw-score">
+        <div class="hw-score" id="hw-score">
           ${ring(pct)}
           <div class="hw-score-txt">
-            <h3>Let's Optimize</h3>
-            <p>Your profile is ${pct}% recruiter-ready. Run AI to rewrite every weak section from your resume.</p>
+            <h3>Let's Optimize <button id="hw-refresh" title="Refresh score">↻</button></h3>
+            <p>Your profile is ${pct}% recruiter-ready. AI rewrites every weak section from your resume.</p>
           </div>
         </div>
         <button class="hw-cta" id="hw-run"><span class="hw-mark" style="width:18px;height:18px;font-size:10px;">✨</span> Optimize with AI</button>
@@ -248,9 +248,38 @@
 
     panel.querySelector('.hw-x').addEventListener('click', () => panel.classList.remove('hw-open'));
     panel.querySelector('#hw-run').addEventListener('click', runOptimize);
+    panel.querySelector('#hw-refresh').addEventListener('click', refreshScore);
 
     renderList();
     requestAnimationFrame(() => panel.classList.add('hw-open'));
+
+    // Auto-run the AI as soon as the panel opens (user just needs to apply each section).
+    setTimeout(runOptimize, 400);
+  }
+
+  // Re-scrape the profile and recompute the score (after the user applies + saves a change).
+  function refreshScore() {
+    profile = scrape();
+    const pct = scoreOf(profile);
+    const block = document.getElementById('hw-score');
+    if (block) {
+      const ringEl = block.querySelector('.hw-ring');
+      if (ringEl) ringEl.outerHTML = ring(pct);
+      const p = block.querySelector('.hw-score-txt p');
+      if (p) p.textContent = `Your profile is ${pct}% recruiter-ready. AI rewrites every weak section from your resume.`;
+    }
+    // Refresh badges; clear any expanded bodies so they re-render with new state.
+    document.querySelectorAll('#hw-list .hw-card').forEach((card) => {
+      const id = card.dataset.id;
+      const check = CHECKS.find((c) => c.id === id);
+      if (!check) return;
+      const r = check.ev(profile);
+      const badge = card.querySelector('.hw-badge');
+      if (badge) { badge.className = `hw-badge ${r.status}`; badge.textContent = r.status === 'done' ? 'Done' : r.status === 'issue' ? 'Fix' : 'Tip'; }
+      const b = card.querySelector('.hw-card-body');
+      if (b) { b.dataset.filled = ''; b.innerHTML = ''; }
+      if (card.classList.contains('hw-exp')) fillBody(card, check, r);
+    });
   }
 
   function renderList() {

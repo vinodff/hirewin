@@ -72,10 +72,10 @@ export async function POST(req: NextRequest) {
       return withCors(NextResponse.json({ error: 'Too many requests. Try again in an hour.' }, { status: 429 }), origin);
     }
 
-    // --- Plan (gates About + Experience rewrites) ---
+    // --- Plan + saved LinkedIn prefs (resume + target role) ---
     const { data: profile } = await db
       .from('profiles')
-      .select('plan')
+      .select('plan, cv_text, target_roles')
       .eq('id', userId)
       .single();
     const plan = (profile?.plan ?? 'free') as string;
@@ -110,18 +110,29 @@ export async function POST(req: NextRequest) {
       jobDescription: clamp(body.jobDescription),
     };
 
-    // Auto-load the user's latest HireWin resume as context when the caller
-    // didn't supply one (e.g. the Chrome extension). Resume is the source of truth.
+    // Resume is the source of truth. When the caller didn't supply one (e.g. the
+    // Chrome extension), use the saved LinkedIn resume (profiles.cv_text), then
+    // fall back to the user's latest optimized resume.
     if (!input.resumeText) {
-      const { data: latest } = await db
-        .from('resume_versions')
-        .select('optimized_resume, original_resume')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      const resume = (latest?.optimized_resume || latest?.original_resume || '').trim();
-      if (resume) input.resumeText = resume.slice(0, MAX_FIELD_CHARS);
+      const saved = (profile?.cv_text || '').trim();
+      if (saved) {
+        input.resumeText = saved.slice(0, MAX_FIELD_CHARS);
+      } else {
+        const { data: latest } = await db
+          .from('resume_versions')
+          .select('optimized_resume, original_resume')
+          .eq('user_id', userId)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        const resume = (latest?.optimized_resume || latest?.original_resume || '').trim();
+        if (resume) input.resumeText = resume.slice(0, MAX_FIELD_CHARS);
+      }
+    }
+
+    // Use the saved target role if the caller didn't pass one.
+    if (!input.targetRole && Array.isArray(profile?.target_roles) && profile.target_roles.length) {
+      input.targetRole = String(profile.target_roles[0]);
     }
 
     // Need at least something to work with
