@@ -2,10 +2,11 @@ import Link from 'next/link';
 
 const links = {
   Product: [
-    { label: 'Optimize Resume', href: '/analyze' },
-    { label: 'My Resumes',      href: '/my-resumes' },
-    { label: 'Job Tracker',     href: '/history' },
-    { label: 'Pricing',         href: '/pricing' },
+    { label: 'Optimize Resume',   href: '/analyze' },
+    { label: 'LinkedIn Optimizer', href: '/linkedin-optimizer' },
+    { label: 'My Resumes',        href: '/my-resumes' },
+    { label: 'Job Tracker',       href: '/history' },
+    { label: 'Pricing',           href: '/pricing' },
   ],
   Company: [
     { label: 'About',   href: '/about' },

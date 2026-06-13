@@ -3,18 +3,20 @@
 import { useEffect, useRef, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import {
-  LogOut, FileText, CreditCard, History, Zap, LayoutGrid, Shield, Menu, X,
+  LogOut, FileText, CreditCard, History, Zap, LayoutGrid, Shield, Menu, X, Briefcase, Linkedin,
 } from 'lucide-react';
 import type { User } from '@supabase/supabase-js';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 const NAV_LINKS = [
-  { href: '/analyze',    label: 'Optimize',        icon: FileText   },
-  { href: '/my-resumes', label: 'My Resumes',       icon: LayoutGrid },
-  { href: '/history',    label: 'Job Tracker',      icon: History    },
-  { href: '/pricing',    label: 'Pricing',          icon: Zap        },
-  { href: '/billing',    label: 'Billing & Usage',  icon: CreditCard },
+  { href: '/analyze',           label: 'Optimize',         icon: FileText   },
+  { href: '/job-scan',          label: 'Job Scan',         icon: Briefcase  },
+  { href: '/linkedin-optimizer', label: 'LinkedIn',        icon: Linkedin   },
+  { href: '/my-resumes',        label: 'My Resumes',       icon: LayoutGrid },
+  { href: '/history',           label: 'Job Tracker',      icon: History    },
+  { href: '/pricing',           label: 'Pricing',          icon: Zap        },
+  { href: '/billing',           label: 'Billing & Usage',  icon: CreditCard },
 ];
 
 export default function AppNav() {
@@ -177,6 +179,7 @@ export default function AppNav() {
                       <div className="text-xs text-slate-500 truncate mt-0.5">{user.email}</div>
                     </div>
                     <MenuLink href="/analyze"    icon={<FileText   className="w-4 h-4" />} label="Optimize Resume"  onClose={() => setMenuOpen(false)} />
+                    <MenuLink href="/linkedin-optimizer" icon={<Linkedin className="w-4 h-4" />} label="LinkedIn Optimizer" onClose={() => setMenuOpen(false)} />
                     <MenuLink href="/my-resumes" icon={<LayoutGrid  className="w-4 h-4" />} label="My Resumes"       onClose={() => setMenuOpen(false)} />
                     <MenuLink href="/pricing"    icon={<Zap         className="w-4 h-4" />} label="Pricing"          onClose={() => setMenuOpen(false)} />
                     <MenuLink href="/billing"    icon={<CreditCard  className="w-4 h-4" />} label="Billing & Usage"  onClose={() => setMenuOpen(false)} />

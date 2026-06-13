@@ -156,10 +156,17 @@ export default function AnalyzePage() {
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    const stored = sessionStorage.getItem('hirewin:builder-resume');
+    const stored = sessionStorage.getItem('hirewin:builder-resume') || sessionStorage.getItem('hirewin:scan-resume');
     if (stored && stored.trim()) {
       dispatch({ type: 'SET_RESUME_TEXT', text: stored });
       sessionStorage.removeItem('hirewin:builder-resume');
+      sessionStorage.removeItem('hirewin:scan-resume');
+    }
+    const storedJd = sessionStorage.getItem('hirewin:scan-jd');
+    if (storedJd && storedJd.trim()) {
+      dispatch({ type: 'SET_JD_TEXT', text: storedJd });
+      dispatch({ type: 'SET_JD_MODE', mode: 'paste' });
+      sessionStorage.removeItem('hirewin:scan-jd');
     }
   }, []);
 

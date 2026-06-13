@@ -1,0 +1,44 @@
+{
+  "manifest_version": 3,
+  "name": "HireWin — LinkedIn Optimizer",
+  "version": "1.0.0",
+  "description": "Pull your LinkedIn profile into HireWin and rewrite every section to get found by recruiters.",
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "action": {
+    "default_title": "HireWin LinkedIn Optimizer",
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "permissions": ["storage", "activeTab", "scripting"],
+  "host_permissions": [
+    "https://www.linkedin.com/*",
+    "https://hirewin.live/*",
+    "http://localhost/*",
+    "http://127.0.0.1/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["https://www.linkedin.com/in/*"],
+      "js": ["content-linkedin.js"],
+      "css": ["inject.css"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://hirewin.live/linkedin-optimizer*",
+        "http://localhost/linkedin-optimizer*",
+        "http://127.0.0.1/linkedin-optimizer*"
+      ],
+      "js": ["content-hirewin.js"],
+      "run_at": "document_start"
+    }
+  ]
+}

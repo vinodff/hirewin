@@ -36,6 +36,7 @@
   ],
   "exclude": [
     "node_modules",
-    "career-ops-main"
+    "career-ops-main",
+    "extension"
   ]
 }
