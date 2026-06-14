@@ -14,29 +14,50 @@
     const pref = el.querySelector('span[aria-hidden="true"]');
     return ((pref || el).innerText || '').replace(/\s+/g, ' ').trim();
   }
-  function sectionFor(id) {
-    const a = document.getElementById(id);
-    return a ? a.closest('section') : null;
+
+  // Resolve a profile card by its anchor id, falling back to the <h2> heading.
+  function getCard(anchorId, heading) {
+    const byId = document.getElementById(anchorId);
+    if (byId) return byId.closest('section') || byId.parentElement;
+    return sectionByHeading(heading);
   }
+
   function getName() {
     const h1 = document.querySelector('main h1');
     return h1 ? h1.innerText.replace(/\s+/g, ' ').trim() : '';
   }
+
+  // Headline = the first .text-body-medium in the intro card (the line under the name).
   function getHeadline() {
-    const el = document.querySelector('main .text-body-medium.break-words')
-      || document.querySelector('main div.text-body-medium');
-    return el ? el.innerText.replace(/\s+/g, ' ').trim() : '';
+    const card = topCardSection();
+    if (card) {
+      const el = card.querySelector('.text-body-medium');
+      if (el) {
+        const t = el.innerText.replace(/\s+/g, ' ').trim();
+        if (t) return t;
+      }
+      const h1 = card.querySelector('h1');
+      const sib = h1 && (h1.parentElement?.querySelector('.text-body-medium') || h1.nextElementSibling);
+      if (sib) return sib.innerText.replace(/\s+/g, ' ').trim();
+    }
+    const fb = document.querySelector('main .text-body-medium.break-words') || document.querySelector('main div.text-body-medium');
+    return fb ? fb.innerText.replace(/\s+/g, ' ').trim() : '';
   }
+
+  // About body = the longest aria-hidden span in the About card (skips the "About" heading).
   function getAbout() {
-    const sec = sectionFor('about');
+    const sec = getCard('about', 'About');
     if (!sec) return '';
-    const span = sec.querySelector('.inline-show-more-text span[aria-hidden="true"]')
-      || sec.querySelector('.display-flex.full-width span[aria-hidden="true"]')
-      || sec.querySelector('span[aria-hidden="true"]');
-    return span ? span.innerText.replace(/\n{3,}/g, '\n\n').trim() : '';
+    let best = '';
+    sec.querySelectorAll('span[aria-hidden="true"]').forEach((s) => {
+      const t = (s.innerText || '').trim();
+      if (t.length > best.length) best = t;
+    });
+    return best.toLowerCase() === 'about' ? '' : best.replace(/\n{3,}/g, '\n\n');
   }
+
   function getExperience() {
-    const sec = sectionFor('experience');
+    const sec = getCard('experience', 'Experience');
     if (!sec) return [];
     const out = [];
     sec.querySelectorAll('li.artdeco-list__item').forEach((li) => {
@@ -47,18 +68,20 @@
     });
     return out.slice(0, 8);
   }
+
   function getSkills() {
-    const sec = sectionFor('skills');
+    const sec = getCard('skills', 'Skills');
     if (!sec) return [];
     const names = [];
-    sec.querySelectorAll('li.artdeco-list__item .t-bold span[aria-hidden="true"]').forEach((el) => {
+    sec.querySelectorAll('li.artdeco-list__item .t-bold span[aria-hidden="true"], li.artdeco-list__item .hoverable-link-text span[aria-hidden="true"]').forEach((el) => {
       const s = el.innerText.replace(/\s+/g, ' ').trim();
-      if (s && !names.includes(s)) names.push(s);
+      if (s && s.length < 60 && !names.includes(s)) names.push(s);
     });
     return names.slice(0, 50);
   }
+
   function getEducation() {
-    const sec = sectionFor('education');
+    const sec = getCard('education', 'Education');
     if (!sec) return '';
     const items = [];
     sec.querySelectorAll('li.artdeco-list__item').forEach((li) => {
@@ -67,21 +90,34 @@
     });
     return items.join('\n');
   }
+
+  // A real profile photo is an img with a media URL that isn't the ghost placeholder.
   function hasPhoto() {
-    const img = document.querySelector('main img.pv-top-card-profile-picture__image, main .pv-top-card-profile-picture img, main button img.evi-image');
-    if (!img) return false;
-    const src = img.getAttribute('src') || '';
-    return src.includes('media') || src.includes('licdn') ? !/ghost/i.test(src) : false;
+    const card = topCardSection() || document;
+    const imgs = [...card.querySelectorAll('img')];
+    return imgs.some((img) => {
+      const src = img.getAttribute('src') || '';
+      const alt = (img.getAttribute('alt') || '').toLowerCase();
+      return /licdn\.com\/.*\/(profile-displayphoto|image)/i.test(src) && !/ghost/i.test(src) && !alt.includes('background');
+    });
   }
+
+  // A custom banner is a background image that isn't LinkedIn's default gradient.
   function hasBanner() {
     if (document.querySelector('.profile-background-image--default')) return false;
-    return !!document.querySelector('.profile-background-image img, .pv-top-card__non-self-photo, .profile-background-image');
+    const bg = document.querySelector('.profile-background-image img, .live-video-hero-image, [class*="background-image"] img');
+    if (bg && /licdn\.com/i.test(bg.getAttribute('src') || '')) return true;
+    return false;
   }
+
   function isOpenToWork() {
     return /open to work/i.test(document.querySelector('main')?.innerText || '');
   }
+
   function getLocation() {
-    const el = document.querySelector('main .text-body-small.inline.t-black--light.break-words');
+    const card = topCardSection();
+    const el = (card || document).querySelector('.text-body-small.inline.t-black--light.break-words')
+      || (card || document).querySelector('.text-body-small.t-black--light');
     return el ? el.innerText.replace(/\s+/g, ' ').trim() : '';
   }
 
@@ -180,16 +216,36 @@
     return null;
   }
 
+  // Poll for an element (LinkedIn modals open asynchronously).
+  async function waitFor(fn, timeout = 2800) {
+    const start = Date.now();
+    for (;;) {
+      let r; try { r = fn(); } catch (_) { r = null; }
+      if (r) return r;
+      if (Date.now() - start > timeout) return null;
+      await wait(150);
+    }
+  }
+
+  function fillField(field, text) {
+    field.focus();
+    setNativeValue(field, text);
+    field.dispatchEvent(new Event('blur', { bubbles: true }));
+  }
+
   async function applyHeadline(text) {
     const btn = findEdit('edit intro');
     if (!btn) return false;
     btn.click();
-    await wait(900);
-    const field = fieldByLabel('Headline')
-      || document.querySelector('[role="dialog"] textarea[id*="headline" i], [role="dialog"] input[id*="headline" i]')
-      || openDialog()?.querySelector('textarea');
+    const dialog = await waitFor(() => openDialog());
+    if (!dialog) return false;
+    const field = await waitFor(() =>
+      fieldByLabel('Headline')
+      || dialog.querySelector('textarea[id*="headline" i], input[id*="headline" i]')
+      || dialog.querySelector('textarea') // intro modal's only textarea is the headline
+    );
     if (!field) return false;
-    setNativeValue(field, text);
+    fillField(field, text);
     return true;
   }
 
@@ -197,11 +253,12 @@
     const btn = findEdit('edit about');
     if (!btn) return false;
     btn.click();
-    await wait(900);
+    const dialog = await waitFor(() => openDialog());
+    if (!dialog) return false;
     // The About editor is a single large textarea in the dialog.
-    const field = openDialog()?.querySelector('textarea');
+    const field = await waitFor(() => dialog.querySelector('textarea'));
     if (!field) return false;
-    setNativeValue(field, text);
+    fillField(field, text);
     return true;
   }
 
@@ -223,8 +280,13 @@
     }) || null;
   }
 
+  // The intro card (name, headline, photo, banner, location). Prefer the tight
+  // .artdeco-card around the name — closest('section') can be a huge wrapper
+  // that centers on the middle of the page (Activity) when scrolled.
   function topCardSection() {
-    return document.querySelector('main h1')?.closest('section')
+    const h1 = document.querySelector('main h1');
+    return (h1 && (h1.closest('.artdeco-card') || h1.closest('section')))
+      || document.querySelector('main .artdeco-card')
       || document.querySelector('main section');
   }
 
