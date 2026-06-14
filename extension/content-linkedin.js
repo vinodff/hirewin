@@ -147,27 +147,59 @@
     el.dispatchEvent(new Event('change', { bubbles: true }));
   }
 
-  function clickEdit(ariaIncludes) {
-    const btn = [...document.querySelectorAll('button[aria-label]')]
-      .find((b) => b.getAttribute('aria-label').toLowerCase().includes(ariaIncludes));
-    if (btn) { btn.click(); return true; }
-    return false;
+  // Find LinkedIn's edit pencil by aria-label (any element, case-insensitive).
+  function findEdit(...phrases) {
+    const els = [...document.querySelectorAll('[aria-label]')];
+    for (const e of els) {
+      const label = (e.getAttribute('aria-label') || '').toLowerCase();
+      if (phrases.some((p) => label.includes(p))) return e;
+    }
+    return null;
+  }
+
+  function openDialog() {
+    return document.querySelector('[role="dialog"], .artdeco-modal');
+  }
+
+  // Find a form field inside the open dialog by its visible <label> text.
+  function fieldByLabel(labelText) {
+    const dialog = openDialog();
+    if (!dialog) return null;
+    const want = labelText.toLowerCase();
+    for (const lb of dialog.querySelectorAll('label')) {
+      if ((lb.innerText || '').toLowerCase().includes(want)) {
+        const forId = lb.getAttribute('for');
+        if (forId) {
+          const byId = dialog.querySelector('#' + (window.CSS && CSS.escape ? CSS.escape(forId) : forId));
+          if (byId) return byId;
+        }
+        const near = lb.closest('div')?.querySelector('input, textarea');
+        if (near) return near;
+      }
+    }
+    return null;
   }
 
   async function applyHeadline(text) {
-    if (!clickEdit('edit intro')) return false;
-    await wait(700);
-    const field = document.querySelector('textarea[id*="headline" i], input[id*="headline" i], textarea[name="headline"]')
-      || [...document.querySelectorAll('.artdeco-modal textarea, .artdeco-modal input')].find(el => /headline/i.test(el.id + el.name));
+    const btn = findEdit('edit intro');
+    if (!btn) return false;
+    btn.click();
+    await wait(900);
+    const field = fieldByLabel('Headline')
+      || document.querySelector('[role="dialog"] textarea[id*="headline" i], [role="dialog"] input[id*="headline" i]')
+      || openDialog()?.querySelector('textarea');
     if (!field) return false;
     setNativeValue(field, text);
     return true;
   }
 
   async function applyAbout(text) {
-    if (!clickEdit('edit about')) return false;
-    await wait(700);
-    const field = document.querySelector('.artdeco-modal textarea');
+    const btn = findEdit('edit about');
+    if (!btn) return false;
+    btn.click();
+    await wait(900);
+    // The About editor is a single large textarea in the dialog.
+    const field = openDialog()?.querySelector('textarea');
     if (!field) return false;
     setNativeValue(field, text);
     return true;
@@ -177,20 +209,48 @@
   function copy(text) { try { navigator.clipboard.writeText(text); } catch (_) {} }
 
   /* ============ scroll-to + highlight the matching LinkedIn section ============ */
-  function sectionEl(id) {
-    if (id === 'experience') return document.getElementById('experience')?.closest('section');
-    if (id === 'skills') return document.getElementById('skills')?.closest('section');
-    if (id === 'education') return document.getElementById('education')?.closest('section');
-    if (id === 'about') return document.getElementById('about')?.closest('section');
-    // photo, banner, headline, location, openToWork live in the top card (first <section> in <main>)
-    return document.querySelector('main section');
+
+  // Find a profile card by its <h2> heading text (most reliable — LinkedIn's
+  // anchor ids change, but the visible section title doesn't).
+  function sectionByHeading(name) {
+    const target = name.toLowerCase();
+    const secs = [...document.querySelectorAll('main section')];
+    return secs.find((s) => {
+      const h = s.querySelector('h2');
+      if (!h) return false;
+      const t = (h.innerText || '').trim().toLowerCase();
+      return t === target || t.startsWith(target);
+    }) || null;
   }
-  function goToSection(id) {
-    const el = sectionEl(id);
-    if (!el) return;
-    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    el.classList.add('hw-highlight');
-    setTimeout(() => el.classList.remove('hw-highlight'), 2400);
+
+  function topCardSection() {
+    return document.querySelector('main h1')?.closest('section')
+      || document.querySelector('main section');
+  }
+
+  function sectionEl(id) {
+    if (id === 'experience') return document.getElementById('experience')?.closest('section') || sectionByHeading('Experience');
+    if (id === 'skills')     return document.getElementById('skills')?.closest('section')     || sectionByHeading('Skills');
+    if (id === 'education')  return document.getElementById('education')?.closest('section')  || sectionByHeading('Education');
+    if (id === 'about')      return document.getElementById('about')?.closest('section')      || sectionByHeading('About');
+    // photo, banner, headline, location, openToWork live in the top (intro) card
+    return topCardSection();
+  }
+
+  async function goToSection(id) {
+    let target = sectionEl(id);
+    // LinkedIn lazy-loads lower sections — if not found, scroll down to load then retry.
+    if (!target) {
+      window.scrollTo({ top: document.body.scrollHeight });
+      await wait(700);
+      target = sectionEl(id);
+      window.scrollTo({ top: 0 });
+      await wait(200);
+    }
+    if (!target) return;
+    target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    target.classList.add('hw-highlight');
+    setTimeout(() => target.classList.remove('hw-highlight'), 2600);
   }
 
   /* ============ panel UI ============ */
@@ -246,7 +306,11 @@
     `;
     document.body.appendChild(panel);
 
-    panel.querySelector('.hw-x').addEventListener('click', () => panel.classList.remove('hw-open'));
+    panel.querySelector('.hw-x').addEventListener('click', () => {
+      panel.classList.remove('hw-open');
+      // Fully remove after the slide-out so the launcher can come back.
+      setTimeout(() => { panel.remove(); injectLauncher(); }, 280);
+    });
     panel.querySelector('#hw-run').addEventListener('click', runOptimize);
     panel.querySelector('#hw-refresh').addEventListener('click', refreshScore);
 
@@ -382,13 +446,34 @@
   function escapeHtml(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
 
   async function doApply(kind, text) {
+    copy(text); // always have it ready to paste
+    await goToSection(kind); // scroll to + highlight the section being edited
+
     let okApplied = false;
     try {
       okApplied = kind === 'headline' ? await applyHeadline(text) : await applyAbout(text);
     } catch (_) { okApplied = false; }
-    if (!okApplied) {
-      copy(text);
-      alert("HireWin: couldn't open LinkedIn's editor automatically. The text is copied — click the edit pencil and paste with Ctrl+V.");
+
+    if (okApplied) {
+      // Editor is filled — nudge the user to save it (LinkedIn's own Save button).
+      const dlg = openDialog();
+      if (dlg) {
+        const note = el('div');
+        note.textContent = '✓ Filled by HireWin — review and click Save';
+        note.style.cssText = 'position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:2147483647;background:#16a34a;color:#fff;padding:8px 16px;border-radius:8px;font:600 13px sans-serif;box-shadow:0 6px 20px rgba(0,0,0,.3)';
+        document.body.appendChild(note);
+        setTimeout(() => note.remove(), 4000);
+      }
+      return;
+    }
+
+    // Auto-fill failed — at least open LinkedIn's editor so the user can paste.
+    const opened = kind === 'headline' ? !!findEdit('edit intro') : !!findEdit('edit about');
+    if (opened) {
+      (kind === 'headline' ? findEdit('edit intro') : findEdit('edit about'))?.click();
+      alert("HireWin: copied your new text and opened LinkedIn's editor. Click into the field and paste (Ctrl+V).");
+    } else {
+      alert("HireWin: copied your new text. Click the ✏️ edit pencil on this section and paste (Ctrl+V).");
     }
   }
 
