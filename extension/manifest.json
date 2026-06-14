@@ -24,6 +24,7 @@
   "host_permissions": [
     "https://www.linkedin.com/*",
     "https://hirewin.live/*",
+    "https://www.hirewin.live/*",
     "http://localhost/*",
     "http://127.0.0.1/*"
   ],

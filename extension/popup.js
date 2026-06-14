@@ -1,6 +1,6 @@
 /* Popup settings — connection code (auth) + optimizer base URL. */
 
-const DEFAULT_BASE = 'https://hirewin.live';
+const DEFAULT_BASE = 'https://www.hirewin.live';
 
 const baseInput = document.getElementById('base');
 const saved = document.getElementById('saved');

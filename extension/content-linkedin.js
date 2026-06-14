@@ -421,7 +421,7 @@
 
     finishRun();
 
-    const base = (resp && resp.base) || 'https://hirewin.live';
+    const base = (resp && resp.base) || 'https://www.hirewin.live';
 
     if (!resp) { setMsg('<div class="hw-note">No response from the extension. Refresh and try again.</div>'); return; }
 
@@ -450,7 +450,7 @@
 
     optimized = resp.data.result;
     if (resp.data.locked) {
-      const base = resp.base || 'https://hirewin.live';
+      const base = resp.base || 'https://www.hirewin.live';
       setMsg(`<div class="hw-note">Free preview: headlines, skills & tips unlocked. <a id="hw-up">Upgrade</a> for full About + Experience rewrites.</div>`);
       const a = document.getElementById('hw-up');
       if (a) a.addEventListener('click', () => window.open(base + '/pricing', '_blank'));

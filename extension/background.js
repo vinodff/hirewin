@@ -3,12 +3,20 @@
    cookie. Runs in the extension origin with host_permissions, so it can
    send credentials cross-origin (the content script on linkedin.com can't). */
 
-const DEFAULT_BASE = 'https://hirewin.live';
+const DEFAULT_BASE = 'https://www.hirewin.live';
+
+// The apex (hirewin.live) 301-redirects to www, and CORS preflight requests
+// can't follow redirects — so always target the canonical www host.
+function normalizeBase(b) {
+  let base = (b || DEFAULT_BASE).trim().replace(/\/$/, '');
+  base = base.replace(/^https?:\/\/hirewin\.live/i, 'https://www.hirewin.live');
+  return base;
+}
 
 async function getConfig() {
   const { hirewin_base, hirewin_token } = await chrome.storage.local.get(['hirewin_base', 'hirewin_token']);
   return {
-    base: (hirewin_base || DEFAULT_BASE).replace(/\/$/, ''),
+    base: normalizeBase(hirewin_base),
     token: hirewin_token || '',
   };
 }
