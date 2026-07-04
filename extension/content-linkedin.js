@@ -91,23 +91,20 @@
     return items.join('\n');
   }
 
-  // A real profile photo is an img with a media URL that isn't the ghost placeholder.
+  // Real profile photos always use the profile-displayphoto media path; ghost
+  // placeholders and logos (college/company) never do. Scope to the intro card
+  // so photos in the "people also viewed" rail don't count.
   function hasPhoto() {
     const card = topCardSection() || document;
-    const imgs = [...card.querySelectorAll('img')];
-    return imgs.some((img) => {
-      const src = img.getAttribute('src') || '';
-      const alt = (img.getAttribute('alt') || '').toLowerCase();
-      return /licdn\.com\/.*\/(profile-displayphoto|image)/i.test(src) && !/ghost/i.test(src) && !alt.includes('background');
-    });
+    return !!card.querySelector('img[src*="profile-displayphoto"]');
   }
 
-  // A custom banner is a background image that isn't LinkedIn's default gradient.
+  // Custom banners are user uploads on media.licdn.com; LinkedIn's default
+  // banner is served from static.licdn.com.
   function hasBanner() {
     if (document.querySelector('.profile-background-image--default')) return false;
     const bg = document.querySelector('.profile-background-image img, .live-video-hero-image, [class*="background-image"] img');
-    if (bg && /licdn\.com/i.test(bg.getAttribute('src') || '')) return true;
-    return false;
+    return !!(bg && /media\.licdn\.com/i.test(bg.getAttribute('src') || ''));
   }
 
   function isOpenToWork() {
@@ -319,6 +316,7 @@
 
   let profile = null;
   let optimized = null; // AI result
+  let locked = false;   // free tier: About is a teaser, Experience is empty — don't offer Apply
 
   function el(tag, cls, html) {
     const e = document.createElement(tag);
@@ -428,7 +426,7 @@
       card.querySelector('.hw-card-head').addEventListener('click', () => {
         const opening = !card.classList.contains('hw-exp');
         card.classList.toggle('hw-exp');
-        fillBody(card, c, r);
+        fillBody(card, c, c.ev(profile)); // fresh status — profile may have changed since render
         if (opening) goToSection(c.id); // scroll the profile to this section + highlight it
       });
       list.appendChild(card);
@@ -475,9 +473,15 @@
     if (check.id === 'about' && optimized.about) {
       const t = el('div', 'hw-text hw-opt'); t.style.marginTop = '7px'; t.textContent = optimized.about;
       const acts = el('div', 'hw-actions');
-      acts.appendChild(btn('Copy', () => copy(optimized.about), 'hw-primary'));
-      acts.appendChild(btn('Apply to LinkedIn', () => doApply('about', optimized.about)));
-      body.appendChild(labeled('AI rewrite')); body.appendChild(t); body.appendChild(acts);
+      if (locked) {
+        // Free tier gets a teaser — applying it would overwrite the real About with 2 sentences.
+        body.appendChild(labeled('AI preview (upgrade for the full rewrite)'));
+        body.appendChild(t);
+      } else {
+        acts.appendChild(btn('Copy', () => copy(optimized.about), 'hw-primary'));
+        acts.appendChild(btn('Apply to LinkedIn', () => doApply('about', optimized.about)));
+        body.appendChild(labeled('AI rewrite')); body.appendChild(t); body.appendChild(acts);
+      }
     }
     if (check.id === 'skills' && optimized.skills?.length) {
       const chips = el('div', 'hw-chips'); chips.style.marginTop = '7px';
@@ -526,6 +530,10 @@
         document.body.appendChild(note);
         setTimeout(() => note.remove(), 4000);
       }
+      // When the dialog closes (user saved or cancelled), re-score the live profile.
+      waitFor(() => !openDialog(), 180000).then((closed) => {
+        if (closed) wait(1000).then(refreshScore);
+      });
       return;
     }
 
@@ -547,6 +555,8 @@
     const runBtn = document.getElementById('hw-run');
     if (runBtn) { runBtn.disabled = true; runBtn.innerHTML = '<span class="hw-spin"></span> Optimizing…'; }
     setMsg('');
+
+    profile = scrape(); // re-scrape — page may have finished loading since the panel opened
 
     const payload = {
       name: profile.name,
@@ -596,6 +606,7 @@
     }
 
     optimized = resp.data.result;
+    locked = !!resp.data.locked;
     if (resp.data.locked) {
       const base = resp.base || 'https://www.hirewin.live';
       setMsg(`<div class="hw-note">Free preview: headlines, skills & tips unlocked. <a id="hw-up">Upgrade</a> for full About + Experience rewrites.</div>`);
