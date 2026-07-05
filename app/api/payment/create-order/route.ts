@@ -6,11 +6,6 @@ import { checkRateLimit } from '@/lib/rate-limit';
 const VALID_PLANS = new Set(['starter', 'pro', 'power']);
 
 export async function POST(req: NextRequest) {
-  console.log('CASHFREE KEYS:', {
-    CASHFREE_APP_ID: process.env.CASHFREE_APP_ID,
-    CASHFREE_SECRET_KEY: process.env.CASHFREE_SECRET_KEY ? 'present' : 'missing',
-  });
-
   if (!process.env.CASHFREE_APP_ID || !process.env.CASHFREE_SECRET_KEY) {
     return NextResponse.json({ error: 'Payments not configured yet' }, { status: 503 });
   }

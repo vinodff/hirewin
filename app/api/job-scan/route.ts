@@ -38,9 +38,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Too many requests — try again in an hour.' }, { status: 429 });
     }
 
-    // --- Usage Quota Verification & Increment (Bypassed for testing) ---
-    /*
-    if (user) {
+    // --- Usage Quota Verification & Increment ---
+    // Set USAGE_LIMITS_DISABLED=true in env to bypass during testing (same flag as lib/usage.ts)
+    if (user && process.env.USAGE_LIMITS_DISABLED !== 'true') {
       // Reset monthly usage if it's a new month
       await supabase.rpc('reset_monthly_usage_if_needed', { profile_id: user.id });
 
@@ -76,7 +76,6 @@ export async function POST(req: NextRequest) {
         );
       }
     }
-    */
 
     const anthropic = getAnthropicClient();
 

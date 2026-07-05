@@ -38,7 +38,7 @@ async function verifyPayment(orderId: string | null) {
     }
 
     const cfData = await response.json();
-    const orderStatus = cfData.order_status; // PAID, ACTIVE, EXPIRED, TERMINATED
+    const orderStatus = String(cfData.order_status || 'unknown'); // PAID, ACTIVE, EXPIRED, TERMINATED
 
     if (orderStatus !== 'PAID') {
       console.warn('[payment/verify] order not paid yet:', { orderId, orderStatus });
