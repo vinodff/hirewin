@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAnthropicClient, MODEL_NAME } from '@/lib/anthropic';
+import { getAnthropicClient, CHEAP_MODEL_NAME } from '@/lib/anthropic';
 import { createClient } from '@/lib/supabase/server';
 import { checkRateLimit } from '@/lib/rate-limit';
 
@@ -50,7 +50,7 @@ Return ONLY a JSON object with exactly these two fields:
 Return ONLY the JSON. No markdown, no explanation.`;
 
     const message = await getAnthropicClient().messages.create({
-      model: MODEL_NAME,
+      model: CHEAP_MODEL_NAME,
       max_tokens: 512,
       messages: [{ role: 'user', content: prompt }],
     });

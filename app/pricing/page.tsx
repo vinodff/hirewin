@@ -1,126 +1,113 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { Check, Zap, Shield, Lock } from 'lucide-react';
+import Link from 'next/link';
+import { Check, Zap, Shield, Loader2 } from 'lucide-react';
 import AppNav from '@/components/app-nav';
+import { PRICING, WRITER_PRICE_INR, LAUNCH_PRICE_ENDS, startCheckout, type PaidPlan } from '@/lib/checkout';
 
-/* ── plan data ── */
-const plans = [
+const endsOn = LAUNCH_PRICE_ENDS.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+
+type Tier = {
+  id: 'free' | PaidPlan;
+  name: string;
+  /** The one line that tells you whether this is your plan. */
+  who: string;
+  price: string;
+  mrp?: string;
+  unit: string;
+  cta: string;
+  href?: string;
+  badge?: string;
+  highlight?: boolean;
+  features: string[];
+};
+
+const TIERS: Tier[] = [
   {
     id: 'free',
     name: 'Free',
-    price: { monthly: '₹0', yearly: '₹0' },
-    period: { monthly: '/month', yearly: '/year' },
-    cta: 'Get Started Free',
-    ctaHref: '/analyze',
-    highlight: false,
+    who: 'Seeing what it does. Your score and rewritten resume, on screen.',
+    price: '₹0',
+    unit: 'forever',
+    cta: 'Start free',
+    href: '/analyze',
     features: [
-      '2 resume improvements / month',
-      '1 cover letter (lifetime)',
-      '1 skill roadmap / month',
-      'Build up to 3 resumes from scratch',
-      'Optimization history (1-month retention)',
-      'Live ATS keyword analysis',
-      'Full resume preview',
-      'Copy to clipboard',
+      '2 resume rewrites a month',
+      'ATS score + missing keywords',
+      'Full preview on screen',
+      'Downloads not included',
     ],
   },
   {
     id: 'starter',
-    name: 'Starter',
-    price: { monthly: '₹29', yearly: '₹29' },
-    period: { monthly: 'one-time', yearly: 'one-time' },
-    badge: 'No subscription',
-    cta: 'Buy ₹29',
-    ctaHref: null,
-    highlight: false,
+    name: 'Single download',
+    who: 'One job you really want. Pay for that one resume, nothing else.',
+    price: `₹${PRICING.starter.price}`,
+    mrp: `₹${PRICING.starter.mrp}`,
+    unit: 'one-time',
+    cta: `Pay ₹${PRICING.starter.price}`,
     features: [
-      'Everything in Free',
       '1 resume download (PDF + DOCX)',
-      '1 cover letter download (PDF + DOCX)',
-      'No subscription needed',
+      '1 cover letter download',
       'No watermark',
+      'No subscription — nothing recurring',
+    ],
+  },
+  {
+    id: 'pack3',
+    name: '3-download pack',
+    who: 'Applying to a few roles this week. Works out cheapest per resume.',
+    price: `₹${PRICING.pack3.price}`,
+    mrp: `₹${PRICING.pack3.mrp}`,
+    unit: 'one-time',
+    cta: `Pay ₹${PRICING.pack3.price}`,
+    badge: 'Best value',
+    highlight: true,
+    features: [
+      `3 resume downloads — ₹${Math.round(PRICING.pack3.price / PRICING.pack3.downloads)} each`,
+      '3 cover letter downloads',
+      'Credits never expire',
+      'No subscription — nothing recurring',
     ],
   },
   {
     id: 'pro',
     name: 'Pro',
-    price: { monthly: '₹199', yearly: '₹1,990' },
-    period: { monthly: '/mo', yearly: '/yr' },
-    badge: 'Most Popular',
-    cta: 'Subscribe',
-    ctaHref: null,
-    highlight: true,
-    yearlyNote: '₹1,990/yr charged annually · 2 months free',
+    who: 'Applying every week, downloading a new resume each time.',
+    price: `₹${PRICING.pro.price}`,
+    unit: '/month',
+    cta: 'Get Pro',
     features: [
-      '20 resume improvements / month',
-      'Unlimited PDF + DOCX downloads',
-      '5 cover letters / month',
-      'Skills learning roadmap (15/month)',
-      'Build up to 20 resumes from scratch',
-      'AI resume builder',
-      'Import resume via AI',
-      'Optimization history (3-month retention)',
-      'Priority support',
-    ],
-  },
-  {
-    id: 'power',
-    name: 'Power',
-    price: { monthly: '₹399', yearly: '₹3,990' },
-    period: { monthly: '/mo', yearly: '/yr' },
-    cta: 'Subscribe',
-    ctaHref: null,
-    highlight: false,
-    yearlyNote: '₹3,990/yr charged annually · 2 months free',
-    features: [
-      '80 resume improvements / month',
-      'Unlimited PDF + DOCX downloads',
-      '15 cover letters / month',
-      '60 skill roadmaps / month',
-      'Build unlimited resumes from scratch',
-      'AI resume builder',
-      'Import resume via AI',
-      'Edit resume & cover letter before download',
-      'Optimization history (6-month retention)',
-      'Priority support',
+      'Unlimited downloads',
+      '20 resume rewrites a month',
+      '10 job scans a month',
+      'AI resume builder + import',
+      'Cancel anytime',
     ],
   },
 ];
 
-const teamFeatures = [
-  'Pay per use — no monthly lock-in',
-  'Non-expiring balance',
-  'Full per-member usage tracking',
-  'Build unlimited resumes from scratch',
-  'AI resume builder',
-  'Shared wallet — top up anytime',
-  'Add & manage team members',
-  'Host dashboard with activity log',
-  'Unlimited downloads & generations',
+const FAQS = [
+  { q: 'Do I have to subscribe to download once?', a: `No. ₹${PRICING.starter.price} is a one-time payment for one resume download. Nothing recurring, no card saved.` },
+  { q: 'Can I see the result before paying?', a: 'Yes. The ATS score, keyword analysis and the full rewritten resume are free to read on screen. You only pay when you want the PDF or DOCX file.' },
+  { q: 'Do pack credits expire?', a: `No. The ${PRICING.pack3.downloads} downloads in the ₹${PRICING.pack3.price} pack stay on your account until you use them.` },
+  { q: 'How do I pay?', a: 'One tap opens UPI, card or netbanking through Cashfree. The download unlocks the moment payment succeeds.' },
+  { q: 'Can I cancel Pro or Power?', a: 'Anytime, from the billing page. You keep access until the period ends, then drop back to free.' },
 ];
 
-const faqs = [
-  { q: 'Can I see my results before paying?', a: 'Yes — the full ATS analysis, keyword matching, and resume preview are always free. You only pay to download the PDF or DOCX file.' },
-  { q: 'What is the Starter plan?', a: '₹29 is a one-time purchase that gives you 1 resume download and 1 cover letter download. No subscription, no recurring charges. Perfect if you only need it once.' },
-  { q: 'Is my payment secure?', a: 'Yes. Payments are processed by Cashfree — PCI-DSS compliant. We never store your card details. Your data is encrypted end-to-end.' },
-  { q: 'What counts as a "skill roadmap"?', a: 'Each skill you select and generate a learning plan for counts as 1 roadmap. Pro users get 15 per month, Power users get 60 per month.' },
-  { q: 'Can I cancel my subscription?', a: 'Yes, anytime. Your plan stays active until the end of the billing period, then you return to the free tier. No pro-rated refunds for unused time.' },
-  { q: 'What is the difference between monthly and yearly?', a: 'Same features, different billing. Yearly plans work out to 2 months free compared to paying monthly.' },
-];
+const card = { background: '#0f1629', border: '1px solid rgba(255,255,255,0.07)' };
 
-const cardStyle = { background: '#0f1629', border: '1px solid rgba(255,255,255,0.07)' };
-
-/* ── Main page ── */
 export default function PricingPage() {
-  const router = useRouter();
-  const [yearly, setYearly]         = useState(true);
-  const [openFaq, setOpenFaq]       = useState<number | null>(null);
+  const [paying, setPaying] = useState<string | null>(null);
+  const [error, setError] = useState('');
+  const [openFaq, setOpenFaq] = useState<number | null>(null);
 
-  // Send the shopper to the cart/checkout page with their selection.
-  function openCheckout(plan: typeof plans[number]) {
-    router.push(`/cart?plan=${plan.id}&yearly=${yearly}`);
+  async function pay(plan: PaidPlan) {
+    setPaying(plan);
+    setError('');
+    const err = await startCheckout(plan);
+    if (err) { setError(err); setPaying(null); }
   }
 
   return (
@@ -128,99 +115,60 @@ export default function PricingPage() {
       <AppNav />
 
       <div className="max-w-6xl mx-auto px-4 py-10 sm:py-12">
-
-        {/* Header */}
-        <div className="text-center mb-8 sm:mb-10">
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white tracking-tight mb-3">
-            Simple, honest pricing
+        <div className="text-center mb-8">
+          <h1 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight mb-3">
+            Pay for the resume, not a subscription
           </h1>
-          <p className="text-slate-400 text-sm sm:text-base max-w-md mx-auto">
-            Start free. Pay only when you want to download your resume or cover letter.
+          <p className="text-slate-400 text-sm max-w-md mx-auto">
+            Your ATS score, missing keywords and full rewritten resume are free to read.
+            You only pay for the file — from{' '}
+            <span className="text-white font-semibold">₹{PRICING.starter.price}</span>.
+            A resume writer charges ₹{WRITER_PRICE_INR.toLocaleString('en-IN')}+ for the same thing.
           </p>
-
-          {/* Monthly / Yearly toggle */}
-          <div className="inline-flex items-center gap-1 rounded-xl p-1.5 mt-6"
-            style={{ background: '#0f1629', border: '1px solid rgba(255,255,255,0.07)' }}>
-            <button
-              onClick={() => setYearly(false)}
-              className="px-4 py-1.5 text-sm rounded-lg font-medium transition-all"
-              style={!yearly
-                ? { background: 'linear-gradient(135deg, #7c3aed, #3b82f6)', color: '#fff' }
-                : { color: '#94a3b8' }}
-            >
-              Monthly
-            </button>
-            <button
-              onClick={() => setYearly(true)}
-              className="flex items-center gap-1.5 px-4 py-1.5 text-sm rounded-lg font-medium transition-all"
-              style={yearly
-                ? { background: 'linear-gradient(135deg, #7c3aed, #3b82f6)', color: '#fff' }
-                : { color: '#94a3b8' }}
-            >
-              Yearly
-              <span className={`text-xs px-1.5 py-0.5 rounded-full font-semibold ${yearly ? 'bg-white/20 text-white' : 'bg-green-500/20 text-green-400'}`}>
-                2 months free
-              </span>
-            </button>
+          <div
+            className="inline-flex items-center gap-1.5 mt-4 px-3 py-1.5 rounded-full text-xs font-semibold"
+            style={{ background: 'rgba(251,191,36,0.1)', color: '#fbbf24' }}
+          >
+            <Zap className="w-3.5 h-3.5" />
+            Launch price until {endsOn}
           </div>
-
-          <p className="text-xs text-slate-600 mt-2">All prices in INR · inclusive of applicable taxes</p>
         </div>
 
-        {/* Trust strip */}
-        <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 mb-8 text-xs text-slate-500">
-          {[
-            { icon: Shield, text: 'Secure payments by Cashfree' },
-            { icon: Zap,    text: 'Instant access after payment' },
-            { icon: Lock,   text: 'Cancel anytime' },
-          ].map(({ icon: Icon, text }) => (
-            <div key={text} className="flex items-center gap-1.5">
-              <Icon className="w-3.5 h-3.5 text-purple-400 shrink-0" />
-              {text}
-            </div>
-          ))}
-        </div>
+        {error && <p className="text-center text-sm text-red-400 mb-4">{error}</p>}
 
-        {/* Plan cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          {plans.map((plan) => (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
+          {TIERS.map((tier) => (
             <div
-              key={plan.id}
-              className={`rounded-2xl p-5 sm:p-6 flex flex-col relative ${plan.highlight ? 'glow-sm' : ''}`}
-              style={plan.highlight
+              key={tier.id}
+              className="rounded-2xl p-5 flex flex-col relative"
+              style={tier.highlight
                 ? { background: '#0f1629', border: '1px solid rgba(124,58,237,0.5)' }
-                : cardStyle}
+                : card}
             >
-              {plan.badge && (
+              {tier.badge && (
                 <div
-                  className="absolute -top-3 left-1/2 -translate-x-1/2 text-xs font-semibold px-3 py-1 rounded-full whitespace-nowrap"
-                  style={plan.highlight
-                    ? { background: 'linear-gradient(135deg, #7c3aed, #3b82f6)', color: '#fff' }
-                    : { background: 'rgba(255,255,255,0.08)', color: '#94a3b8' }}
+                  className="absolute -top-2.5 left-5 text-[10px] font-bold px-2 py-0.5 rounded-full"
+                  style={tier.highlight
+                    ? { background: 'linear-gradient(135deg,#7c3aed,#3b82f6)', color: '#fff' }
+                    : { background: 'rgba(34,197,94,0.15)', color: '#4ade80', border: '1px solid rgba(34,197,94,0.3)' }}
                 >
-                  {plan.badge}
+                  {tier.badge}
                 </div>
               )}
 
-              {/* Pricing */}
-              <div className="mb-4">
-                <div className="text-xs font-semibold text-slate-400 mb-1 uppercase tracking-wide">{plan.name}</div>
-                <div className="flex items-end gap-1">
-                  <span className={`text-2xl sm:text-3xl font-extrabold ${plan.highlight ? 'gradient-text' : 'text-white'}`}>
-                    {yearly ? plan.price.yearly : plan.price.monthly}
-                  </span>
-                  <span className="text-slate-500 text-sm mb-1">
-                    {yearly ? plan.period.yearly : plan.period.monthly}
-                  </span>
-                </div>
-                {yearly && plan.yearlyNote && (
-                  <div className="text-xs text-slate-600 mt-1">{plan.yearlyNote}</div>
-                )}
+              <div className="text-sm font-bold text-white mb-1 mt-1">{tier.name}</div>
+              <p className="text-[11px] text-slate-500 leading-relaxed mb-4 min-h-[44px]">{tier.who}</p>
+
+              <div className="flex items-baseline gap-1.5 mb-4">
+                <span className={`text-3xl font-extrabold ${tier.highlight ? 'gradient-text' : 'text-white'}`}>
+                  {tier.price}
+                </span>
+                {tier.mrp && <span className="text-sm text-slate-600 line-through">{tier.mrp}</span>}
+                <span className="text-slate-500 text-xs">{tier.unit}</span>
               </div>
 
-              {/* Features */}
               <ul className="space-y-2 flex-1 mb-5">
-                {plan.features.map((f) => (
+                {tier.features.map((f) => (
                   <li key={f} className="flex items-start gap-2 text-xs text-slate-400 leading-relaxed">
                     <Check className="w-3.5 h-3.5 text-green-400 shrink-0 mt-0.5" />
                     {f}
@@ -228,88 +176,93 @@ export default function PricingPage() {
                 ))}
               </ul>
 
-              {/* CTA */}
-              {plan.ctaHref ? (
-                <a
-                  href={plan.ctaHref}
+              {tier.href ? (
+                <Link
+                  href={tier.href}
                   className="block text-center py-3 rounded-xl text-sm font-semibold transition-all hover:opacity-90 active:scale-[0.98]"
-                  style={plan.highlight
-                    ? { background: 'linear-gradient(135deg, #7c3aed, #3b82f6)', color: '#fff' }
-                    : { background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: '#cbd5e1' }}
+                  style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: '#cbd5e1' }}
                 >
-                  {plan.cta}
-                </a>
+                  {tier.cta}
+                </Link>
               ) : (
                 <button
-                  onClick={() => openCheckout(plan)}
-                  className="py-3 rounded-xl text-sm font-semibold transition-all hover:opacity-90 active:scale-[0.98]"
-                  style={plan.highlight
-                    ? { background: 'linear-gradient(135deg, #7c3aed, #3b82f6)', color: '#fff' }
+                  onClick={() => pay(tier.id as PaidPlan)}
+                  disabled={paying !== null}
+                  className="flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold transition-all hover:opacity-90 active:scale-[0.98] disabled:opacity-60"
+                  style={tier.highlight || tier.id === 'starter'
+                    ? { background: 'linear-gradient(135deg,#7c3aed,#3b82f6)', color: '#fff' }
                     : { background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: '#cbd5e1' }}
                 >
-                  {plan.cta}
+                  {paying === tier.id && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                  {paying === tier.id ? 'Opening…' : tier.cta}
                 </button>
               )}
             </div>
           ))}
         </div>
 
-        {/* Team plan */}
-        <div className="rounded-2xl p-5 sm:p-6 mb-10 sm:mb-12" style={cardStyle}>
-          <div className="flex flex-col sm:flex-row sm:items-start gap-5 sm:gap-6">
+        <div className="flex flex-wrap items-center justify-center gap-6 mb-12 text-xs text-slate-500">
+          <span className="flex items-center gap-1.5"><Shield className="w-3.5 h-3.5 text-purple-400" /> UPI, card &amp; netbanking via Cashfree</span>
+          <span className="flex items-center gap-1.5"><Zap className="w-3.5 h-3.5 text-purple-400" /> Download unlocks instantly</span>
+        </div>
+
+        {/* Power + Team — kept out of the main grid to avoid choice overload */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-12">
+          <div className="rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center gap-4" style={card}>
             <div className="flex-1">
-              <div className="text-xs font-semibold text-yellow-400 uppercase tracking-wide mb-1">Team</div>
-              <div className="flex items-end gap-1 mb-2">
-                <span className="text-2xl sm:text-3xl font-extrabold text-white">₹500</span>
-                <span className="text-slate-500 text-sm mb-1">min top-up</span>
-              </div>
+              <div className="text-sm font-bold text-white mb-1">Power — ₹{PRICING.power.price}/mo</div>
               <p className="text-xs text-slate-500">
-                For companies &amp; recruiters. Shared wallet, unlimited usage, no subscription.
+                80 rewrites, 25 job scans, edit before download, 6-month history.
               </p>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-1.5 flex-1">
-              {teamFeatures.map((f) => (
-                <div key={f} className="flex items-start gap-2 text-xs text-slate-400">
-                  <Check className="w-3.5 h-3.5 text-green-400 shrink-0 mt-0.5" />
-                  {f}
-                </div>
-              ))}
+            <button
+              onClick={() => pay('power')}
+              disabled={paying !== null}
+              className="shrink-0 px-5 py-2.5 rounded-xl text-sm font-semibold self-start sm:self-auto disabled:opacity-60"
+              style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: '#cbd5e1' }}
+            >
+              {paying === 'power' ? 'Opening…' : 'Get Power'}
+            </button>
+          </div>
+
+          <div className="rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center gap-4" style={card}>
+            <div className="flex-1">
+              <div className="text-sm font-bold text-white mb-1">Team</div>
+              <p className="text-xs text-slate-500">
+                Recruiters and campus teams — shared wallet from ₹500, metered per use, per-member tracking.
+              </p>
             </div>
             <a
-              href="mailto:support@hirewin.live?subject=HireWin%20Team%20Plan%20Inquiry&body=Hi%2C%20I%27d%20like%20to%20set%20up%20a%20team%20account.%20Please%20share%20next%20steps."
-              className="shrink-0 flex items-center gap-2 text-white font-semibold px-5 py-2.5 rounded-xl text-sm transition-all hover:opacity-90 active:scale-[0.98] self-start sm:self-center"
-              style={{ background: 'rgba(234,179,8,0.15)', border: '1px solid rgba(234,179,8,0.3)', color: '#fbbf24' }}
+              href="mailto:support@hirewin.live?subject=HireWin%20Team%20Plan"
+              className="shrink-0 px-5 py-2.5 rounded-xl text-sm font-semibold self-start sm:self-auto"
+              style={{ background: 'rgba(234,179,8,0.12)', border: '1px solid rgba(234,179,8,0.3)', color: '#fbbf24' }}
             >
-              <Zap className="w-4 h-4" />
-              Contact Us for Team →
+              Talk to us →
             </a>
           </div>
         </div>
 
         {/* FAQs */}
         <div className="max-w-2xl mx-auto">
-          <h2 className="text-xl sm:text-2xl font-bold text-white text-center mb-6">Common questions</h2>
+          <h2 className="text-xl font-bold text-white text-center mb-5">Questions</h2>
           <div className="space-y-2">
-            {faqs.map((faq, i) => (
-              <div key={i} className="rounded-xl overflow-hidden" style={cardStyle}>
+            {FAQS.map((faq, i) => (
+              <div key={faq.q} className="rounded-xl overflow-hidden" style={card}>
                 <button
                   onClick={() => setOpenFaq(openFaq === i ? null : i)}
-                  className="w-full flex items-center justify-between gap-4 px-4 sm:px-5 py-4 text-left"
+                  className="w-full flex items-center justify-between gap-4 px-4 py-3.5 text-left"
                 >
                   <span className="text-sm font-medium text-white">{faq.q}</span>
                   <span className="text-slate-500 shrink-0 text-lg leading-none">{openFaq === i ? '−' : '+'}</span>
                 </button>
                 {openFaq === i && (
-                  <div className="px-4 sm:px-5 pb-4 text-sm text-slate-400 leading-relaxed border-t border-white/[0.05] pt-3">
-                    {faq.a}
-                  </div>
+                  <div className="px-4 pb-4 text-sm text-slate-400 leading-relaxed">{faq.a}</div>
                 )}
               </div>
             ))}
           </div>
-
           <p className="text-center text-xs text-slate-600 mt-8">
-            🔒 Powered by Cashfree · PCI-DSS Compliant · Cancel anytime
+            All prices in INR, inclusive of taxes · <Link href="/refund" className="underline hover:text-slate-400">Refund policy</Link>
           </p>
         </div>
       </div>

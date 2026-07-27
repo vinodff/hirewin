@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { checkRateLimit } from '@/lib/rate-limit';
-import { getAnthropicClient, MODEL_NAME } from '@/lib/anthropic';
+import { getAnthropicClient, CHEAP_MODEL_NAME } from '@/lib/anthropic';
 import { canScan } from '@/lib/usage';
+import { PLAN_LIMITS, type Plan } from '@/types';
 
 export const maxDuration = 60;
 export const dynamic = 'force-dynamic';
@@ -62,8 +63,10 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      // Increment scans_used
-      const limit = plan === 'pro' ? 30 : plan === 'power' ? 100 : plan === 'team' ? -1 : 0;
+      // Increment scans_used. Read the cap from PLAN_LIMITS — a hardcoded copy
+      // here silently ignores plan changes. -1 means unlimited to the RPC.
+      const planLimit = PLAN_LIMITS[plan as Plan]?.scansPerMonth ?? 0;
+      const limit = planLimit === Infinity ? -1 : planLimit;
       const { data: incremented } = await supabase.rpc('try_increment_scans_used', {
         p_user_id: user.id,
         p_limit: limit,
@@ -103,7 +106,7 @@ export async function POST(req: NextRequest) {
     if (!searchRole || !searchLocation) {
       try {
         const extractRes = await anthropic.messages.create({
-          model: MODEL_NAME,
+          model: CHEAP_MODEL_NAME,
           max_tokens: 150,
           system: 'Extract the single most appropriate target job title/role for this candidate (e.g. "React Developer", "Data Analyst", "Node.js Developer") and their preferred location. Return ONLY a JSON object: {"role": "extracted title", "location": "extracted location"}. No other text or markdown code fences.',
           messages: [{ role: 'user', content: `Resume:\n${resumeText.slice(0, 4000)}` }],
@@ -160,8 +163,9 @@ export async function POST(req: NextRequest) {
     console.log(`[job-scan] Jina Search results length: ${searchMarkdown.length}`);
     console.log(`[job-scan] Search result snippet:\n`, searchMarkdown.slice(0, 1000));
 
-    // Truncate search results to keep within token limit (~90,000 chars)
-    const truncatedMarkdown = searchMarkdown.slice(0, 90000);
+    // 90k chars was ~24k input tokens per scan — by far our most expensive call.
+    // 25k chars still covers the top ~10 results, which is all we rank.
+    const truncatedMarkdown = searchMarkdown.slice(0, 25000);
 
     // --- Evaluate Fit with Claude 4.5 ---
     const evaluationPrompt = `You are an expert AI job matcher.
@@ -196,7 +200,8 @@ Your output must be a valid JSON object matching this schema:
 Return ONLY the JSON object. Do not wrap it in markdown code fences, do not include any other text or explanation. Only return a valid JSON containing at most 10 job matches.`;
 
     const claudeRes = await anthropic.messages.create({
-      model: MODEL_NAME, // Standard Claude 3.5 Sonnet is highly reliable and fast for JSON structured calls
+      // Ranking search results is triage, not the product — Haiku does it at 1/3 the price.
+      model: CHEAP_MODEL_NAME,
       max_tokens: 4000,
       system: evaluationPrompt,
       messages: [

@@ -94,12 +94,12 @@ FIELD DEFINITIONS:
     medium = coursework or academic project in original
     low = brief mention or implicit only in original
     claimed_only = listed as a skill but no project/coursework supports it (this is risky — flag honestly)
-  Include 5-12 of the most important skills for this JD. This is the trust layer — be honest.
-- interviewRisks: 0-5 entries. Skills or claims in the optimized resume that a recruiter could probe in interview where the candidate may struggle (e.g., listed React but no React project; mentioned AWS but only coursework). Each: { skill, reason } — reason should be one sentence explaining why this is a risk.
+  Include exactly the 5 most important skills for this JD. This is the trust layer — be honest.
+- interviewRisks: 0-3 entries. Skills or claims in the optimized resume that a recruiter could probe in interview where the candidate may struggle (e.g., listed React but no React project; mentioned AWS but only coursework). Each: { skill, reason } — reason should be one short sentence explaining why this is a risk.
 - careerLevel: Infer from years of experience and seniority. Students/freshers = Junior.
-- keywordsMatched: Important JD keywords found in the original resume (max 15).
-- keywordsMissing: Important JD keywords NOT in the original resume (max 15).
-- skillGaps: Top 3-5 gaps ordered by importance. Each: skill, importance (Critical/High/Medium), reason (one actionable sentence).
+- keywordsMatched: Important JD keywords found in the original resume (max 10).
+- keywordsMissing: Important JD keywords NOT in the original resume (max 10).
+- skillGaps: Top 3 gaps ordered by importance. Each: skill, importance (Critical/High/Medium), reason (one actionable sentence).
 - company: Company name extracted from JD.
 - role: Job title extracted from JD.
 - companyType: Classification from above.
@@ -165,17 +165,48 @@ Output: {"atsScore":32,"optimizedAtsScore":88,"jobFitScore":38,"careerLevel":"Ju
 // claude-sonnet-4-5 pricing: $3/M input, $15/M output (as of 2026-04)
 const SONNET_INPUT_USD_PER_TOKEN = 3 / 1_000_000;
 const SONNET_OUTPUT_USD_PER_TOKEN = 15 / 1_000_000;
+// Cache writes cost 1.25x base input; cache reads cost 0.1x.
+const CACHE_WRITE_MULTIPLIER = 1.25;
+const CACHE_READ_MULTIPLIER = 0.1;
 
 export const MODEL_NAME = 'claude-sonnet-4-5';
 
-export function costUsd(inputTokens: number, outputTokens: number): number {
+// Cheap model for calls where the output is triage/short-form, not the product.
+export const CHEAP_MODEL_NAME = 'claude-haiku-4-5';
+const HAIKU_INPUT_USD_PER_TOKEN = 1 / 1_000_000;
+const HAIKU_OUTPUT_USD_PER_TOKEN = 5 / 1_000_000;
+
+export type CostBreakdown = {
+  inputTokens: number;
+  outputTokens: number;
+  cacheCreationTokens?: number;
+  cacheReadTokens?: number;
+  model?: string;
+};
+
+export function costUsd(
+  inputTokens: number,
+  outputTokens: number,
+  opts?: { cacheCreationTokens?: number; cacheReadTokens?: number; model?: string }
+): number {
+  const isCheap = opts?.model === CHEAP_MODEL_NAME;
+  const inRate = isCheap ? HAIKU_INPUT_USD_PER_TOKEN : SONNET_INPUT_USD_PER_TOKEN;
+  const outRate = isCheap ? HAIKU_OUTPUT_USD_PER_TOKEN : SONNET_OUTPUT_USD_PER_TOKEN;
+
   return (
-    inputTokens * SONNET_INPUT_USD_PER_TOKEN +
-    outputTokens * SONNET_OUTPUT_USD_PER_TOKEN
+    inputTokens * inRate +
+    outputTokens * outRate +
+    (opts?.cacheCreationTokens ?? 0) * inRate * CACHE_WRITE_MULTIPLIER +
+    (opts?.cacheReadTokens ?? 0) * inRate * CACHE_READ_MULTIPLIER
   );
 }
 
-export type UsageCounters = { input_tokens: number; output_tokens: number };
+export type UsageCounters = {
+  input_tokens: number;
+  output_tokens: number;
+  cache_creation_input_tokens: number;
+  cache_read_input_tokens: number;
+};
 
 export type AnalysisStream = {
   textStream: AsyncIterable<string>;
@@ -214,7 +245,11 @@ export async function streamAnalysis(
   const stream = await getAnthropicClient().messages.create({
     model: MODEL_NAME,
     max_tokens: 8192,
-    system: SYSTEM_PROMPT,
+    // The system prompt is ~3.4k tokens and identical on every call — cache it.
+    // Cached reads cost 0.1x, cutting ~15% off each analysis with no quality change.
+    system: [
+      { type: 'text', text: SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } },
+    ],
     messages: [
       {
         role: 'user',
@@ -224,13 +259,20 @@ export async function streamAnalysis(
     stream: true,
   });
 
-  const usage: UsageCounters = { input_tokens: 0, output_tokens: 0 };
+  const usage: UsageCounters = {
+    input_tokens: 0,
+    output_tokens: 0,
+    cache_creation_input_tokens: 0,
+    cache_read_input_tokens: 0,
+  };
 
   async function* textStream() {
     for await (const event of stream) {
       if (event.type === 'message_start') {
         usage.input_tokens = event.message.usage.input_tokens;
         usage.output_tokens = event.message.usage.output_tokens;
+        usage.cache_creation_input_tokens = event.message.usage.cache_creation_input_tokens ?? 0;
+        usage.cache_read_input_tokens = event.message.usage.cache_read_input_tokens ?? 0;
       } else if (event.type === 'message_delta') {
         usage.output_tokens = event.usage.output_tokens;
       } else if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {

@@ -22,7 +22,7 @@ describe('interview-prep / followup-draft plan gate', () => {
   });
 
   it('allows team plan', () => {
-    expect(PLAN_LIMITS['team'].deepEvals).toBe(Infinity);
+    expect(PLAN_LIMITS['team'].deepEvals).toBeGreaterThan(0);
   });
 });
 
@@ -38,15 +38,15 @@ describe('atomic RPC p_limit translation', () => {
     ['starter', 'improvements',   2],
     ['pro',     'improvements',   20],
     ['power',   'improvements',   80],
-    ['team',    'improvements',   -1],
+    ['team',    'improvements',   400],
     ['free',    'deepEvals',      0],
     ['pro',     'deepEvals',      10],
     ['power',   'deepEvals',      40],
-    ['team',    'deepEvals',      -1],
+    ['team',    'deepEvals',      100],
     ['free',    'scansPerMonth',  0],
-    ['pro',     'scansPerMonth',  30],
-    ['power',   'scansPerMonth',  100],
-    ['team',    'scansPerMonth',  -1],
+    ['pro',     'scansPerMonth',  10],
+    ['power',   'scansPerMonth',  25],
+    ['team',    'scansPerMonth',  60],
   ];
 
   for (const [plan, counter, expected] of cases) {

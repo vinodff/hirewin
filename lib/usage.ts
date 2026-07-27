@@ -41,7 +41,11 @@ export function getCurrentMonth(): string {
 }
 
 export const PLAN_PRICES = {
-  starter: { one_time_paise: 2900, label: '₹29 one-time' },
+  // Launch prices, shown against list prices. The 3-pack is the intended
+  // default: it is what makes the free tier pay for itself at a realistic
+  // conversion rate (~5% vs ~40% on the single download alone).
+  starter: { one_time_paise: 1900, mrp_paise: 4500, label: '₹19 one-time' },
+  pack3: { one_time_paise: 4900, mrp_paise: 13500, label: '₹49 one-time' },
   pro: { monthly_paise: 19900, yearly_paise: 199000, label: '₹199/mo' },
   power: { monthly_paise: 39900, yearly_paise: 399000, label: '₹399/mo' },
 };

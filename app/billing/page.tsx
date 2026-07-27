@@ -10,7 +10,8 @@ const cardStyle = { background: '#0f1629', border: '1px solid rgba(255,255,255,0
 
 const PLAN_LABELS: Record<Plan, string> = {
   free: 'Free Plan',
-  starter: 'Starter Plan',
+  starter: 'Single Download',
+  pack3: '3-Download Pack',
   pro: 'Pro Plan',
   power: 'Power Plan',
   team: 'Team Plan',

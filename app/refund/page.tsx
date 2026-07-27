@@ -59,7 +59,7 @@ export default function RefundPage() {
             </p>
           </Section>
 
-          <Section title="2. One-Time Purchases (Starter Plan – ₹29)">
+          <Section title="2. One-Time Purchases (Single Download – ₹19)">
             <p>Refunds for one-time purchases are available if:</p>
             <ul className="list-disc list-inside space-y-1.5 pl-2">
               <li>You were charged but the download failed due to a technical error on our end.</li>

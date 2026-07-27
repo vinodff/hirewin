@@ -5,14 +5,22 @@ import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { CheckCircle, ArrowRight, Zap, Download, FileText } from 'lucide-react';
 import { Suspense } from 'react';
+import { RETURN_KEY } from '@/lib/checkout';
 
 function SuccessContent() {
   const params   = useSearchParams();
   const plan     = params.get('plan') ?? 'Pro';
   const [show, setShow] = useState(false);
+  // Where the user was when they hit Pay — send them straight back to that resume.
+  const [back, setBack] = useState('/analyze');
 
   useEffect(() => {
     const t = setTimeout(() => setShow(true), 100);
+    try {
+      const saved = localStorage.getItem(RETURN_KEY);
+      if (saved?.startsWith('/') && !saved.startsWith('//') && !saved.startsWith('/payment')) setBack(saved);
+      localStorage.removeItem(RETURN_KEY);
+    } catch { /* private mode */ }
     return () => clearTimeout(t);
   }, []);
 
@@ -82,11 +90,11 @@ function SuccessContent() {
         </div>
 
         <Link
-          href="/analyze"
+          href={back}
           className="flex items-center justify-center gap-2 w-full py-4 rounded-xl font-bold text-white text-base transition-all hover:opacity-90 active:scale-[0.98]"
           style={{ background: 'linear-gradient(135deg, #7c3aed, #3b82f6)' }}
         >
-          Start Optimizing Now
+          {back === '/analyze' ? 'Start Optimizing Now' : 'Back to your resume — download it'}
           <ArrowRight className="w-5 h-5" />
         </Link>
 

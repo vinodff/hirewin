@@ -1,10 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Download, Loader2, Palette, Share2, CheckCircle2, Gift, Sparkles, Lock, Crown } from 'lucide-react';
+import { Download, Loader2, Palette, Share2, CheckCircle2, Gift, Lock, Crown } from 'lucide-react';
 import Link from 'next/link';
 import { trackEvent, getSessionHash } from '@/lib/analytics';
 import UnlockModal from '@/components/unlock-modal';
+import { PRICING } from '@/lib/checkout';
 
 const SHARES_NEEDED = 5;
 
@@ -118,13 +119,19 @@ export default function DownloadButtons({ optimizedResume, versionId, template, 
   }
 
   const remaining = SHARES_NEEDED - shareCount;
-  const showFreeBanner = signedIn === true && !planUnlimited && downloadsLeft !== null && downloadsLeft > 0 && !sharesUnlocked;
+  // Free plan has no downloads — any remaining credit came from a purchased pack.
+  const showCreditsLeft = signedIn === true && !planUnlimited && downloadsLeft !== null && downloadsLeft > 0;
   const showSignInPrompt = signedIn === false;
 
   return (
     <>
       {showUnlock && !sharesUnlocked && (
-        <UnlockModal onClose={() => setShowUnlock(false)} onPaid={() => setShowUnlock(false)} />
+        <UnlockModal
+          onClose={() => setShowUnlock(false)}
+          onPaid={() => setShowUnlock(false)}
+          beforeScore={beforeScore}
+          afterScore={afterScore}
+        />
       )}
 
       <div className="relative rounded-2xl overflow-hidden"
@@ -162,28 +169,14 @@ export default function DownloadButtons({ optimizedResume, versionId, template, 
             )}
           </div>
 
-          {/* FREE DOWNLOAD BANNER — most prominent */}
-          {showFreeBanner && (
-            <div className="relative rounded-xl p-4 mb-5 overflow-hidden"
-              style={{
-                background: 'linear-gradient(135deg, rgba(124,58,237,0.15), rgba(59,130,246,0.12))',
-                border: '1px solid rgba(124,58,237,0.35)',
-              }}>
-              <div className="absolute -top-8 -right-8 w-24 h-24 rounded-full opacity-30 blur-2xl"
-                style={{ background: 'radial-gradient(circle, #a78bfa, transparent)' }} />
-              <div className="relative flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-                  style={{ background: 'rgba(124,58,237,0.25)', border: '1px solid rgba(124,58,237,0.4)' }}>
-                  <Gift className="w-5 h-5 text-purple-300" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-bold text-white flex items-center gap-1.5">
-                    1 free download ready
-                    <Sparkles className="w-3.5 h-3.5 text-purple-300" />
-                  </p>
-                  <p className="text-xs text-slate-400 mt-0.5">Use it now — no card needed, no strings attached.</p>
-                </div>
-              </div>
+          {/* Credits remaining from a purchased pack */}
+          {showCreditsLeft && (
+            <div className="rounded-xl p-3 mb-5 flex items-center gap-2.5"
+              style={{ background: 'rgba(124,58,237,0.1)', border: '1px solid rgba(124,58,237,0.3)' }}>
+              <Gift className="w-4 h-4 text-purple-300 shrink-0" />
+              <p className="text-xs text-slate-300">
+                <span className="font-bold text-white">{downloadsLeft}</span> download{downloadsLeft === 1 ? '' : 's'} left on your pack.
+              </p>
             </div>
           )}
 
@@ -232,8 +225,8 @@ export default function DownloadButtons({ optimizedResume, versionId, template, 
             </div>
           )}
 
-          {/* Share-to-unlock — only shown when not unlocked & not freshly unlocked & signed in & no free download */}
-          {!sharesUnlocked && signedIn && (!showFreeBanner || downloadsLeft === 0) && (
+          {/* Share-to-unlock — only when signed in with no purchased credit left */}
+          {!sharesUnlocked && signedIn && !showCreditsLeft && (
             <div className="mt-5 pt-5" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
               <div className="flex items-center gap-2 mb-3">
                 <Share2 className="w-4 h-4 text-slate-500" />
@@ -294,7 +287,7 @@ export default function DownloadButtons({ optimizedResume, versionId, template, 
           <p className="text-[11px] text-slate-600 mt-5 leading-relaxed">
             {planUnlimited
               ? 'Unlimited downloads on your current plan.'
-              : 'Free plan: optimize unlimited · 1 free download · then share 5× or upgrade'}
+              : `Score, keywords and full preview are always free · ₹${PRICING.starter.price} for the file, or ₹${PRICING.pack3.price} for ${PRICING.pack3.downloads}`}
           </p>
         </div>
       </div>

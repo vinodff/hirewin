@@ -3,7 +3,7 @@ import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { PLAN_PRICES } from '@/lib/usage';
 import { checkRateLimit } from '@/lib/rate-limit';
 
-const VALID_PLANS = new Set(['starter', 'pro', 'power']);
+const VALID_PLANS = new Set(['starter', 'pack3', 'pro', 'power']);
 
 export async function POST(req: NextRequest) {
   if (!process.env.CASHFREE_APP_ID || !process.env.CASHFREE_SECRET_KEY) {
@@ -34,6 +34,8 @@ export async function POST(req: NextRequest) {
     let amountPaise = 0;
     if (plan === 'starter') {
       amountPaise = PLAN_PRICES.starter.one_time_paise;
+    } else if (plan === 'pack3') {
+      amountPaise = PLAN_PRICES.pack3.one_time_paise;
     } else if (plan === 'pro') {
       amountPaise = isYearly ? PLAN_PRICES.pro.yearly_paise : PLAN_PRICES.pro.monthly_paise;
     } else if (plan === 'power') {

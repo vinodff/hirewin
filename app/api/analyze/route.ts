@@ -114,7 +114,12 @@ export async function POST(req: NextRequest) {
         const emittedFields = new Set<string>();
         let fullResult: Partial<AnalysisResult> = {};
         let streamError = false;
-        const totalUsage = { input_tokens: 0, output_tokens: 0 };
+        const totalUsage = {
+          input_tokens: 0,
+          output_tokens: 0,
+          cache_creation_input_tokens: 0,
+          cache_read_input_tokens: 0,
+        };
 
         async function consumeStream(textStream: AsyncIterable<string>) {
           for await (const text of textStream) {
@@ -144,6 +149,8 @@ export async function POST(req: NextRequest) {
           await consumeStream(textStream);
           totalUsage.input_tokens += usage.input_tokens;
           totalUsage.output_tokens += usage.output_tokens;
+          totalUsage.cache_creation_input_tokens += usage.cache_creation_input_tokens;
+          totalUsage.cache_read_input_tokens += usage.cache_read_input_tokens;
         } catch (e) {
           streamError = true;
           const rawErr = e instanceof Error ? e.message : String(e);
@@ -208,6 +215,8 @@ export async function POST(req: NextRequest) {
               await consumeStream(retry.textStream);
               totalUsage.input_tokens += retry.usage.input_tokens;
               totalUsage.output_tokens += retry.usage.output_tokens;
+              totalUsage.cache_creation_input_tokens += retry.usage.cache_creation_input_tokens;
+              totalUsage.cache_read_input_tokens += retry.usage.cache_read_input_tokens;
               streamError = false;
             } catch {
               streamError = true;
@@ -282,6 +291,8 @@ export async function POST(req: NextRequest) {
           endpoint: 'analyze',
           inputTokens: totalUsage.input_tokens,
           outputTokens: totalUsage.output_tokens,
+          cacheCreationTokens: totalUsage.cache_creation_input_tokens,
+          cacheReadTokens: totalUsage.cache_read_input_tokens,
         });
 
         emit({ type: 'complete', versionId, result, originalResume: finalResume });

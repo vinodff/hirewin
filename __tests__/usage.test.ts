@@ -14,8 +14,9 @@ describe('canImprove', () => {
     expect(canImprove('pro', 20)).toBe(false);
   });
 
-  it('team: unlimited', () => {
-    expect(canImprove('team', 99999)).toBe(true);
+  it('team: metered, not unlimited', () => {
+    expect(canImprove('team', PLAN_LIMITS.team.improvements - 1)).toBe(true);
+    expect(canImprove('team', PLAN_LIMITS.team.improvements)).toBe(false);
   });
 });
 
@@ -30,8 +31,9 @@ describe('canDeepEvaluate', () => {
     expect(canDeepEvaluate('pro', 10)).toBe(false);
   });
 
-  it('team: unlimited', () => {
-    expect(canDeepEvaluate('team', 99999)).toBe(true);
+  it('team: metered, not unlimited', () => {
+    expect(canDeepEvaluate('team', PLAN_LIMITS.team.deepEvals - 1)).toBe(true);
+    expect(canDeepEvaluate('team', PLAN_LIMITS.team.deepEvals)).toBe(false);
   });
 });
 
@@ -44,19 +46,20 @@ describe('canScan', () => {
     expect(canScan('starter', 0)).toBe(false);
   });
 
-  it('pro: allows up to 30/month', () => {
+  // Scans are our costliest call — every plan is capped.
+  it('pro: allows up to 10/month', () => {
     expect(canScan('pro', 0)).toBe(true);
-    expect(canScan('pro', 29)).toBe(true);
-    expect(canScan('pro', 30)).toBe(false);
+    expect(canScan('pro', 9)).toBe(true);
+    expect(canScan('pro', 10)).toBe(false);
   });
 
-  it('power: allows up to 100/month', () => {
-    expect(canScan('power', 99)).toBe(true);
-    expect(canScan('power', 100)).toBe(false);
+  it('power: allows up to 25/month', () => {
+    expect(canScan('power', 24)).toBe(true);
+    expect(canScan('power', 25)).toBe(false);
   });
 
-  it('team: unlimited', () => {
-    expect(canScan('team', 99999)).toBe(true);
+  it('team: metered, not unlimited', () => {
+    expect(canScan('team', PLAN_LIMITS.team.scansPerMonth)).toBe(false);
   });
 });
 
@@ -70,6 +73,11 @@ describe('canDownload', () => {
     expect(canDownload('starter', 1)).toBe(false);
   });
 
+  it('pack3: 3 downloads', () => {
+    expect(canDownload('pack3', 2)).toBe(true);
+    expect(canDownload('pack3', 3)).toBe(false);
+  });
+
   it('pro: unlimited', () => {
     expect(canDownload('pro', 9999)).toBe(true);
   });
@@ -77,7 +85,7 @@ describe('canDownload', () => {
 
 describe('PLAN_LIMITS', () => {
   it('all plans are defined', () => {
-    const plans = ['free', 'starter', 'pro', 'power', 'team'] as const;
+    const plans = ['free', 'starter', 'pack3', 'pro', 'power', 'team'] as const;
     for (const plan of plans) {
       expect(PLAN_LIMITS[plan]).toBeDefined();
     }
