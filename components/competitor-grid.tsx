@@ -41,7 +41,7 @@ export default function CompetitorGrid() {
   }, []);
 
   return (
-    <section className="relative py-16 sm:py-28" style={{ background: 'rgba(124,58,237,0.025)', borderTop: '1px solid rgba(255,255,255,0.04)', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+    <section className="relative py-16 sm:py-28" style={{ background: 'rgba(var(--accent-rgb), 0.025)', borderTop: '1px solid rgba(255,255,255,0.04)', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
       <div className="max-w-5xl mx-auto px-4 sm:px-6">
 
         {/* Heading */}
@@ -67,11 +67,11 @@ export default function CompetitorGrid() {
 
           {/* Glow */}
           <div className="absolute -inset-4 rounded-3xl opacity-50 blur-3xl pointer-events-none"
-            style={{ background: 'radial-gradient(ellipse at center, rgba(124,58,237,0.25), transparent 70%)' }} />
+            style={{ background: 'radial-gradient(ellipse at center, rgba(var(--accent-rgb), 0.25), transparent 70%)' }} />
 
           <div className="relative rounded-3xl overflow-hidden"
             style={{
-              background: 'linear-gradient(160deg, #0e1530, #0a1020)',
+              background: 'linear-gradient(160deg, #0e1530, var(--surface-2))',
               border: '1px solid rgba(255,255,255,0.08)',
               boxShadow: '0 40px 80px -20px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.06)',
             }}>
@@ -81,7 +81,7 @@ export default function CompetitorGrid() {
               style={{ background: 'rgba(255,255,255,0.025)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
               <span className="text-[11px] sm:text-xs font-bold uppercase tracking-widest text-slate-500">Feature</span>
               <span className="text-[11px] sm:text-xs font-bold uppercase tracking-widest text-center w-16 sm:w-20"
-                style={{ color: '#c4b5fd' }}>HireWin</span>
+                style={{ color: 'var(--accent-soft)' }}>HireWin</span>
               <span className="text-[11px] sm:text-xs font-bold uppercase tracking-widest text-center w-16 sm:w-20 text-slate-500">Others</span>
             </div>
 
@@ -103,11 +103,11 @@ export default function CompetitorGrid() {
                   {row.hirewin ? (
                     <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center"
                       style={{
-                        background: 'linear-gradient(135deg, rgba(124,58,237,0.25), rgba(59,130,246,0.25))',
-                        border: '1px solid rgba(124,58,237,0.5)',
-                        boxShadow: '0 0 14px rgba(124,58,237,0.35)',
+                        background: 'linear-gradient(135deg, rgba(var(--accent-rgb), 0.25), rgba(var(--accent-rgb), 0.25))',
+                        border: '1px solid rgba(var(--accent-rgb), 0.5)',
+                        boxShadow: '0 0 14px rgba(var(--accent-rgb), 0.35)',
                       }}>
-                      <Check className="w-4 h-4 text-purple-300" strokeWidth={3} />
+                      <Check className="w-4 h-4 text-accent-300" strokeWidth={3} />
                     </div>
                   ) : (
                     <X className="w-5 h-5 text-slate-700" />

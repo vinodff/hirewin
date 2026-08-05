@@ -81,7 +81,7 @@ const inputStyle = {
   border: '1px solid rgba(255,255,255,0.1)',
   color: '#e2e8f0',
 };
-const cardStyle = { background: '#0f1629', border: '1px solid rgba(255,255,255,0.07)' };
+const cardStyle = { background: 'var(--surface)', border: '1px solid rgba(255,255,255,0.07)' };
 
 function buildResumeText(d: ResumeData): string {
   const lines: string[] = [];
@@ -217,7 +217,7 @@ export default function BuilderPage() {
   const currentStep = STEPS[step];
 
   return (
-    <div className="min-h-screen" style={{ background: '#080d1a' }}>
+    <div className="min-h-screen" style={{ background: 'var(--ground)' }}>
       <AppNav />
 
       <div className="max-w-6xl mx-auto px-4 py-6 sm:py-10">
@@ -245,7 +245,7 @@ export default function BuilderPage() {
                     className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold transition-all whitespace-nowrap"
                     style={
                       active
-                        ? { background: 'linear-gradient(135deg, #7c3aed, #3b82f6)', color: '#fff' }
+                        ? { background: 'var(--accent-fill)', color: 'var(--on-accent)' }
                         : done
                         ? { background: 'rgba(16,185,129,0.1)', color: '#6ee7b7', border: '1px solid rgba(16,185,129,0.25)' }
                         : { background: 'rgba(255,255,255,0.03)', color: '#94a3b8' }
@@ -266,7 +266,7 @@ export default function BuilderPage() {
             <div className="flex items-center gap-2 mb-5">
               <div
                 className="w-8 h-8 rounded-lg flex items-center justify-center"
-                style={{ background: 'rgba(124,58,237,0.15)', color: '#c4b5fd' }}
+                style={{ background: 'rgba(var(--accent-rgb), 0.15)', color: 'var(--accent-soft)' }}
               >
                 {currentStep.icon}
               </div>
@@ -285,7 +285,7 @@ export default function BuilderPage() {
                     value={data.name}
                     onChange={(e) => update('name', e.target.value)}
                     placeholder="Jane Doe"
-                    className="w-full px-3 py-2.5 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-purple-500/50 placeholder-slate-600"
+                    className="w-full px-3 py-2.5 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-accent-500/50 placeholder-slate-600"
                     style={inputStyle}
                   />
                 </Field>
@@ -294,7 +294,7 @@ export default function BuilderPage() {
                     value={data.title}
                     onChange={(e) => update('title', e.target.value)}
                     placeholder="Senior Software Engineer"
-                    className="w-full px-3 py-2.5 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-purple-500/50 placeholder-slate-600"
+                    className="w-full px-3 py-2.5 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-accent-500/50 placeholder-slate-600"
                     style={inputStyle}
                   />
                 </Field>
@@ -305,7 +305,7 @@ export default function BuilderPage() {
                       value={data.email}
                       onChange={(e) => update('email', e.target.value)}
                       placeholder="jane@example.com"
-                      className="w-full px-3 py-2.5 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-purple-500/50 placeholder-slate-600"
+                      className="w-full px-3 py-2.5 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-accent-500/50 placeholder-slate-600"
                       style={inputStyle}
                     />
                   </Field>
@@ -314,7 +314,7 @@ export default function BuilderPage() {
                       value={data.phone}
                       onChange={(e) => update('phone', e.target.value)}
                       placeholder="+1 (555) 123-4567"
-                      className="w-full px-3 py-2.5 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-purple-500/50 placeholder-slate-600"
+                      className="w-full px-3 py-2.5 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-accent-500/50 placeholder-slate-600"
                       style={inputStyle}
                     />
                   </Field>
@@ -324,7 +324,7 @@ export default function BuilderPage() {
                     value={data.location}
                     onChange={(e) => update('location', e.target.value)}
                     placeholder="San Francisco, CA"
-                    className="w-full px-3 py-2.5 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-purple-500/50 placeholder-slate-600"
+                    className="w-full px-3 py-2.5 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-accent-500/50 placeholder-slate-600"
                     style={inputStyle}
                   />
                 </Field>
@@ -334,7 +334,7 @@ export default function BuilderPage() {
                       value={data.linkedin}
                       onChange={(e) => update('linkedin', e.target.value)}
                       placeholder="linkedin.com/in/jane"
-                      className="w-full px-3 py-2.5 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-purple-500/50 placeholder-slate-600"
+                      className="w-full px-3 py-2.5 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-accent-500/50 placeholder-slate-600"
                       style={inputStyle}
                     />
                   </Field>
@@ -343,7 +343,7 @@ export default function BuilderPage() {
                       value={data.github}
                       onChange={(e) => update('github', e.target.value)}
                       placeholder="github.com/jane"
-                      className="w-full px-3 py-2.5 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-purple-500/50 placeholder-slate-600"
+                      className="w-full px-3 py-2.5 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-accent-500/50 placeholder-slate-600"
                       style={inputStyle}
                     />
                   </Field>
@@ -352,7 +352,7 @@ export default function BuilderPage() {
                       value={data.website}
                       onChange={(e) => update('website', e.target.value)}
                       placeholder="janedoe.com"
-                      className="w-full px-3 py-2.5 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-purple-500/50 placeholder-slate-600"
+                      className="w-full px-3 py-2.5 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-accent-500/50 placeholder-slate-600"
                       style={inputStyle}
                     />
                   </Field>
@@ -369,7 +369,7 @@ export default function BuilderPage() {
                   value={data.summary}
                   onChange={(e) => update('summary', e.target.value)}
                   placeholder="Software engineer with 5+ years building scalable web platforms. Led the redesign of a checkout flow that lifted conversion by 18%. Strong in React, TypeScript, and distributed systems."
-                  className="w-full h-40 rounded-lg p-3 text-sm resize-none focus:outline-none focus:ring-1 focus:ring-purple-500/50 placeholder-slate-600"
+                  className="w-full h-40 rounded-lg p-3 text-sm resize-none focus:outline-none focus:ring-1 focus:ring-accent-500/50 placeholder-slate-600"
                   style={inputStyle}
                 />
               </Field>
@@ -389,7 +389,7 @@ export default function BuilderPage() {
                           value={exp.role}
                           onChange={(e) => updateExperience(exp.id, { role: e.target.value })}
                           placeholder="Senior Software Engineer"
-                          className="w-full px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-purple-500/50 placeholder-slate-600"
+                          className="w-full px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-accent-500/50 placeholder-slate-600"
                           style={inputStyle}
                         />
                       </Field>
@@ -398,7 +398,7 @@ export default function BuilderPage() {
                           value={exp.company}
                           onChange={(e) => updateExperience(exp.id, { company: e.target.value })}
                           placeholder="Acme Corp"
-                          className="w-full px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-purple-500/50 placeholder-slate-600"
+                          className="w-full px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-accent-500/50 placeholder-slate-600"
                           style={inputStyle}
                         />
                       </Field>
@@ -408,7 +408,7 @@ export default function BuilderPage() {
                         value={exp.period}
                         onChange={(e) => updateExperience(exp.id, { period: e.target.value })}
                         placeholder="Jan 2022 – Present"
-                        className="w-full px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-purple-500/50 placeholder-slate-600"
+                        className="w-full px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-accent-500/50 placeholder-slate-600"
                         style={inputStyle}
                       />
                     </Field>
@@ -417,7 +417,7 @@ export default function BuilderPage() {
                         value={exp.bullets}
                         onChange={(e) => updateExperience(exp.id, { bullets: e.target.value })}
                         placeholder="• Led migration to TypeScript across 40+ services\n• Mentored 4 junior engineers\n• Cut p95 latency by 35%"
-                        className="w-full h-28 rounded-lg p-3 text-sm resize-none focus:outline-none focus:ring-1 focus:ring-purple-500/50 placeholder-slate-600"
+                        className="w-full h-28 rounded-lg p-3 text-sm resize-none focus:outline-none focus:ring-1 focus:ring-accent-500/50 placeholder-slate-600"
                         style={inputStyle}
                       />
                     </Field>
@@ -440,7 +440,7 @@ export default function BuilderPage() {
                         value={ed.degree}
                         onChange={(e) => updateEducation(ed.id, { degree: e.target.value })}
                         placeholder="B.S. Computer Science"
-                        className="w-full px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-purple-500/50 placeholder-slate-600"
+                        className="w-full px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-accent-500/50 placeholder-slate-600"
                         style={inputStyle}
                       />
                     </Field>
@@ -450,7 +450,7 @@ export default function BuilderPage() {
                           value={ed.school}
                           onChange={(e) => updateEducation(ed.id, { school: e.target.value })}
                           placeholder="Stanford University"
-                          className="w-full px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-purple-500/50 placeholder-slate-600"
+                          className="w-full px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-accent-500/50 placeholder-slate-600"
                           style={inputStyle}
                         />
                       </Field>
@@ -459,7 +459,7 @@ export default function BuilderPage() {
                           value={ed.period}
                           onChange={(e) => updateEducation(ed.id, { period: e.target.value })}
                           placeholder="2018 – 2022"
-                          className="w-full px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-purple-500/50 placeholder-slate-600"
+                          className="w-full px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-accent-500/50 placeholder-slate-600"
                           style={inputStyle}
                         />
                       </Field>
@@ -469,7 +469,7 @@ export default function BuilderPage() {
                         value={ed.details}
                         onChange={(e) => updateEducation(ed.id, { details: e.target.value })}
                         placeholder="GPA: 3.8/4.0 · Dean's List · Coursework: Algorithms, ML"
-                        className="w-full h-20 rounded-lg p-3 text-sm resize-none focus:outline-none focus:ring-1 focus:ring-purple-500/50 placeholder-slate-600"
+                        className="w-full h-20 rounded-lg p-3 text-sm resize-none focus:outline-none focus:ring-1 focus:ring-accent-500/50 placeholder-slate-600"
                         style={inputStyle}
                       />
                     </Field>
@@ -490,7 +490,7 @@ export default function BuilderPage() {
                   placeholder={
                     'Languages: Python, JavaScript, SQL\nFrameworks: React, Node.js, FastAPI\nTools: Git, Docker, AWS, PostgreSQL'
                   }
-                  className="w-full h-40 rounded-lg p-3 text-sm resize-none focus:outline-none focus:ring-1 focus:ring-purple-500/50 placeholder-slate-600"
+                  className="w-full h-40 rounded-lg p-3 text-sm resize-none focus:outline-none focus:ring-1 focus:ring-accent-500/50 placeholder-slate-600"
                   style={inputStyle}
                 />
               </Field>
@@ -510,7 +510,7 @@ export default function BuilderPage() {
                           value={p.name}
                           onChange={(e) => updateProject(p.id, { name: e.target.value })}
                           placeholder="My Cool App"
-                          className="w-full px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-purple-500/50 placeholder-slate-600"
+                          className="w-full px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-accent-500/50 placeholder-slate-600"
                           style={inputStyle}
                         />
                       </Field>
@@ -519,7 +519,7 @@ export default function BuilderPage() {
                           value={p.tech}
                           onChange={(e) => updateProject(p.id, { tech: e.target.value })}
                           placeholder="Next.js, Postgres, Vercel"
-                          className="w-full px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-purple-500/50 placeholder-slate-600"
+                          className="w-full px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-accent-500/50 placeholder-slate-600"
                           style={inputStyle}
                         />
                       </Field>
@@ -529,7 +529,7 @@ export default function BuilderPage() {
                         value={p.bullets}
                         onChange={(e) => updateProject(p.id, { bullets: e.target.value })}
                         placeholder="• What you built and the impact\n• Link: github.com/your-repo"
-                        className="w-full h-24 rounded-lg p-3 text-sm resize-none focus:outline-none focus:ring-1 focus:ring-purple-500/50 placeholder-slate-600"
+                        className="w-full h-24 rounded-lg p-3 text-sm resize-none focus:outline-none focus:ring-1 focus:ring-accent-500/50 placeholder-slate-600"
                         style={inputStyle}
                       />
                     </Field>
@@ -546,7 +546,7 @@ export default function BuilderPage() {
                     value={data.certifications}
                     onChange={(e) => update('certifications', e.target.value)}
                     placeholder="• AWS Certified Solutions Architect — Amazon, 2024"
-                    className="w-full h-20 rounded-lg p-3 text-sm resize-none focus:outline-none focus:ring-1 focus:ring-purple-500/50 placeholder-slate-600"
+                    className="w-full h-20 rounded-lg p-3 text-sm resize-none focus:outline-none focus:ring-1 focus:ring-accent-500/50 placeholder-slate-600"
                     style={inputStyle}
                   />
                 </Field>
@@ -555,7 +555,7 @@ export default function BuilderPage() {
                     value={data.awards}
                     onChange={(e) => update('awards', e.target.value)}
                     placeholder="• Award name — Org, Year"
-                    className="w-full h-20 rounded-lg p-3 text-sm resize-none focus:outline-none focus:ring-1 focus:ring-purple-500/50 placeholder-slate-600"
+                    className="w-full h-20 rounded-lg p-3 text-sm resize-none focus:outline-none focus:ring-1 focus:ring-accent-500/50 placeholder-slate-600"
                     style={inputStyle}
                   />
                 </Field>
@@ -564,7 +564,7 @@ export default function BuilderPage() {
                     value={data.languages}
                     onChange={(e) => update('languages', e.target.value)}
                     placeholder="English (Native) · Hindi (Fluent) · Spanish (Conversational)"
-                    className="w-full px-3 py-2.5 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-purple-500/50 placeholder-slate-600"
+                    className="w-full px-3 py-2.5 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-accent-500/50 placeholder-slate-600"
                     style={inputStyle}
                   />
                 </Field>
@@ -573,7 +573,7 @@ export default function BuilderPage() {
                     value={data.interests}
                     onChange={(e) => update('interests', e.target.value)}
                     placeholder="Photography · Long-distance running · Open-source"
-                    className="w-full px-3 py-2.5 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-purple-500/50 placeholder-slate-600"
+                    className="w-full px-3 py-2.5 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-accent-500/50 placeholder-slate-600"
                     style={inputStyle}
                   />
                 </Field>
@@ -597,8 +597,8 @@ export default function BuilderPage() {
 
                 <button
                   onClick={handleAnalyze}
-                  className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl text-white font-bold text-base transition-all hover:opacity-90 active:scale-[0.99]"
-                  style={{ background: 'linear-gradient(135deg, #7c3aed, #3b82f6)' }}
+                  className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl text-[var(--on-accent)] font-bold text-base transition-all hover:opacity-90 active:scale-[0.99] btn-accent"
+                  style={{ background: 'var(--accent-fill)' }}
                 >
                   <Sparkles className="w-4 h-4" />
                   Optimize for a Job →
@@ -624,8 +624,8 @@ export default function BuilderPage() {
               {step < STEPS.length - 1 && (
                 <button
                   onClick={next}
-                  className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold text-white transition-all hover:opacity-90"
-                  style={{ background: 'linear-gradient(135deg, #7c3aed, #3b82f6)' }}
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold text-[var(--on-accent)] transition-all hover:opacity-90 btn-accent"
+                  style={{ background: 'var(--accent-fill)' }}
                 >
                   Next
                   <ArrowRight className="w-4 h-4" />
@@ -646,9 +646,9 @@ export default function BuilderPage() {
                   <span
                     className="text-xs font-medium px-2 py-0.5 rounded-md"
                     style={{
-                      background: 'rgba(124,58,237,0.12)',
-                      color: '#c4b5fd',
-                      border: '1px solid rgba(124,58,237,0.25)',
+                      background: 'rgba(var(--accent-rgb), 0.12)',
+                      color: 'var(--accent-soft)',
+                      border: '1px solid rgba(var(--accent-rgb), 0.25)',
                     }}
                   >
                     {template.charAt(0).toUpperCase() + template.slice(1)}
@@ -702,7 +702,7 @@ function RepeatableCard({
       style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.06)' }}
     >
       <div className="flex items-center justify-between">
-        <span className="text-xs font-bold uppercase tracking-wider text-purple-300">{title}</span>
+        <span className="text-xs font-bold uppercase tracking-wider text-accent-300">{title}</span>
         <button
           onClick={onRemove}
           className="p-1.5 rounded-md text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-all"
@@ -720,7 +720,7 @@ function AddButton({ label, onClick }: { label: string; onClick: () => void }) {
   return (
     <button
       onClick={onClick}
-      className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-medium text-slate-500 hover:text-purple-400 transition-all border border-dashed border-white/10 hover:border-purple-500/30"
+      className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-medium text-slate-500 hover:text-accent-400 transition-all border border-dashed border-white/10 hover:border-accent-500/30"
     >
       <Plus className="w-4 h-4" />
       {label}

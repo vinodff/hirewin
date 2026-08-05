@@ -12,7 +12,7 @@ export default async function AdminPage() {
   }
 
   return (
-    <div className="min-h-screen" style={{ background: '#080d1a' }}>
+    <div className="min-h-screen" style={{ background: 'var(--ground)' }}>
       <nav
         className="sticky top-0 z-40 border-b border-white/[0.06] backdrop-blur-xl"
         style={{ background: 'rgba(8,13,26,0.85)' }}

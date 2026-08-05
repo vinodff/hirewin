@@ -86,8 +86,8 @@ export default function ResumeViewerModal({ v, onClose }: { v: ViewableResume; o
             </h2>
             <div className="flex items-center gap-3 mt-1 flex-wrap">
               {v.created_at && <span className="text-xs text-slate-500">{fmtDate(v.created_at)}</span>}
-              {typeof (v.optimized_ats_score ?? v.ats_score) === 'number' && <span className="text-xs text-purple-400 font-semibold">ATS {v.optimized_ats_score ?? v.ats_score}</span>}
-              {typeof v.job_fit_score === 'number' && <span className="text-xs text-blue-400 font-semibold">Fit {v.job_fit_score}</span>}
+              {typeof (v.optimized_ats_score ?? v.ats_score) === 'number' && <span className="text-xs text-accent-400 font-semibold">ATS {v.optimized_ats_score ?? v.ats_score}</span>}
+              {typeof v.job_fit_score === 'number' && <span className="text-xs text-accent-400 font-semibold">Fit {v.job_fit_score}</span>}
             </div>
           </div>
           <button type="button" onClick={onClose} aria-label="Close"
@@ -132,12 +132,12 @@ export default function ResumeViewerModal({ v, onClose }: { v: ViewableResume; o
             <button type="button" onClick={copy}
               className="flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded-xl text-slate-200 transition-all hover:text-white hover:bg-white/10"
               style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.09)' }}>
-              {copied ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
+              {copied ? <Check className="w-4 h-4 text-[var(--signal)]" /> : <Copy className="w-4 h-4" />}
               {copied ? 'Copied!' : 'Copy text'}
             </button>
             <button type="button" onClick={() => download('docx')} disabled={!!dlBusy || !v.optimized_resume}
               className="flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded-xl text-white transition-all hover:opacity-90 disabled:opacity-50"
-              style={{ background: 'linear-gradient(135deg,#7c3aed,#3b82f6)' }}>
+              style={{ background: 'var(--accent-fill)' }}>
               {dlBusy === 'docx' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
               DOCX
             </button>

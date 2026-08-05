@@ -338,7 +338,7 @@ export default function ResumeEditor({ initialText, onSave, onReoptimize }: Prop
     setDragId(null);
   };
 
-  const cardStyle = { background: '#0f1629', border: '1px solid rgba(255,255,255,0.07)' };
+  const cardStyle = { background: 'var(--surface)', border: '1px solid rgba(255,255,255,0.07)' };
   const inputStyle = {
     background: 'rgba(255,255,255,0.04)',
     border: '1px solid rgba(255,255,255,0.1)',
@@ -350,7 +350,7 @@ export default function ResumeEditor({ initialText, onSave, onReoptimize }: Prop
       {/* Toolbar */}
       <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
         <div className="flex items-center gap-2">
-          <Pencil className="w-4 h-4 text-purple-400" />
+          <Pencil className="w-4 h-4 text-accent-400" />
           <h3 className="font-semibold text-white">Resume Editor</h3>
           <span className="text-xs text-slate-500 ml-2">Click any section to edit</span>
         </div>
@@ -385,8 +385,8 @@ export default function ResumeEditor({ initialText, onSave, onReoptimize }: Prop
 
           <button
             onClick={handleSave}
-            className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-semibold text-white transition-all hover:opacity-90"
-            style={{ background: 'linear-gradient(135deg, #7c3aed, #3b82f6)' }}
+            className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-semibold text-[var(--on-accent)] transition-all hover:opacity-90 btn-accent"
+            style={{ background: 'var(--accent-fill)' }}
           >
             {saved ? <Check className="w-3.5 h-3.5" /> : <Save className="w-3.5 h-3.5" />}
             {saved ? 'Saved!' : 'Save changes'}
@@ -411,9 +411,9 @@ export default function ResumeEditor({ initialText, onSave, onReoptimize }: Prop
               } ${isEditing ? '' : 'hover:bg-white/[0.03] cursor-pointer'}`}
               style={{
                 border: isEditing
-                  ? '1px solid rgba(124,58,237,0.4)'
+                  ? '1px solid rgba(var(--accent-rgb), 0.4)'
                   : '1px solid transparent',
-                background: isEditing ? 'rgba(124,58,237,0.06)' : undefined,
+                background: isEditing ? 'rgba(var(--accent-rgb), 0.06)' : undefined,
               }}
             >
               {/* Section controls (visible on hover) */}
@@ -449,7 +449,7 @@ export default function ResumeEditor({ initialText, onSave, onReoptimize }: Prop
                         const title = titleIdx >= 0 ? sections[idx - 1 - titleIdx]?.text || 'Section' : 'Section';
                         onReoptimize(section.text, title);
                       }}
-                      className="p-1.5 rounded-md text-purple-400 hover:bg-purple-500/10 transition-all"
+                      className="p-1.5 rounded-md text-accent-400 hover:bg-accent-500/10 transition-all"
                       title="Re-optimize with AI"
                     >
                       <Sparkles className="w-3.5 h-3.5" />
@@ -488,7 +488,7 @@ export default function ResumeEditor({ initialText, onSave, onReoptimize }: Prop
                     ref={textareaRef}
                     value={editText}
                     onChange={(e) => setEditText(e.target.value)}
-                    className="w-full rounded-lg p-3 text-sm resize-none focus:outline-none focus:ring-1 focus:ring-purple-500/50 placeholder-slate-600"
+                    className="w-full rounded-lg p-3 text-sm resize-none focus:outline-none focus:ring-1 focus:ring-accent-500/50 placeholder-slate-600"
                     style={{
                       ...inputStyle,
                       minHeight: '80px',
@@ -514,8 +514,8 @@ export default function ResumeEditor({ initialText, onSave, onReoptimize }: Prop
                       </button>
                       <button
                         onClick={saveEdit}
-                        className="px-3 py-1 text-xs rounded-md text-white font-medium transition-all"
-                        style={{ background: 'linear-gradient(135deg, #7c3aed, #3b82f6)' }}
+                        className="px-3 py-1 text-xs rounded-md text-[var(--on-accent)] font-medium transition-all btn-accent"
+                        style={{ background: 'var(--accent-fill)' }}
                       >
                         Apply
                       </button>
@@ -544,8 +544,8 @@ export default function ResumeEditor({ initialText, onSave, onReoptimize }: Prop
                               }}
                               className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium text-slate-400 hover:text-white transition-all"
                               style={{
-                                background: 'rgba(124,58,237,0.06)',
-                                border: '1px solid rgba(124,58,237,0.18)',
+                                background: 'rgba(var(--accent-rgb), 0.06)',
+                                border: '1px solid rgba(var(--accent-rgb), 0.18)',
                               }}
                               title={`Add ${field.label}`}
                             >
@@ -559,8 +559,8 @@ export default function ResumeEditor({ initialText, onSave, onReoptimize }: Prop
                   )}
                   {section.type === 'section-title' && (
                     <div className="flex items-center gap-2">
-                      <Type className="w-3.5 h-3.5 text-purple-400 shrink-0" />
-                      <div className="text-sm font-bold text-purple-300 uppercase tracking-wider">
+                      <Type className="w-3.5 h-3.5 text-accent-400 shrink-0" />
+                      <div className="text-sm font-bold text-accent-300 uppercase tracking-wider">
                         {section.text}
                       </div>
                       <div className="flex-1 h-px bg-white/10 ml-2" />
@@ -590,7 +590,7 @@ export default function ResumeEditor({ initialText, onSave, onReoptimize }: Prop
           >
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
-                <Plus className="w-4 h-4 text-purple-400" />
+                <Plus className="w-4 h-4 text-accent-400" />
                 <span className="text-sm font-semibold text-white">
                   {insertAfterId ? 'Insert section here' : 'Add a new section'}
                 </span>
@@ -618,7 +618,7 @@ export default function ResumeEditor({ initialText, onSave, onReoptimize }: Prop
                   className="px-3 py-1.5 text-xs font-medium transition-all"
                   style={
                     activeAddTab === tab.key
-                      ? { background: 'linear-gradient(135deg, #7c3aed, #3b82f6)', color: '#fff' }
+                      ? { background: 'var(--accent-fill)', color: 'var(--on-accent)' }
                       : { color: '#94a3b8' }
                   }
                 >
@@ -641,7 +641,7 @@ export default function ResumeEditor({ initialText, onSave, onReoptimize }: Prop
                   >
                     <div
                       className="shrink-0 w-7 h-7 rounded-md flex items-center justify-center"
-                      style={{ background: 'rgba(124,58,237,0.12)', color: '#c4b5fd' }}
+                      style={{ background: 'rgba(var(--accent-rgb), 0.12)', color: 'var(--accent-soft)' }}
                     >
                       {preset.icon}
                     </div>
@@ -662,7 +662,7 @@ export default function ResumeEditor({ initialText, onSave, onReoptimize }: Prop
                   value={newSectionTitle}
                   onChange={(e) => setNewSectionTitle(e.target.value)}
                   placeholder="Section name (e.g., COURSEWORK, PATENTS)"
-                  className="flex-1 px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-purple-500/50 placeholder-slate-600"
+                  className="flex-1 px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-accent-500/50 placeholder-slate-600"
                   style={inputStyle}
                   autoFocus
                   onKeyDown={(e) => {
@@ -673,7 +673,7 @@ export default function ResumeEditor({ initialText, onSave, onReoptimize }: Prop
                 <button
                   onClick={() => addSection()}
                   className="px-4 py-2 rounded-lg text-xs font-semibold text-white transition-all"
-                  style={{ background: 'linear-gradient(135deg, #7c3aed, #3b82f6)' }}
+                  style={{ background: 'var(--accent-fill)' }}
                 >
                   Add
                 </button>
@@ -683,7 +683,7 @@ export default function ResumeEditor({ initialText, onSave, onReoptimize }: Prop
         ) : (
           <button
             onClick={() => { setInsertAfterId(null); setAddSectionOpen(true); setActiveAddTab('preset'); }}
-            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-medium text-slate-500 hover:text-purple-400 transition-all border border-dashed border-white/10 hover:border-purple-500/30"
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-medium text-slate-500 hover:text-accent-400 transition-all border border-dashed border-white/10 hover:border-accent-500/30"
           >
             <Plus className="w-4 h-4" />
             Add new section

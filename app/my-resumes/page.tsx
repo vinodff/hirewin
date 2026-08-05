@@ -44,8 +44,8 @@ function CircleProgress({ pct }: { pct: number }) {
       />
       <defs>
         <linearGradient id="pg" x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0%" stopColor="#7c3aed" />
-          <stop offset="100%" stopColor="#3b82f6" />
+          <stop offset="0%" stopColor="var(--accent)" />
+          <stop offset="100%" stopColor="var(--accent)" />
         </linearGradient>
       </defs>
       <text x="22" y="26" textAnchor="middle" fontSize="9" fontWeight="700" fill="#e2e8f0">
@@ -175,8 +175,8 @@ export default function MyResumesPage() {
             <button
               onClick={handleNew}
               disabled={!canAdd}
-              className="flex items-center gap-2 text-sm font-bold px-5 py-2.5 rounded-xl text-white transition-all hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
-              style={{ background: 'linear-gradient(135deg, #7c3aed, #3b82f6)' }}
+              className="flex items-center gap-2 text-sm font-bold px-5 py-2.5 rounded-xl text-[var(--on-accent)] transition-all hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed btn-accent"
+              style={{ background: 'var(--accent-fill)' }}
             >
               <Plus className="w-4 h-4" />
               New Resume
@@ -184,8 +184,8 @@ export default function MyResumesPage() {
           ) : (
             <Link
               href="/analyze"
-              className="flex items-center gap-2 text-sm font-bold px-5 py-2.5 rounded-xl text-white transition-all hover:opacity-90"
-              style={{ background: 'linear-gradient(135deg, #7c3aed, #3b82f6)' }}
+              className="flex items-center gap-2 text-sm font-bold px-5 py-2.5 rounded-xl text-[var(--on-accent)] transition-all hover:opacity-90 btn-accent"
+              style={{ background: 'var(--accent-fill)' }}
             >
               <Sparkles className="w-4 h-4" />
               Optimize New
@@ -204,7 +204,7 @@ export default function MyResumesPage() {
               onClick={() => selectTab(key)}
               className="flex items-center gap-2 text-sm font-semibold px-4 py-2.5 rounded-xl transition-all"
               style={tab === key
-                ? { background: 'rgba(124,58,237,0.15)', color: '#c4b5fd', border: '1px solid rgba(124,58,237,0.35)' }
+                ? { background: 'rgba(var(--accent-rgb), 0.15)', color: 'var(--accent-soft)', border: '1px solid rgba(var(--accent-rgb), 0.35)' }
                 : { background: 'rgba(255,255,255,0.04)', color: '#64748b', border: '1px solid rgba(255,255,255,0.07)' }}
             >
               <Icon className="w-4 h-4" />
@@ -239,7 +239,7 @@ export default function MyResumesPage() {
                   return (
                     <div
                       key={r.id}
-                      className="rounded-2xl p-5 flex flex-col gap-3 cursor-pointer group transition-all hover:-translate-y-0.5"
+                      className="rounded-2xl p-5 flex flex-col gap-3 cursor-pointer group transition-all hover:-translate-y-0.5 card-lift"
                       style={{
                         background: 'rgba(255,255,255,0.04)',
                         border: '1px solid rgba(255,255,255,0.07)',
@@ -262,7 +262,7 @@ export default function MyResumesPage() {
                         <button
                           onClick={() => router.push(`/my-resumes/${r.id}`)}
                           className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-bold text-white transition-all hover:opacity-90"
-                          style={{ background: 'linear-gradient(135deg, #7c3aed, #3b82f6)' }}
+                          style={{ background: 'var(--accent-fill)' }}
                         >
                           <Pencil className="w-3.5 h-3.5" />
                           Edit
@@ -283,14 +283,14 @@ export default function MyResumesPage() {
                 {canAdd && (
                   <button
                     onClick={handleNew}
-                    className="rounded-2xl min-h-[180px] flex flex-col items-center justify-center gap-2 transition-all group"
+                    className="rounded-2xl min-h-[180px] flex flex-col items-center justify-center gap-2 transition-all group card-lift"
                     style={{ background: 'transparent', border: '1.5px dashed rgba(255,255,255,0.12)' }}
                   >
                     <div
                       className="w-10 h-10 rounded-full flex items-center justify-center transition-all group-hover:scale-110"
-                      style={{ background: 'rgba(124,58,237,0.1)', border: '1px solid rgba(124,58,237,0.2)' }}
+                      style={{ background: 'rgba(var(--accent-rgb), 0.1)', border: '1px solid rgba(var(--accent-rgb), 0.2)' }}
                     >
-                      <Plus className="w-5 h-5 text-purple-400" />
+                      <Plus className="w-5 h-5 text-accent-400" />
                     </div>
                     <span className="text-sm font-medium" style={{ color: 'rgba(255,255,255,0.3)' }}>
                       New Resume
@@ -325,16 +325,16 @@ export default function MyResumesPage() {
               <div className="rounded-2xl p-12 text-center"
                 style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
                 <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-5"
-                  style={{ background: 'rgba(124,58,237,0.1)', border: '1px solid rgba(124,58,237,0.2)' }}>
-                  <Sparkles className="w-6 h-6 text-purple-400" />
+                  style={{ background: 'rgba(var(--accent-rgb), 0.1)', border: '1px solid rgba(var(--accent-rgb), 0.2)' }}>
+                  <Sparkles className="w-6 h-6 text-accent-400" />
                 </div>
                 <h2 className="font-bold text-white text-lg mb-2">No optimized resumes yet</h2>
                 <p className="text-sm text-slate-500 mb-6 max-w-xs mx-auto">
                   Run the AI optimizer on your resume against a job description — the results will be saved here.
                 </p>
                 <Link href="/analyze"
-                  className="inline-flex items-center gap-2 text-white px-6 py-3 rounded-xl text-sm font-semibold hover:opacity-90 transition-all active:scale-95"
-                  style={{ background: 'linear-gradient(135deg,#7c3aed,#3b82f6)' }}>
+                  className="inline-flex items-center gap-2 text-[var(--on-accent)] px-6 py-3 rounded-xl text-sm font-semibold hover:opacity-90 transition-all active:scale-95 btn-accent"
+                  style={{ background: 'var(--accent-fill)' }}>
                   <Sparkles className="w-4 h-4" />Optimize My Resume
                 </Link>
               </div>
@@ -366,7 +366,7 @@ export default function MyResumesPage() {
                     <button
                       onClick={(e) => { e.stopPropagation(); setViewing(v); }}
                       className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-sm font-bold text-white transition-all hover:opacity-90 mt-auto"
-                      style={{ background: 'linear-gradient(135deg, #7c3aed, #3b82f6)' }}
+                      style={{ background: 'var(--accent-fill)' }}
                     >
                       <FileText className="w-3.5 h-3.5" />
                       View &amp; Download

@@ -799,7 +799,7 @@ export default function VoiceInterview({ resumeText, role, company, jdText, vers
       <Icon className={danger ? 'w-6 h-6' : 'w-5 h-5'} />
       {!danger && <span className="text-[9px] font-medium">{label}</span>}
       {badge && (
-        <span className="absolute -top-1 -right-1 bg-purple-500 text-white text-[8px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
+        <span className="absolute -top-1 -right-1 bg-accent-500 text-white text-[8px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
           {badge}
         </span>
       )}
@@ -932,7 +932,7 @@ export default function VoiceInterview({ resumeText, role, company, jdText, vers
                     {/* Animated connecting dots */}
                     <div className="flex items-center gap-2">
                       {[0,1,2].map(i => (
-                        <div key={i} className="w-2.5 h-2.5 rounded-full bg-green-500"
+                        <div key={i} className="w-2.5 h-2.5 rounded-full bg-[var(--signal)]"
                           style={{ animation: `voice-wave 0.8s ease-in-out infinite alternate`, animationDelay: `${i*0.25}s` }} />
                       ))}
                     </div>
@@ -949,8 +949,8 @@ export default function VoiceInterview({ resumeText, role, company, jdText, vers
                         { step: 3, label: 'Ready' },
                       ].map(({ step, label }) => (
                         <div key={step} className="flex-1 flex flex-col items-center gap-1">
-                          <div className={`w-full h-1 rounded-full transition-all duration-500 ${joinStep >= step ? 'bg-green-500' : 'bg-white/10'}`} />
-                          <span className={`text-[9px] font-medium ${joinStep >= step ? 'text-green-400' : 'text-slate-600'}`}>{label}</span>
+                          <div className={`w-full h-1 rounded-full transition-all duration-500 ${joinStep >= step ? 'bg-[var(--signal)]' : 'bg-white/10'}`} />
+                          <span className={`text-[9px] font-medium ${joinStep >= step ? 'text-[var(--signal)]' : 'text-slate-600'}`}>{label}</span>
                         </div>
                       ))}
                     </div>
@@ -985,7 +985,7 @@ export default function VoiceInterview({ resumeText, role, company, jdText, vers
                   <div className="flex gap-0.5">
                     {Array.from({ length: Math.max(qNum, 1) }).map((_, i) => (
                       <div key={i} className="h-1 w-2.5 rounded-full"
-                        style={{ background: i < qNum ? '#7c3aed' : 'rgba(255,255,255,0.1)' }} />
+                        style={{ background: i < qNum ? 'var(--accent)' : 'rgba(255,255,255,0.1)' }} />
                     ))}
                   </div>
                 </div>
@@ -1012,7 +1012,7 @@ export default function VoiceInterview({ resumeText, role, company, jdText, vers
               style={{
                 background: '#0d1624',
                 boxShadow: phase === 'speaking' && !muted
-                  ? '0 0 0 2px #22c55e, 0 0 24px rgba(34,197,94,0.25)'
+                  ? '0 0 0 2px #22c55e, 0 0 24px rgba(var(--signal-rgb), 0.25)'
                   : '0 0 0 1px rgba(255,255,255,0.08)',
                 transition: 'box-shadow 0.3s ease',
               }}>
@@ -1033,8 +1033,8 @@ export default function VoiceInterview({ resumeText, role, company, jdText, vers
                 </div>
                 {phase === 'processing' && (
                   <div className="bg-black/70 backdrop-blur-sm px-2 py-1 rounded-lg flex items-center gap-1">
-                    <Loader2 className="w-3 h-3 animate-spin text-blue-400" />
-                    <span className="text-blue-300 text-[10px]">thinking…</span>
+                    <Loader2 className="w-3 h-3 animate-spin text-accent-400" />
+                    <span className="text-accent-300 text-[10px]">thinking…</span>
                   </div>
                 )}
               </div>
@@ -1081,7 +1081,7 @@ export default function VoiceInterview({ resumeText, role, company, jdText, vers
               style={{ background: 'rgba(0,0,0,0.45)', borderTop: '1px solid rgba(255,255,255,0.05)', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
               {/* "Alex asked:" label */}
               {(phase === 'your-turn' || phase === 'listening') && (
-                <p className="text-[10px] font-bold uppercase tracking-widest text-purple-400/80 mb-1">Alex asked</p>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-accent-400/80 mb-1">Alex asked</p>
               )}
               <p className="text-sm sm:text-base leading-relaxed max-w-xl mx-auto">
                 {question.split(/\s+/).filter(w => w).map((word, i) => (
@@ -1102,7 +1102,7 @@ export default function VoiceInterview({ resumeText, role, company, jdText, vers
           {/* Completing state */}
           {phase === 'completing' && (
             <div className="flex items-center justify-center gap-3 py-6">
-              <Loader2 className="w-5 h-5 animate-spin text-purple-400" />
+              <Loader2 className="w-5 h-5 animate-spin text-accent-400" />
               <span className="text-slate-300 text-sm">Sarah is reviewing your performance…</span>
             </div>
           )}
@@ -1130,8 +1130,8 @@ export default function VoiceInterview({ resumeText, role, company, jdText, vers
                   {/* Real-time audio meter + transcript box */}
                   <div className="rounded-xl p-3 transition-all duration-200"
                     style={{
-                      background: 'rgba(124,58,237,0.10)',
-                      border: '1px solid rgba(124,58,237,0.45)',
+                      background: 'rgba(var(--accent-rgb), 0.10)',
+                      border: '1px solid rgba(var(--accent-rgb), 0.45)',
                       minHeight: '7rem',
                     }}>
                     {/* Mic status row */}
@@ -1176,11 +1176,11 @@ export default function VoiceInterview({ resumeText, role, company, jdText, vers
                     {transcript ? (
                       <p className="text-base text-white leading-relaxed font-medium min-h-[2rem]">
                         {transcript}
-                        <span className="inline-block w-0.5 h-4 bg-purple-400 ml-0.5 align-middle"
+                        <span className="inline-block w-0.5 h-4 bg-accent-400 ml-0.5 align-middle"
                           style={{ animation: 'av-blink-cursor 0.9s step-end infinite' }} />
                       </p>
                     ) : (
-                      <p className="text-sm text-purple-300/70 italic min-h-[2rem] flex items-center">
+                      <p className="text-sm text-accent-300/70 italic min-h-[2rem] flex items-center">
                         Your answer will appear here as you speak…
                       </p>
                     )}
@@ -1202,11 +1202,11 @@ export default function VoiceInterview({ resumeText, role, company, jdText, vers
               {/* ── VOICE MODE: waiting (your-turn) ── */}
               {!useTyped && phase === 'your-turn' && (
                 <div className="rounded-xl p-3 flex items-center gap-3"
-                  style={{ background: 'rgba(124,58,237,0.07)', border: '1px solid rgba(124,58,237,0.25)' }}>
+                  style={{ background: 'rgba(var(--accent-rgb), 0.07)', border: '1px solid rgba(var(--accent-rgb), 0.25)' }}>
                   {/* Pulsing mic icon */}
                   <div className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
-                    style={{ background: 'rgba(124,58,237,0.18)', animation: 'av-breathe-mic 1.8s ease-in-out infinite' }}>
-                    <Mic className="w-4 h-4 text-purple-400" />
+                    style={{ background: 'rgba(var(--accent-rgb), 0.18)', animation: 'av-breathe-mic 1.8s ease-in-out infinite' }}>
+                    <Mic className="w-4 h-4 text-accent-400" />
                   </div>
                   <div>
                     <p className="text-sm font-semibold text-white">Your turn to speak</p>
@@ -1214,8 +1214,8 @@ export default function VoiceInterview({ resumeText, role, company, jdText, vers
                   </div>
                   <style>{`
                     @keyframes av-breathe-mic {
-                      0%,100%{ box-shadow:0 0 0 0 rgba(124,58,237,0.45); }
-                      50%    { box-shadow:0 0 0 7px rgba(124,58,237,0); }
+                      0%,100%{ box-shadow:0 0 0 0 rgba(var(--accent-rgb), 0.45); }
+                      50%    { box-shadow:0 0 0 7px rgba(var(--accent-rgb), 0); }
                     }
                   `}</style>
                 </div>
@@ -1226,10 +1226,10 @@ export default function VoiceInterview({ resumeText, role, company, jdText, vers
                 <div className="space-y-2">
                   {/* Banner explaining why we switched */}
                   <div className="flex items-start gap-2.5 rounded-xl px-3 py-2.5"
-                    style={{ background: 'rgba(59,130,246,0.12)', border: '1px solid rgba(59,130,246,0.3)' }}>
-                    <Mic className="w-4 h-4 shrink-0 mt-0.5 text-blue-400" />
+                    style={{ background: 'rgba(var(--accent-rgb), 0.12)', border: '1px solid rgba(var(--accent-rgb), 0.3)' }}>
+                    <Mic className="w-4 h-4 shrink-0 mt-0.5 text-accent-400" />
                     <div className="flex-1">
-                      <p className="text-[11px] text-blue-200 font-semibold">
+                      <p className="text-[11px] text-accent-300 font-semibold">
                         {error || 'Switched to typing mode'}
                       </p>
                       <p className="text-[10px] text-slate-400 mt-0.5">Type your answer below — scored exactly the same as voice.</p>
@@ -1253,7 +1253,7 @@ export default function VoiceInterview({ resumeText, role, company, jdText, vers
                     style={{
                       minHeight: '6rem',
                       background: 'rgba(255,255,255,0.06)',
-                      border: '1.5px solid rgba(124,58,237,0.5)',
+                      border: '1.5px solid rgba(var(--accent-rgb), 0.5)',
                       outline: 'none',
                     }}
                     autoFocus
@@ -1264,8 +1264,8 @@ export default function VoiceInterview({ resumeText, role, company, jdText, vers
               {/* Processing indicator */}
               {phase === 'processing' && (
                 <div className="flex items-center gap-2 mt-1">
-                  <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-400" />
-                  <span className="text-[11px] text-blue-300">Processing your answer…</span>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-accent-400" />
+                  <span className="text-[11px] text-accent-300">Processing your answer…</span>
                 </div>
               )}
             </div>
@@ -1280,9 +1280,9 @@ export default function VoiceInterview({ resumeText, role, company, jdText, vers
               {isActive && !useTyped && ['your-turn', 'listening'].includes(phase) && (
                 <>
                   <button type="button" onClick={handleMic}
-                    className="flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold text-white transition-all hover:opacity-90 active:scale-95"
+                    className="flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold text-[var(--on-accent)] transition-all hover:opacity-90 active:scale-95 btn-accent"
                     style={{
-                      background: phase === 'listening' ? 'linear-gradient(135deg,#dc2626,#ef4444)' : 'linear-gradient(135deg,#7c3aed,#3b82f6)',
+                      background: phase === 'listening' ? 'linear-gradient(135deg,#dc2626,#ef4444)' : 'var(--accent-fill)',
                     }}>
                     {phase === 'listening' ? <><MicOff className="w-3.5 h-3.5" /> Submit</> : <><Mic className="w-3.5 h-3.5" /> Speak</>}
                   </button>
@@ -1298,7 +1298,7 @@ export default function VoiceInterview({ resumeText, role, company, jdText, vers
                   onClick={() => typedAnswer.trim() && submitAnswer(typedAnswer)}
                   disabled={!typedAnswer.trim()}
                   className="flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-bold text-white disabled:opacity-40 transition-all hover:opacity-90 active:scale-95"
-                  style={{ background: 'linear-gradient(135deg,#7c3aed,#3b82f6)' }}>
+                  style={{ background: 'var(--accent-fill)' }}>
                   Submit <ChevronRight className="w-3.5 h-3.5" />
                 </button>
               )}
@@ -1401,8 +1401,8 @@ export default function VoiceInterview({ resumeText, role, company, jdText, vers
                     <p className="text-xs text-slate-400 leading-relaxed mb-2">{qf.feedback}</p>
                     {qf.betterAnswer && (
                       <div className="rounded-lg p-3"
-                        style={{ background: 'rgba(124,58,237,0.07)', border: '1px solid rgba(124,58,237,0.15)' }}>
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-purple-400 mb-1">Stronger Answer</p>
+                        style={{ background: 'rgba(var(--accent-rgb), 0.07)', border: '1px solid rgba(var(--accent-rgb), 0.15)' }}>
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-accent-400 mb-1">Stronger Answer</p>
                         <p className="text-xs text-slate-300 leading-relaxed">{qf.betterAnswer}</p>
                       </div>
                     )}

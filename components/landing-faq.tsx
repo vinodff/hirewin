@@ -43,7 +43,7 @@ export default function LandingFAQ() {
         <div
           key={i}
           className="rounded-xl overflow-hidden"
-          style={{ background: '#0f1629', border: '1px solid rgba(255,255,255,0.06)' }}
+          style={{ background: 'var(--surface)', border: '1px solid rgba(255,255,255,0.06)' }}
         >
           <button
             onClick={() => setOpen(open === i ? null : i)}

@@ -55,20 +55,20 @@ export const TEMPLATES: Record<TemplateName, TemplateConfig> = {
     label: 'Modern',
     icon: <Layout className="w-4 h-4" />,
     description: 'Clean, contemporary design',
-    accentColor: '#7c3aed',
+    accentColor: 'var(--accent)',
     fontFamily: '"Calibri", "Segoe UI", Arial, sans-serif',
     headerAlign: 'left',
-    headerBg: 'linear-gradient(135deg, #7c3aed, #3b82f6)',
+    headerBg: 'var(--accent-fill)',
     headerTextColor: '#ffffff',
     sectionTitleStyle: 'left-accent',
-    sectionTitleColor: '#7c3aed',
+    sectionTitleColor: 'var(--accent)',
     bodyFont: '"Calibri", "Segoe UI", Arial, sans-serif',
     bodySize: '11.5px',
     lineHeight: '1.55',
     layout: 'single',
     paperBg: '#ffffff',
-    paperShadow: '0 10px 30px rgba(0,0,0,0.4), 0 0 0 1px rgba(124,58,237,0.15)',
-    accentBorder: '#7c3aed',
+    paperShadow: '0 10px 30px rgba(0,0,0,0.4), 0 0 0 1px rgba(var(--accent-rgb), 0.15)',
+    accentBorder: 'var(--accent)',
   },
   executive: {
     name: 'executive',
@@ -326,11 +326,11 @@ export default function TemplateSelector({ selected, onSelect }: Props) {
   return (
     <div
       className="rounded-2xl p-6"
-      style={{ background: '#0f1629', border: '1px solid rgba(255,255,255,0.07)' }}
+      style={{ background: 'var(--surface)', border: '1px solid rgba(255,255,255,0.07)' }}
     >
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <Palette className="w-4 h-4 text-purple-400" />
+          <Palette className="w-4 h-4 text-accent-400" />
           <h3 className="font-semibold text-white">Resume Template</h3>
         </div>
         <button
@@ -365,7 +365,7 @@ export default function TemplateSelector({ selected, onSelect }: Props) {
           >
             {tpl.icon}
             {tpl.label}
-            {selected === tpl.name && <Check className="w-3 h-3 text-green-400" />}
+            {selected === tpl.name && <Check className="w-3 h-3 text-[var(--signal)]" />}
           </button>
         ))}
       </div>

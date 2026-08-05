@@ -96,7 +96,7 @@ const FAQS = [
   { q: 'Can I cancel Pro or Power?', a: 'Anytime, from the billing page. You keep access until the period ends, then drop back to free.' },
 ];
 
-const card = { background: '#0f1629', border: '1px solid rgba(255,255,255,0.07)' };
+const card = { background: 'var(--surface)', border: '1px solid rgba(255,255,255,0.07)' };
 
 export default function PricingPage() {
   const [paying, setPaying] = useState<string | null>(null);
@@ -111,7 +111,7 @@ export default function PricingPage() {
   }
 
   return (
-    <div className="min-h-screen" style={{ background: '#080d1a' }}>
+    <div className="min-h-screen" style={{ background: 'var(--ground)' }}>
       <AppNav />
 
       <div className="max-w-6xl mx-auto px-4 py-10 sm:py-12">
@@ -142,15 +142,15 @@ export default function PricingPage() {
               key={tier.id}
               className="rounded-2xl p-5 flex flex-col relative"
               style={tier.highlight
-                ? { background: '#0f1629', border: '1px solid rgba(124,58,237,0.5)' }
+                ? { background: 'var(--surface)', border: '1px solid rgba(var(--accent-rgb), 0.5)' }
                 : card}
             >
               {tier.badge && (
                 <div
-                  className="absolute -top-2.5 left-5 text-[10px] font-bold px-2 py-0.5 rounded-full"
+                  className="absolute -top-2.5 left-5 text-[10px] font-bold px-2 py-0.5 rounded-full btn-accent"
                   style={tier.highlight
-                    ? { background: 'linear-gradient(135deg,#7c3aed,#3b82f6)', color: '#fff' }
-                    : { background: 'rgba(34,197,94,0.15)', color: '#4ade80', border: '1px solid rgba(34,197,94,0.3)' }}
+                    ? { background: 'var(--accent-fill)', color: 'var(--on-accent)' }
+                    : { background: 'rgba(var(--signal-rgb), 0.15)', color: 'var(--signal)', border: '1px solid rgba(var(--signal-rgb), 0.3)' }}
                 >
                   {tier.badge}
                 </div>
@@ -170,7 +170,7 @@ export default function PricingPage() {
               <ul className="space-y-2 flex-1 mb-5">
                 {tier.features.map((f) => (
                   <li key={f} className="flex items-start gap-2 text-xs text-slate-400 leading-relaxed">
-                    <Check className="w-3.5 h-3.5 text-green-400 shrink-0 mt-0.5" />
+                    <Check className="w-3.5 h-3.5 text-[var(--signal)] shrink-0 mt-0.5" />
                     {f}
                   </li>
                 ))}
@@ -190,7 +190,7 @@ export default function PricingPage() {
                   disabled={paying !== null}
                   className="flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold transition-all hover:opacity-90 active:scale-[0.98] disabled:opacity-60"
                   style={tier.highlight || tier.id === 'starter'
-                    ? { background: 'linear-gradient(135deg,#7c3aed,#3b82f6)', color: '#fff' }
+                    ? { background: 'var(--accent-fill)', color: 'var(--on-accent)' }
                     : { background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: '#cbd5e1' }}
                 >
                   {paying === tier.id && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
@@ -202,8 +202,8 @@ export default function PricingPage() {
         </div>
 
         <div className="flex flex-wrap items-center justify-center gap-6 mb-12 text-xs text-slate-500">
-          <span className="flex items-center gap-1.5"><Shield className="w-3.5 h-3.5 text-purple-400" /> UPI, card &amp; netbanking via Cashfree</span>
-          <span className="flex items-center gap-1.5"><Zap className="w-3.5 h-3.5 text-purple-400" /> Download unlocks instantly</span>
+          <span className="flex items-center gap-1.5"><Shield className="w-3.5 h-3.5 text-accent-400" /> UPI, card &amp; netbanking via Cashfree</span>
+          <span className="flex items-center gap-1.5"><Zap className="w-3.5 h-3.5 text-accent-400" /> Download unlocks instantly</span>
         </div>
 
         {/* Power + Team — kept out of the main grid to avoid choice overload */}

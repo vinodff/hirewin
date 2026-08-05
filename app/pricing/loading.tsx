@@ -1,14 +1,14 @@
 /* Pricing page loading skeleton */
 
 export default function PricingLoading() {
-  const cardStyle = { background: '#0f1629', border: '1px solid rgba(255,255,255,0.07)' };
+  const cardStyle = { background: 'var(--surface)', border: '1px solid rgba(255,255,255,0.07)' };
   const shimmer = { background: 'rgba(255,255,255,0.04)' };
 
   return (
-    <div className="min-h-screen" style={{ background: '#080d1a' }}>
+    <div className="min-h-screen" style={{ background: 'var(--ground)' }}>
       <div className="border-b border-white/[0.06] h-14 flex items-center px-4">
         <div className="w-24 h-5 rounded animate-pulse" style={shimmer} />
-        <div className="ml-auto w-20 h-7 rounded-lg animate-pulse" style={{ background: 'rgba(124,58,237,0.15)' }} />
+        <div className="ml-auto w-20 h-7 rounded-lg animate-pulse" style={{ background: 'rgba(var(--accent-rgb), 0.15)' }} />
       </div>
 
       <div className="max-w-6xl mx-auto px-4 py-16">

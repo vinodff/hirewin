@@ -57,7 +57,7 @@ export default function UnlockModal({ onClose, beforeScore, afterScore }: Props)
     >
       <div
         className="w-full sm:max-w-[420px] rounded-t-3xl sm:rounded-2xl overflow-hidden animate-slide-up-sm"
-        style={{ background: '#0d1425', border: '1px solid rgba(124,58,237,0.3)' }}
+        style={{ background: 'var(--surface)', border: '1px solid rgba(var(--accent-rgb), 0.3)' }}
       >
         <div className="p-5 sm:p-6">
           <div className="flex items-start justify-between mb-4">
@@ -78,13 +78,13 @@ export default function UnlockModal({ onClose, beforeScore, afterScore }: Props)
           {showScores && (
             <div
               className="flex items-center gap-3 rounded-xl px-4 py-3 mb-4"
-              style={{ background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.2)' }}
+              style={{ background: 'rgba(var(--signal-rgb), 0.08)', border: '1px solid rgba(var(--signal-rgb), 0.2)' }}
             >
-              <TrendingUp className="w-4 h-4 text-green-400 shrink-0" />
+              <TrendingUp className="w-4 h-4 text-[var(--signal)] shrink-0" />
               <div className="flex items-baseline gap-2">
-                <span className="text-sm text-slate-500 line-through tabular-nums">{beforeScore}</span>
+                <span className="text-sm text-slate-500 line-through tabular-nums data-num">{beforeScore}</span>
                 <span className="text-slate-600 text-xs">→</span>
-                <span className="text-2xl font-extrabold text-green-400 tabular-nums">{afterScore}</span>
+                <span className="text-2xl font-extrabold text-[var(--signal)] tabular-nums data-num">{afterScore}</span>
                 <span className="text-[11px] text-slate-500">ATS score</span>
               </div>
             </div>
@@ -92,11 +92,11 @@ export default function UnlockModal({ onClose, beforeScore, afterScore }: Props)
 
           {/* Goal gradient — they're one step from done. */}
           <div className="flex items-center gap-2 mb-5 text-[11px]">
-            <span className="text-green-400">Analysed ✓</span>
-            <span className="flex-1 h-px" style={{ background: 'rgba(34,197,94,0.3)' }} />
-            <span className="text-green-400">Rewritten ✓</span>
-            <span className="flex-1 h-px" style={{ background: 'rgba(124,58,237,0.4)' }} />
-            <span className="font-semibold text-purple-300">Download</span>
+            <span className="text-[var(--signal)]">Analysed ✓</span>
+            <span className="flex-1 h-px" style={{ background: 'rgba(var(--signal-rgb), 0.3)' }} />
+            <span className="text-[var(--signal)]">Rewritten ✓</span>
+            <span className="flex-1 h-px" style={{ background: 'rgba(var(--accent-rgb), 0.4)' }} />
+            <span className="font-semibold text-accent-300">Download</span>
           </div>
 
           {/* Pack choice */}
@@ -109,13 +109,13 @@ export default function UnlockModal({ onClose, beforeScore, afterScore }: Props)
                   onClick={() => setSelected(p.id)}
                   className="relative rounded-xl p-3 text-left transition-all"
                   style={isOn
-                    ? { background: 'rgba(124,58,237,0.12)', border: '1px solid rgba(124,58,237,0.6)' }
-                    : { background: '#0a1020', border: '1px solid rgba(255,255,255,0.08)' }}
+                    ? { background: 'rgba(var(--accent-rgb), 0.12)', border: '1px solid rgba(var(--accent-rgb), 0.6)' }
+                    : { background: 'var(--surface-2)', border: '1px solid rgba(255,255,255,0.08)' }}
                 >
                   {p.best && (
                     <span
-                      className="absolute -top-2 right-2 text-[9px] font-bold px-1.5 py-0.5 rounded-full"
-                      style={{ background: 'linear-gradient(135deg,#7c3aed,#3b82f6)', color: '#fff' }}
+                      className="absolute -top-2 right-2 text-[9px] font-bold px-1.5 py-0.5 rounded-full btn-accent"
+                      style={{ background: 'var(--accent-fill)', color: 'var(--on-accent)' }}
                     >
                       BEST VALUE
                     </span>
@@ -140,7 +140,7 @@ export default function UnlockModal({ onClose, beforeScore, afterScore }: Props)
               'Downloads the moment payment clears',
             ].map((t) => (
               <li key={t} className="flex items-start gap-2 text-xs text-slate-400">
-                <Check className="w-3.5 h-3.5 text-green-400 shrink-0 mt-0.5" />
+                <Check className="w-3.5 h-3.5 text-[var(--signal)] shrink-0 mt-0.5" />
                 {t}
               </li>
             ))}
@@ -152,7 +152,7 @@ export default function UnlockModal({ onClose, beforeScore, afterScore }: Props)
             onClick={() => pay(pack.id)}
             disabled={paying !== null}
             className="w-full flex items-center justify-center gap-2 py-4 rounded-xl font-bold text-white text-base transition-all hover:opacity-90 active:scale-[0.98] disabled:opacity-60"
-            style={{ background: 'linear-gradient(135deg,#7c3aed,#3b82f6)' }}
+            style={{ background: 'var(--accent-fill)' }}
           >
             {paying !== null && <Loader2 className="w-4 h-4 animate-spin" />}
             {paying !== null ? 'Opening UPI…' : `Pay ₹${pack.price} & Download`}
@@ -175,7 +175,7 @@ export default function UnlockModal({ onClose, beforeScore, afterScore }: Props)
           >
             {paying === 'pro'
               ? 'Opening…'
-              : <>Applying every week? <span className="text-purple-400 font-semibold">Pro — ₹{PRICING.pro.price}/mo, unlimited →</span></>}
+              : <>Applying every week? <span className="text-accent-400 font-semibold">Pro — ₹{PRICING.pro.price}/mo, unlimited →</span></>}
           </button>
         </div>
       </div>

@@ -37,9 +37,9 @@ export default function AtsGauge({ score, label, sublabel, color = 'blue' }: Pro
     return () => clearTimeout(t);
   }, [clamped]);
 
-  const strokeColor = color === 'emerald' ? '#10b981' : '#7c3aed';
-  const glowColor   = color === 'emerald' ? 'rgba(16,185,129,0.3)' : 'rgba(124,58,237,0.3)';
-  const textCls     = color === 'emerald' ? 'text-emerald-400' : 'text-purple-400';
+  const strokeColor = color === 'emerald' ? '#10b981' : 'var(--accent)';
+  const glowColor   = color === 'emerald' ? 'rgba(16,185,129,0.3)' : 'rgba(var(--accent-rgb), 0.3)';
+  const textCls     = color === 'emerald' ? 'text-emerald-400' : 'text-accent-400';
 
   const rating      = clamped >= 80 ? 'Excellent' : clamped >= 60 ? 'Good' : clamped >= 40 ? 'Fair' : 'Needs Work';
   const ratingColor = clamped >= 80 ? '#10b981'   : clamped >= 60 ? '#fbbf24' : clamped >= 40 ? '#f97316' : '#ef4444';

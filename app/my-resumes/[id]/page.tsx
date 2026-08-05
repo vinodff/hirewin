@@ -96,7 +96,7 @@ function Field({
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         style={fieldStyle}
-        className="focus:ring-1 focus:ring-purple-500/50"
+        className="focus:ring-1 focus:ring-accent-500/50"
       />
     </div>
   );
@@ -124,9 +124,9 @@ function TitleEditor({ title, onChange }: { title: string; onChange: (v: string)
           value={val}
           onChange={(e) => setVal(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter') commit(); if (e.key === 'Escape') setEditing(false); }}
-          className="text-white font-bold text-base bg-transparent border-b border-purple-500 outline-none"
+          className="text-white font-bold text-base bg-transparent border-b border-accent-500 outline-none"
         />
-        <button onClick={commit} className="text-green-400 hover:text-green-300"><Check className="w-4 h-4" /></button>
+        <button onClick={commit} className="text-[var(--signal)] hover:text-[var(--signal)]"><Check className="w-4 h-4" /></button>
         <button onClick={() => setEditing(false)} className="text-slate-500 hover:text-slate-300"><X className="w-4 h-4" /></button>
       </div>
     );
@@ -135,10 +135,10 @@ function TitleEditor({ title, onChange }: { title: string; onChange: (v: string)
   return (
     <button
       onClick={() => setEditing(true)}
-      className="flex items-center gap-1.5 text-white font-bold text-base hover:text-purple-300 transition-colors group"
+      className="flex items-center gap-1.5 text-white font-bold text-base hover:text-accent-300 transition-colors group"
     >
       {title}
-      <Pencil className="w-3.5 h-3.5 text-slate-600 group-hover:text-purple-400 transition-colors" />
+      <Pencil className="w-3.5 h-3.5 text-slate-600 group-hover:text-accent-400 transition-colors" />
     </button>
   );
 }
@@ -420,7 +420,7 @@ export default function ResumeEditorPage() {
         <button
           onClick={handleDownload}
           className="flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded-xl text-white transition-all hover:opacity-90"
-          style={{ background: 'rgba(124,58,237,0.2)', border: '1px solid rgba(124,58,237,0.35)' }}
+          style={{ background: 'rgba(var(--accent-rgb), 0.2)', border: '1px solid rgba(var(--accent-rgb), 0.35)' }}
         >
           <Download className="w-3.5 h-3.5" />
           Download
@@ -455,7 +455,7 @@ export default function ResumeEditorPage() {
                   onClick={improveSummary}
                   disabled={improvingSum}
                   className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-lg transition-all hover:opacity-80 disabled:opacity-50"
-                  style={{ background: 'rgba(124,58,237,0.12)', color: '#c4b5fd', border: '1px solid rgba(124,58,237,0.25)' }}
+                  style={{ background: 'rgba(var(--accent-rgb), 0.12)', color: 'var(--accent-soft)', border: '1px solid rgba(var(--accent-rgb), 0.25)' }}
                 >
                   {improvingSum ? <Loader2 className="w-3 h-3 animate-spin" /> : <span>✦</span>}
                   Improve
@@ -467,7 +467,7 @@ export default function ResumeEditorPage() {
                 placeholder="Results-driven professional with…"
                 rows={5}
                 style={{ ...fieldStyle, resize: 'vertical' }}
-                className="focus:ring-1 focus:ring-purple-500/50"
+                className="focus:ring-1 focus:ring-accent-500/50"
               />
             </div>
           </Section>
@@ -512,7 +512,7 @@ export default function ResumeEditorPage() {
                           onChange={(e) => patchBullet(i, bi, e.target.value)}
                           placeholder="Led migration of legacy system…"
                           style={{ ...fieldStyle, flex: 1 }}
-                          className="focus:ring-1 focus:ring-purple-500/50"
+                          className="focus:ring-1 focus:ring-accent-500/50"
                         />
                         {exp.bullets.length > 1 && (
                           <button onClick={() => removeBullet(i, bi)} className="text-slate-700 hover:text-red-400 mt-1.5 shrink-0">
@@ -522,7 +522,7 @@ export default function ResumeEditorPage() {
                       </div>
                     ))}
                   </div>
-                  <button onClick={() => addBullet(i)} className="mt-2 text-xs text-purple-400 hover:text-purple-300 flex items-center gap-1 transition-colors">
+                  <button onClick={() => addBullet(i)} className="mt-2 text-xs text-accent-400 hover:text-accent-300 flex items-center gap-1 transition-colors">
                     <Plus className="w-3 h-3" /> Add bullet
                   </button>
                 </div>
@@ -530,8 +530,8 @@ export default function ResumeEditorPage() {
             ))}
             <button
               onClick={addExp}
-              className="w-full py-2.5 rounded-xl text-sm font-medium text-purple-400 hover:text-purple-300 transition-colors flex items-center justify-center gap-1.5"
-              style={{ border: '1.5px dashed rgba(124,58,237,0.3)', background: 'rgba(124,58,237,0.04)' }}
+              className="w-full py-2.5 rounded-xl text-sm font-medium text-accent-400 hover:text-accent-300 transition-colors flex items-center justify-center gap-1.5"
+              style={{ border: '1.5px dashed rgba(var(--accent-rgb), 0.3)', background: 'rgba(var(--accent-rgb), 0.04)' }}
             >
               <Plus className="w-4 h-4" /> Add Experience
             </button>
@@ -555,7 +555,7 @@ export default function ResumeEditorPage() {
                 </div>
               </div>
             ))}
-            <button onClick={addEdu} className="w-full py-2.5 rounded-xl text-sm font-medium text-purple-400 hover:text-purple-300 transition-colors flex items-center justify-center gap-1.5" style={{ border: '1.5px dashed rgba(124,58,237,0.3)', background: 'rgba(124,58,237,0.04)' }}>
+            <button onClick={addEdu} className="w-full py-2.5 rounded-xl text-sm font-medium text-accent-400 hover:text-accent-300 transition-colors flex items-center justify-center gap-1.5" style={{ border: '1.5px dashed rgba(var(--accent-rgb), 0.3)', background: 'rgba(var(--accent-rgb), 0.04)' }}>
               <Plus className="w-4 h-4" /> Add Education
             </button>
           </Section>
@@ -564,12 +564,12 @@ export default function ResumeEditorPage() {
           <Section title="Skills" defaultOpen={false}>
             {resume.skills.map((s, i) => (
               <div key={s.id} className="flex items-center gap-2">
-                <input value={s.group} onChange={(e) => patchSkill(i, { group: e.target.value })} placeholder="Languages" style={{ ...fieldStyle, width: '30%' }} className="focus:ring-1 focus:ring-purple-500/50" />
-                <input value={s.skills} onChange={(e) => patchSkill(i, { skills: e.target.value })} placeholder="Python, TypeScript, Go" style={{ ...fieldStyle, flex: 1 }} className="focus:ring-1 focus:ring-purple-500/50" />
+                <input value={s.group} onChange={(e) => patchSkill(i, { group: e.target.value })} placeholder="Languages" style={{ ...fieldStyle, width: '30%' }} className="focus:ring-1 focus:ring-accent-500/50" />
+                <input value={s.skills} onChange={(e) => patchSkill(i, { skills: e.target.value })} placeholder="Python, TypeScript, Go" style={{ ...fieldStyle, flex: 1 }} className="focus:ring-1 focus:ring-accent-500/50" />
                 <button onClick={() => removeSkill(i)} className="text-slate-700 hover:text-red-400 shrink-0"><Trash2 className="w-3.5 h-3.5" /></button>
               </div>
             ))}
-            <button onClick={addSkill} className="w-full py-2.5 rounded-xl text-sm font-medium text-purple-400 hover:text-purple-300 transition-colors flex items-center justify-center gap-1.5" style={{ border: '1.5px dashed rgba(124,58,237,0.3)', background: 'rgba(124,58,237,0.04)' }}>
+            <button onClick={addSkill} className="w-full py-2.5 rounded-xl text-sm font-medium text-accent-400 hover:text-accent-300 transition-colors flex items-center justify-center gap-1.5" style={{ border: '1.5px dashed rgba(var(--accent-rgb), 0.3)', background: 'rgba(var(--accent-rgb), 0.04)' }}>
               <Plus className="w-4 h-4" /> Add Skill Group
             </button>
           </Section>
@@ -589,11 +589,11 @@ export default function ResumeEditorPage() {
                 </div>
                 <div>
                   <label style={labelStyle}>Description</label>
-                  <textarea value={p.description} onChange={(e) => patchProject(i, { description: e.target.value })} placeholder="Built a platform that…" rows={3} style={{ ...fieldStyle, resize: 'vertical' }} className="focus:ring-1 focus:ring-purple-500/50" />
+                  <textarea value={p.description} onChange={(e) => patchProject(i, { description: e.target.value })} placeholder="Built a platform that…" rows={3} style={{ ...fieldStyle, resize: 'vertical' }} className="focus:ring-1 focus:ring-accent-500/50" />
                 </div>
               </div>
             ))}
-            <button onClick={addProject} className="w-full py-2.5 rounded-xl text-sm font-medium text-purple-400 hover:text-purple-300 transition-colors flex items-center justify-center gap-1.5" style={{ border: '1.5px dashed rgba(124,58,237,0.3)', background: 'rgba(124,58,237,0.04)' }}>
+            <button onClick={addProject} className="w-full py-2.5 rounded-xl text-sm font-medium text-accent-400 hover:text-accent-300 transition-colors flex items-center justify-center gap-1.5" style={{ border: '1.5px dashed rgba(var(--accent-rgb), 0.3)', background: 'rgba(var(--accent-rgb), 0.04)' }}>
               <Plus className="w-4 h-4" /> Add Project
             </button>
           </Section>
@@ -602,13 +602,13 @@ export default function ResumeEditorPage() {
           <Section title="Certifications" defaultOpen={false}>
             {resume.certifications.map((c, i) => (
               <div key={c.id} className="flex items-center gap-2">
-                <input value={c.name} onChange={(e) => patchCert(i, { name: e.target.value })} placeholder="AWS Solutions Architect" style={{ ...fieldStyle, flex: 2 }} className="focus:ring-1 focus:ring-purple-500/50" />
-                <input value={c.issuer} onChange={(e) => patchCert(i, { issuer: e.target.value })} placeholder="Amazon" style={{ ...fieldStyle, flex: 1 }} className="focus:ring-1 focus:ring-purple-500/50" />
-                <input value={c.date} onChange={(e) => patchCert(i, { date: e.target.value })} placeholder="2024" style={{ ...fieldStyle, width: '70px', flexShrink: 0 }} className="focus:ring-1 focus:ring-purple-500/50" />
+                <input value={c.name} onChange={(e) => patchCert(i, { name: e.target.value })} placeholder="AWS Solutions Architect" style={{ ...fieldStyle, flex: 2 }} className="focus:ring-1 focus:ring-accent-500/50" />
+                <input value={c.issuer} onChange={(e) => patchCert(i, { issuer: e.target.value })} placeholder="Amazon" style={{ ...fieldStyle, flex: 1 }} className="focus:ring-1 focus:ring-accent-500/50" />
+                <input value={c.date} onChange={(e) => patchCert(i, { date: e.target.value })} placeholder="2024" style={{ ...fieldStyle, width: '70px', flexShrink: 0 }} className="focus:ring-1 focus:ring-accent-500/50" />
                 <button onClick={() => removeCert(i)} className="text-slate-700 hover:text-red-400 shrink-0"><Trash2 className="w-3.5 h-3.5" /></button>
               </div>
             ))}
-            <button onClick={addCert} className="w-full py-2.5 rounded-xl text-sm font-medium text-purple-400 hover:text-purple-300 transition-colors flex items-center justify-center gap-1.5" style={{ border: '1.5px dashed rgba(124,58,237,0.3)', background: 'rgba(124,58,237,0.04)' }}>
+            <button onClick={addCert} className="w-full py-2.5 rounded-xl text-sm font-medium text-accent-400 hover:text-accent-300 transition-colors flex items-center justify-center gap-1.5" style={{ border: '1.5px dashed rgba(var(--accent-rgb), 0.3)', background: 'rgba(var(--accent-rgb), 0.04)' }}>
               <Plus className="w-4 h-4" /> Add Certification
             </button>
           </Section>

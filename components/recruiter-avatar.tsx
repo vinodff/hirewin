@@ -79,11 +79,11 @@ export default function RecruiterAvatar({ openness = 0, phase = 'idle' }: Recrui
         <>
           <div
             className="absolute inset-0 pointer-events-none"
-            style={{ boxShadow: 'inset 0 0 0 3px #22c55e, inset 0 0 32px rgba(34,197,94,0.18)' }}
+            style={{ boxShadow: 'inset 0 0 0 3px #22c55e, inset 0 0 32px rgba(var(--signal-rgb), 0.18)' }}
           />
           <div
             className="absolute top-3 left-3 flex items-center gap-1.5 px-2 py-1 rounded-full"
-            style={{ background: 'rgba(34,197,94,0.18)', border: '1px solid rgba(34,197,94,0.45)' }}
+            style={{ background: 'rgba(var(--signal-rgb), 0.18)', border: '1px solid rgba(var(--signal-rgb), 0.45)' }}
           >
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
             <span className="text-[9px] font-bold text-emerald-300 uppercase tracking-wider">Speaking</span>
@@ -101,9 +101,9 @@ export default function RecruiterAvatar({ openness = 0, phase = 'idle' }: Recrui
                 style={{
                   width     : 3.5,
                   height    : Math.max(3, o * 28 * factor + 2),
-                  background: `rgba(34,197,94,${0.50 + factor * 0.50})`,
+                  background: `rgba(var(--signal-rgb), ${0.50 + factor * 0.50})`,
                   transition: 'height 75ms ease',
-                  boxShadow : o > 0.3 ? '0 0 5px rgba(34,197,94,0.45)' : 'none',
+                  boxShadow : o > 0.3 ? '0 0 5px rgba(var(--signal-rgb), 0.45)' : 'none',
                 }}
               />
             ))}
@@ -115,7 +115,7 @@ export default function RecruiterAvatar({ openness = 0, phase = 'idle' }: Recrui
       {listening && (
         <div
           className="absolute inset-0 pointer-events-none"
-          style={{ boxShadow: 'inset 0 0 0 2.5px rgba(124,58,237,0.85), inset 0 0 22px rgba(124,58,237,0.15)' }}
+          style={{ boxShadow: 'inset 0 0 0 2.5px rgba(var(--accent-rgb), 0.85), inset 0 0 22px rgba(var(--accent-rgb), 0.15)' }}
         />
       )}
 
@@ -128,16 +128,16 @@ export default function RecruiterAvatar({ openness = 0, phase = 'idle' }: Recrui
           />
           <div
             className="absolute top-3 right-3 flex items-center gap-1.5 px-2.5 py-1.5 rounded-full"
-            style={{ background: 'rgba(59,130,246,0.18)', border: '1px solid rgba(59,130,246,0.4)' }}
+            style={{ background: 'rgba(var(--accent-rgb), 0.18)', border: '1px solid rgba(var(--accent-rgb), 0.4)' }}
           >
             {[0, 1, 2].map(i => (
               <div
                 key={i}
-                className="w-1.5 h-1.5 rounded-full bg-blue-400"
+                className="w-1.5 h-1.5 rounded-full bg-accent-400"
                 style={{ animation: `voice-wave 0.7s ease-in-out infinite alternate`, animationDelay: `${i * 0.22}s` }}
               />
             ))}
-            <span className="text-[9px] font-bold text-blue-300 uppercase tracking-wider ml-0.5">Thinking</span>
+            <span className="text-[9px] font-bold text-accent-300 uppercase tracking-wider ml-0.5">Thinking</span>
           </div>
         </>
       )}

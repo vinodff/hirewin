@@ -230,14 +230,14 @@ export default function JobScanPage() {
   ];
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: '#080d1a' }}>
+    <div className="min-h-screen flex flex-col" style={{ background: 'var(--ground)' }}>
       <AppNav />
 
       <main className="flex-1 max-w-5xl mx-auto w-full px-4 py-8">
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold text-purple-300 mb-4"
-            style={{ background: 'rgba(124,58,237,0.1)', border: '1px solid rgba(124,58,237,0.25)' }}>
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold text-accent-300 mb-4"
+            style={{ background: 'rgba(var(--accent-rgb), 0.1)', border: '1px solid rgba(var(--accent-rgb), 0.25)' }}>
             <Compass className="w-3.5 h-3.5" />
             Discover matching job openings
           </div>
@@ -253,7 +253,7 @@ export default function JobScanPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Inputs Panel (1 Column) */}
           <div className="lg:col-span-1 space-y-6">
-            <div className="rounded-2xl p-5 space-y-5" style={{ background: '#0f1629', border: '1px solid rgba(255,255,255,0.07)' }}>
+            <div className="rounded-2xl p-5 space-y-5" style={{ background: 'var(--surface)', border: '1px solid rgba(255,255,255,0.07)' }}>
               <h2 className="text-sm font-bold text-white uppercase tracking-wider">Search Parameters</h2>
 
               {/* Target Role */}
@@ -266,7 +266,7 @@ export default function JobScanPage() {
                     value={role}
                     onChange={(e) => setRole(e.target.value)}
                     placeholder="e.g. React Developer (or auto-detect)"
-                    className="w-full pl-9 pr-3 py-2.5 text-sm rounded-xl focus:outline-none focus:ring-1 focus:ring-purple-500/50 placeholder-slate-600 text-slate-200"
+                    className="w-full pl-9 pr-3 py-2.5 text-sm rounded-xl focus:outline-none focus:ring-1 focus:ring-accent-500/50 placeholder-slate-600 text-slate-200"
                     style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)' }}
                   />
                 </div>
@@ -282,7 +282,7 @@ export default function JobScanPage() {
                     value={location}
                     onChange={(e) => setLocation(e.target.value)}
                     placeholder="e.g. Remote, Bangalore, India"
-                    className="w-full pl-9 pr-3 py-2.5 text-sm rounded-xl focus:outline-none focus:ring-1 focus:ring-purple-500/50 placeholder-slate-600 text-slate-200"
+                    className="w-full pl-9 pr-3 py-2.5 text-sm rounded-xl focus:outline-none focus:ring-1 focus:ring-accent-500/50 placeholder-slate-600 text-slate-200"
                     style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)' }}
                   />
                 </div>
@@ -297,7 +297,7 @@ export default function JobScanPage() {
                       onClick={() => setResumeSource('history')}
                       className={`py-2 text-xs font-semibold rounded-lg border transition-all ${
                         resumeSource === 'history'
-                          ? 'border-purple-500 bg-purple-500/10 text-white'
+                          ? 'border-accent-500 bg-accent-500/10 text-white'
                           : 'border-white/5 bg-white/2 text-slate-400'
                       }`}
                     >
@@ -307,7 +307,7 @@ export default function JobScanPage() {
                       onClick={() => setResumeSource('paste')}
                       className={`py-2 text-xs font-semibold rounded-lg border transition-all ${
                         resumeSource === 'paste'
-                          ? 'border-purple-500 bg-purple-500/10 text-white'
+                          ? 'border-accent-500 bg-accent-500/10 text-white'
                           : 'border-white/5 bg-white/2 text-slate-400'
                       }`}
                     >
@@ -326,7 +326,7 @@ export default function JobScanPage() {
                     <select
                       value={selectedResumeId}
                       onChange={(e) => setSelectedResumeId(e.target.value)}
-                      className="w-full pl-9 pr-3 py-2.5 text-sm rounded-xl focus:outline-none focus:ring-1 focus:ring-purple-500/50 text-slate-200 appearance-none bg-slate-900 cursor-pointer"
+                      className="w-full pl-9 pr-3 py-2.5 text-sm rounded-xl focus:outline-none focus:ring-1 focus:ring-accent-500/50 text-slate-200 appearance-none bg-slate-900 cursor-pointer"
                       style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)' }}
                     >
                       {historyResumes.map((v) => (
@@ -347,7 +347,7 @@ export default function JobScanPage() {
                       onChange={(e) => setResumeText(e.target.value)}
                       placeholder="Paste your resume content here..."
                       rows={5}
-                      className="w-full p-3 text-xs rounded-xl focus:outline-none focus:ring-1 focus:ring-purple-500/50 placeholder-slate-600 text-slate-200 resize-none"
+                      className="w-full p-3 text-xs rounded-xl focus:outline-none focus:ring-1 focus:ring-accent-500/50 placeholder-slate-600 text-slate-200 resize-none"
                       style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)' }}
                     />
                   </div>
@@ -365,12 +365,12 @@ export default function JobScanPage() {
                       onChange={handleFileChange}
                     />
                     {pdfParsing ? (
-                      <div className="flex items-center justify-center gap-2 text-purple-400">
+                      <div className="flex items-center justify-center gap-2 text-accent-400">
                         <Loader2 className="w-3.5 h-3.5 animate-spin" />
                         <span className="text-xs">Reading PDF...</span>
                       </div>
                     ) : fileName ? (
-                      <div className="flex items-center justify-center gap-1.5 text-purple-400">
+                      <div className="flex items-center justify-center gap-1.5 text-accent-400">
                         <FileText className="w-3.5 h-3.5 shrink-0" />
                         <span className="text-xs font-medium truncate max-w-[150px]">{fileName}</span>
                       </div>
@@ -391,8 +391,8 @@ export default function JobScanPage() {
               <button
                 onClick={handleScan}
                 disabled={scanning}
-                className="w-full py-3 rounded-xl text-white font-bold text-sm transition-all hover:opacity-90 active:scale-[0.98] glow-purple disabled:opacity-50 flex items-center justify-center gap-2"
-                style={{ background: 'linear-gradient(135deg, #7c3aed, #3b82f6)' }}
+                className="w-full py-3 rounded-xl text-[var(--on-accent)] font-bold text-sm transition-all hover:opacity-90 active:scale-[0.98] glow-purple disabled:opacity-50 flex items-center justify-center gap-2 btn-accent"
+                style={{ background: 'var(--accent-fill)' }}
               >
                 {scanning ? (
                   <>
@@ -419,14 +419,14 @@ export default function JobScanPage() {
               >
                 {/* Radar Scanning animation */}
                 <div className="relative w-32 h-32 mb-6 flex items-center justify-center">
-                  <div className="absolute inset-0 rounded-full border border-purple-500/20 animate-ping opacity-75" />
-                  <div className="absolute w-24 h-24 rounded-full border border-purple-500/40 animate-pulse" />
-                  <div className="absolute w-16 h-16 rounded-full border border-purple-500/60" />
+                  <div className="absolute inset-0 rounded-full border border-accent-500/20 animate-ping opacity-75" />
+                  <div className="absolute w-24 h-24 rounded-full border border-accent-500/40 animate-pulse" />
+                  <div className="absolute w-16 h-16 rounded-full border border-accent-500/60" />
                   <div
-                    className="absolute w-1 h-16 origin-bottom bottom-1/2 left-[calc(50%-2px)] bg-gradient-to-t from-purple-500 to-transparent animate-spin"
+                    className="absolute w-1 h-16 origin-bottom bottom-1/2 left-[calc(50%-2px)] bg-gradient-to-t from-accent-500 to-transparent animate-spin"
                     style={{ animationDuration: '3s' }}
                   />
-                  <Briefcase className="w-8 h-8 text-purple-400 z-10" />
+                  <Briefcase className="w-8 h-8 text-accent-400 z-10" />
                 </div>
                 <h3 className="font-semibold text-white text-lg mb-1">Scanning the Web for Openings</h3>
                 <p className="text-sm text-slate-500 max-w-sm h-12 flex items-center justify-center">
@@ -452,8 +452,8 @@ export default function JobScanPage() {
                     </p>
                     <Link
                       href="/pricing"
-                      className="inline-flex items-center gap-1.5 px-6 py-2.5 rounded-xl font-bold text-white text-sm transition-all hover:scale-105 active:scale-95"
-                      style={{ background: 'linear-gradient(135deg, #7c3aed, #3b82f6)' }}
+                      className="inline-flex items-center gap-1.5 px-6 py-2.5 rounded-xl font-bold text-[var(--on-accent)] text-sm transition-all hover:scale-105 active:scale-95 btn-accent"
+                      style={{ background: 'var(--accent-fill)' }}
                     >
                       View Pricing Plans
                       <ArrowRight className="w-4 h-4" />
@@ -468,8 +468,8 @@ export default function JobScanPage() {
                     <p className="text-xs text-slate-500 mb-4">{scanError}</p>
                     <button
                       onClick={handleScan}
-                      className="px-4 py-2 text-xs font-semibold rounded-lg text-white hover:opacity-90 transition-colors"
-                      style={{ background: 'linear-gradient(135deg, #7c3aed, #3b82f6)' }}
+                      className="px-4 py-2 text-xs font-semibold rounded-lg text-[var(--on-accent)] hover:opacity-90 transition-colors btn-accent"
+                      style={{ background: 'var(--accent-fill)' }}
                     >
                       Try Again
                     </button>
@@ -484,8 +484,8 @@ export default function JobScanPage() {
                 className="flex-1 flex flex-col items-center justify-center rounded-2xl p-12 text-center"
                 style={{ background: '#0c1220', border: '1px solid rgba(255,255,255,0.07)' }}
               >
-                <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-5 bg-purple-500/10 border border-purple-500/20">
-                  <Compass className="w-7 h-7 text-purple-400" />
+                <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-5 bg-accent-500/10 border border-accent-500/20">
+                  <Compass className="w-7 h-7 text-accent-400" />
                 </div>
                 <h3 className="font-bold text-white text-lg mb-2">Ready to Scan</h3>
                 <p className="text-sm text-slate-500 max-w-sm mx-auto">
@@ -501,7 +501,7 @@ export default function JobScanPage() {
                 <div className="flex justify-between items-center px-1">
                   <div>
                     <h3 className="text-sm font-semibold text-white">
-                      Matched Openings for &quot;<span className="text-purple-400 font-bold">{scannedRole}</span>&quot;
+                      Matched Openings for &quot;<span className="text-accent-400 font-bold">{scannedRole}</span>&quot;
                     </h3>
                     <p className="text-[11px] text-slate-500 mt-0.5">
                       Location: {scannedLocation} · Found {jobs.length} matching jobs
@@ -509,7 +509,7 @@ export default function JobScanPage() {
                   </div>
                   <button
                     onClick={handleScan}
-                    className="text-xs text-purple-400 font-semibold hover:text-purple-300 transition-colors"
+                    className="text-xs text-accent-400 font-semibold hover:text-accent-300 transition-colors"
                   >
                     Rescan
                   </button>
@@ -547,8 +547,8 @@ export default function JobScanPage() {
                             <div className="flex items-center gap-3">
                               {/* Company Avatar */}
                               <div
-                                className="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm text-purple-300 shrink-0"
-                                style={{ background: 'rgba(124,58,237,0.1)', border: '1px solid rgba(124,58,237,0.2)' }}
+                                className="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm text-accent-300 shrink-0"
+                                style={{ background: 'rgba(var(--accent-rgb), 0.1)', border: '1px solid rgba(var(--accent-rgb), 0.2)' }}
                               >
                                 {initial}
                               </div>
@@ -641,7 +641,7 @@ export default function JobScanPage() {
                             <button
                               onClick={() => handleOptimize(job)}
                               className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-bold text-white transition-all hover:opacity-90 active:scale-[0.98]"
-                              style={{ background: 'linear-gradient(135deg, #7c3aed, #3b82f6)' }}
+                              style={{ background: 'var(--accent-fill)' }}
                             >
                               <Sparkles className="w-3.5 h-3.5" />
                               Optimize Resume

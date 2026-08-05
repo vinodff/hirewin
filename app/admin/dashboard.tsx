@@ -12,7 +12,7 @@ import {
   Loader2,
 } from 'lucide-react';
 
-const cardStyle = { background: '#0f1629', border: '1px solid rgba(255,255,255,0.07)' };
+const cardStyle = { background: 'var(--surface)', border: '1px solid rgba(255,255,255,0.07)' };
 
 type Overview = {
   revenue: {
@@ -96,7 +96,7 @@ export default function AdminDashboard() {
   if (loading && !data) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-16 text-center text-slate-500">
-        <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-purple-400" />
+        <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-accent-400" />
         Loading admin data…
       </div>
     );
@@ -165,7 +165,7 @@ export default function AdminDashboard() {
           label="Registered users"
           value={data.users.total.toLocaleString('en-IN')}
           sub={`+${data.users.newLast7d} in 7d · +${data.users.newLast30d} in 30d`}
-          accent="#a78bfa"
+          accent="var(--accent-soft)"
         />
         <Kpi
           icon={<Activity className="w-4 h-4" />}
@@ -330,7 +330,7 @@ export default function AdminDashboard() {
 
         <div className="rounded-2xl p-5" style={cardStyle}>
           <h3 className="font-semibold text-white mb-3 flex items-center gap-2">
-            <Clock className="w-4 h-4 text-purple-400" />
+            <Clock className="w-4 h-4 text-accent-400" />
             Live API feed (last 20)
           </h3>
           {data.recent.length === 0 ? (
@@ -499,7 +499,7 @@ function planColor(plan: string): string {
     case 'starter':
       return '#60a5fa';
     case 'pro':
-      return '#a78bfa';
+      return 'var(--accent-soft)';
     case 'power':
       return '#f472b6';
     case 'team':

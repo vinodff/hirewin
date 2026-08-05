@@ -31,10 +31,10 @@ function MagneticButton({ children, href, primary }: { children: React.ReactNode
       onMouseLeave={reset}
       className={
         primary
-          ? 'group relative w-full sm:w-auto flex items-center justify-center gap-2 text-white font-bold px-8 py-4 rounded-2xl text-lg overflow-hidden glow-breathe transition-[transform] duration-150 ease-out'
-          : 'w-full sm:w-auto flex items-center justify-center gap-2 text-slate-200 font-semibold px-7 py-4 rounded-2xl text-base sm:text-lg border border-white/10 hover:border-purple-400/50 hover:text-white transition-[transform,border-color] duration-150 ease-out'
+          ? 'group relative w-full sm:w-auto flex items-center justify-center gap-2 text-[var(--on-accent)] font-bold px-8 py-4 rounded-2xl text-lg overflow-hidden glow-breathe transition-[transform] duration-150 ease-out'
+          : 'w-full sm:w-auto flex items-center justify-center gap-2 text-slate-200 font-semibold px-7 py-4 rounded-2xl text-base sm:text-lg border border-white/10 hover:border-accent-400/50 hover:text-[var(--on-accent)] transition-[transform,border-color] duration-150 ease-out'
       }
-      style={primary ? { background: 'linear-gradient(135deg, #7c3aed, #3b82f6)', minHeight: 60 } : { minHeight: 60, background: 'rgba(255,255,255,0.025)', backdropFilter: 'blur(8px)' }}
+      style={primary ? { background: 'var(--accent-fill)', minHeight: 60 } : { minHeight: 60, background: 'rgba(255,255,255,0.025)', backdropFilter: 'blur(8px)' }}
     >
       {primary && (
         <span className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
@@ -88,7 +88,7 @@ export default function CinematicHero() {
       <div className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full text-xs sm:text-sm font-semibold mb-8 reveal-up"
         style={{
           background: 'rgba(255,255,255,0.04)',
-          border: '1px solid rgba(124,58,237,0.3)',
+          border: '1px solid rgba(var(--accent-rgb), 0.3)',
           backdropFilter: 'blur(12px)',
           animationDelay: '0.05s',
         }}>
@@ -139,7 +139,7 @@ export default function CinematicHero() {
       <div className="flex items-center justify-center flex-wrap gap-x-6 gap-y-2 text-xs sm:text-sm text-slate-500 mb-12 reveal-up"
         style={{ animationDelay: '1s' }}>
         {[
-          { icon: ShieldCheck, text: 'Trust-scored output', color: '#a78bfa' },
+          { icon: ShieldCheck, text: 'Trust-scored output', color: 'var(--accent-soft)' },
           { icon: Zap,         text: '~20s results',        color: '#60a5fa' },
           { icon: Sparkles,    text: 'No credit card',      color: '#34d399' },
           { icon: Star,        text: '4.8★ avg rating',     color: '#fbbf24' },
@@ -161,7 +161,7 @@ export default function CinematicHero() {
 
         {/* Premium glow ring around demo */}
         <div className="absolute -inset-4 rounded-3xl blur-2xl opacity-40 pointer-events-none -z-10"
-          style={{ background: 'radial-gradient(ellipse at center, rgba(124,58,237,0.4), transparent 70%)' }} />
+          style={{ background: 'radial-gradient(ellipse at center, rgba(var(--accent-rgb), 0.4), transparent 70%)' }} />
       </div>
     </section>
   );

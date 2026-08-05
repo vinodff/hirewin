@@ -4,11 +4,121 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ═══════════════════════════════════════════════════════════════
+   VERIFIED — the HireWin palette.
+
+   Emerald is the colour of a passed check, so the brand hue and the
+   trust score make the same argument. Two rules keep it honest:
+     1. ACCENT is brand. SIGNAL is verified state. Never swap them.
+     2. No two-hue gradients — one committed colour, depth from glow.
+
+   Every colour in the app resolves here. Change a value once and the
+   whole product follows.
+   ═══════════════════════════════════════════════════════════════ */
+:root {
+  /* Grounds — neutrals biased green-blue so they read as chosen */
+  --ground:     #080C0F;
+  --ground-rgb: 8, 12, 15;
+  --surface:    #111A20;
+  --surface-2:  #0C1418;
+  --edge:       rgba(255, 255, 255, 0.07);
+  --edge-strong: rgba(255, 255, 255, 0.12);
+
+  /* Type */
+  --fg:    #E9F0F3;
+  --dim:   #7E8F9B;
+  --faint: #4E5C66;
+
+  /* Brand */
+  --accent:          #10B981;
+  --accent-rgb:      16, 185, 129;
+  --accent-soft:     #34D399;
+  --accent-soft-rgb: 52, 211, 153;
+  --accent-deep:     #059669;
+  /* Bright emerald needs dark ink on top — white on #10B981 is 2.5:1
+     and fails WCAG AA. Near-black gives ~9:1 and reads sharper. */
+  --on-accent:  #04140D;
+  --accent-fill: var(--accent);
+
+  /* Semantic — separate from the accent, never used as brand colour */
+  --signal:     #34D399;
+  --signal-rgb: 52, 211, 153;
+  --warn:       #FBBF24;
+  --danger:     #F87171;
+
+  /* Glow — one shared light source, so every surface agrees */
+  --glow-sm:  0 0 20px rgba(var(--accent-rgb), 0.18);
+  --glow-md:  0 0 40px rgba(var(--accent-rgb), 0.22);
+  --glow-lg:  0 0 72px rgba(var(--accent-rgb), 0.28);
+  --lift:     0 18px 44px -18px rgba(0, 0, 0, 0.7);
+}
+
+/* ── Typography ───────────────────────────────────────────────────
+   Three roles. Display carries voice, body carries reading, data
+   carries the numbers this product is actually about. */
+:root {
+  --type-body:    var(--font-inter), system-ui, sans-serif;
+  --type-display: var(--font-display), var(--font-inter), system-ui, sans-serif;
+  --type-data:    var(--font-data), ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* One scale. Before this there were hand-picked 9px/10px/11px sizes
+     scattered across 27 files, which is how hierarchy dies. */
+  --text-micro: 0.6875rem;  /* 11px — the floor. Nothing smaller. */
+  --text-xs:    0.75rem;    /* 12px */
+  --text-sm:    0.875rem;   /* 14px */
+  --text-base:  1rem;
+  --text-lg:    1.125rem;
+}
+
 body {
-  background-color: #080d1a;
-  color: #e2e8f0;
-  font-family: var(--font-inter), system-ui, sans-serif;
+  background-color: var(--ground);
+  color: var(--fg);
+  font-family: var(--type-body);
   -webkit-font-smoothing: antialiased;
+}
+
+/* Headings speak in the display face. Applied at the element level so it
+   reaches every page without touching 54 component files. */
+h1, h2, h3 {
+  font-family: var(--type-display);
+  letter-spacing: -0.03em;
+  text-wrap: balance;
+}
+h4, h5, h6 { letter-spacing: -0.015em; }
+
+/* Numbers line up in columns everywhere they appear — scores, counts,
+   prices, usage meters. Without this, digits jitter as values change. */
+.tabular-nums,
+[class*="score"],
+[class*="count"] { font-variant-numeric: tabular-nums; }
+
+/* Data face: scores, keyword chips, uppercase micro-labels. */
+.data,
+.data-num {
+  font-family: var(--type-data);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'zero' 1;  /* slashed zero — it is a data face */
+}
+.data-label {
+  font-family: var(--type-data);
+  font-size: var(--text-micro);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+
+/* 9px text failed the accessibility floor in 27 places. Rather than hunt
+   every call site, the smallest utility is clamped to 11px. */
+.text-\[9px\],
+.text-\[10px\] { font-size: var(--text-micro) !important; }
+
+::selection { background: rgba(var(--accent-rgb), 0.28); color: var(--fg); }
+
+/* Keyboard focus must always be visible — one ring, everywhere. */
+:where(a, button, [role="button"], input, select, textarea):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 6px;
 }
 
 /* ───────── Voice interview waveform ───────── */
@@ -54,30 +164,41 @@ body {
 
 .aurora {
   position: absolute;
-  width: 80vw;
-  height: 60vh;
+  width: 70vw;
+  height: 55vh;
   border-radius: 50%;
-  filter: blur(80px);
+  /* Was blur(80px) on an 80vw x 60vh layer, animated forever — a huge
+     per-frame raster cost that dropped low-end phones to single-digit
+     FPS. A softer radial reaches ~the same look for a fraction of it. */
+  filter: blur(46px);
   will-change: transform, opacity;
   mix-blend-mode: screen;
+  contain: strict;
 }
 
 .aurora-1 {
   top: -10%; left: -10%;
-  background: radial-gradient(ellipse, rgba(124, 58, 237, 0.5), transparent 60%);
+  background: radial-gradient(ellipse, rgba(16, 185, 129, 0.42), transparent 62%);
   animation: aurora-slide-1 18s ease-in-out infinite;
 }
 
 .aurora-2 {
   top: 20%; right: -15%;
-  background: radial-gradient(ellipse, rgba(59, 130, 246, 0.45), transparent 60%);
+  background: radial-gradient(ellipse, rgba(45, 212, 191, 0.34), transparent 62%);
   animation: aurora-slide-2 24s ease-in-out infinite;
 }
 
 .aurora-3 {
   bottom: -15%; left: 20%;
-  background: radial-gradient(ellipse, rgba(167, 139, 250, 0.4), transparent 60%);
+  background: radial-gradient(ellipse, rgba(52, 211, 153, 0.28), transparent 62%);
   animation: aurora-slide-3 30s ease-in-out infinite;
+}
+
+/* Phones get the colour wash without the animated blur — the effect is
+   ambient, and it is never worth a dropped scroll. */
+@media (max-width: 768px) {
+  .aurora { filter: blur(30px); animation: none !important; }
+  .aurora-3 { display: none; }
 }
 
 /* ───────── Reveal animations ───────── */
@@ -103,8 +224,8 @@ body {
 }
 
 @keyframes glow-breathe {
-  0%, 100% { box-shadow: 0 0 30px rgba(124, 58, 237, 0.4), 0 0 60px rgba(124, 58, 237, 0.2); }
-  50%      { box-shadow: 0 0 50px rgba(124, 58, 237, 0.7), 0 0 100px rgba(59, 130, 246, 0.35); }
+  0%, 100% { box-shadow: 0 0 30px rgba(var(--accent-rgb), 0.35), 0 0 60px rgba(var(--accent-rgb), 0.16); }
+  50%      { box-shadow: 0 0 50px rgba(var(--accent-rgb), 0.6), 0 0 100px rgba(var(--accent-soft-rgb), 0.28); }
 }
 
 @keyframes tilt-3d {
@@ -135,8 +256,8 @@ body {
 }
 
 @keyframes hw-core-pulse {
-  0%, 100% { box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 0 0 0 rgba(124,58,237,0); }
-  50%      { box-shadow: inset 0 1px 0 rgba(255,255,255,0.14), 0 0 30px 2px rgba(124,58,237,0.45); }
+  0%, 100% { box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 0 0 0 rgba(var(--accent-rgb), 0); }
+  50%      { box-shadow: inset 0 1px 0 rgba(255,255,255,0.14), 0 0 30px 2px rgba(var(--accent-rgb), 0.45); }
 }
 
 @keyframes hw-shine {
@@ -159,7 +280,7 @@ body {
   position: absolute;
   inset: 6px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(124,58,237,0.40) 0%, rgba(59,130,246,0.14) 45%, transparent 70%);
+  background: radial-gradient(circle, rgba(var(--accent-rgb), 0.40) 0%, rgba(var(--accent-rgb), 0.14) 45%, transparent 70%);
   filter: blur(7px);
   animation: hw-halo 2.4s ease-in-out infinite;
 }
@@ -169,7 +290,7 @@ body {
 .hw-loader-ring--outer {
   inset: 0;
   background: conic-gradient(from 0deg,
-    rgba(34,211,238,0) 0%, #22d3ee 16%, #3b82f6 40%, #7c3aed 60%, rgba(124,58,237,0) 80%);
+    rgba(45,212,191,0) 0%, #2DD4BF 16%, #34D399 40%, #10B981 60%, rgba(16,185,129,0) 80%);
   -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3.5px));
           mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3.5px));
   animation: hw-spin-cw 1.4s cubic-bezier(0.65, 0.15, 0.35, 0.85) infinite;
@@ -178,7 +299,7 @@ body {
 .hw-loader-ring--inner {
   inset: 13px;
   background: conic-gradient(from 180deg,
-    rgba(236,72,153,0) 0%, #a78bfa 24%, #ec4899 54%, rgba(236,72,153,0) 76%);
+    rgba(167,243,208,0) 0%, #A7F3D0 24%, #10B981 54%, rgba(16,185,129,0) 76%);
   -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2.5px));
           mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2.5px));
   animation: hw-spin-ccw 1.05s linear infinite;
@@ -195,8 +316,8 @@ body {
   height: 7px;
   margin-left: -3.5px;
   border-radius: 50%;
-  background: #ede9fe;
-  box-shadow: 0 0 10px 2px rgba(168,85,247,0.9), 0 0 20px 5px rgba(59,130,246,0.45);
+  background: #D1FAE5;
+  box-shadow: 0 0 10px 2px rgba(52,211,153,0.9), 0 0 20px 5px rgba(16,185,129,0.45);
 }
 
 .hw-loader-core {
@@ -219,7 +340,7 @@ body {
   height: 26px;
   border-radius: 4px;
   transform-origin: bottom center;
-  background: linear-gradient(180deg, #c4b5fd 0%, #7c3aed 55%, #3b82f6 100%);
+  background: linear-gradient(180deg, #A7F3D0 0%, #34D399 55%, #059669 100%);
   animation: hw-bar-rise 1.1s cubic-bezier(0.45, 0, 0.55, 1) infinite;
 }
 .hw-loader-bar:nth-child(1) { animation-delay: 0s;    }
@@ -238,7 +359,7 @@ body {
 .hw-loader-label::after { content: ''; animation: hw-dots 1.4s steps(1, end) infinite; }
 
 .shimmer-text {
-  background: linear-gradient(90deg, #c4b5fd 0%, #ffffff 30%, #93c5fd 60%, #c4b5fd 100%);
+  background: linear-gradient(90deg, #6EE7B7 0%, #ffffff 30%, #A7F3D0 60%, #6EE7B7 100%);
   background-size: 200% 100%;
   -webkit-background-clip: text;
   background-clip: text;
@@ -248,6 +369,14 @@ body {
 
 /* Respect reduced-motion */
 @media (prefers-reduced-motion: reduce) {
+  /* New interaction layer: keep the colour and depth cues, drop the movement. */
+  .verify-pop,
+  .scan-sweep { animation: none !important; }
+  .btn-accent,
+  .card-lift  { transition: box-shadow 120ms linear, border-color 120ms linear; }
+  .btn-accent:active { transform: none; }
+  .card-lift:hover   { transform: none; }
+
   .aurora,
   .reveal-up,
   .char-pop,
@@ -269,22 +398,83 @@ body {
 }
 
 @layer utilities {
+  /* Tonal, not two-hue: emerald into its own lighter tint. Reads as one
+     colour catching light rather than a gradient for decoration's sake. */
   .gradient-text {
-    @apply bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent;
+    background: linear-gradient(100deg, var(--accent-soft), var(--accent));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
   }
 
   .gradient-border {
-    background: linear-gradient(#0f1629, #0f1629) padding-box,
-      linear-gradient(135deg, rgba(124, 58, 237, 0.5), rgba(59, 130, 246, 0.3)) border-box;
+    background: linear-gradient(var(--surface), var(--surface)) padding-box,
+      linear-gradient(135deg, rgba(var(--accent-rgb), 0.55), rgba(var(--accent-rgb), 0.12)) border-box;
     border: 1px solid transparent;
   }
 
-  .glow-purple {
-    box-shadow: 0 0 40px rgba(124, 58, 237, 0.25);
+  .glow-purple { box-shadow: var(--glow-md); }
+  .glow-sm     { box-shadow: var(--glow-sm); }
+
+  /* ── Interactive surfaces ─────────────────────────────────────
+     Glow is a light source, so it belongs on hover/focus where it
+     signals affordance — not burning constantly on every card. */
+  .btn-accent {
+    background: var(--accent-fill);
+    color: var(--on-accent);
+    box-shadow: 0 6px 20px -8px rgba(var(--accent-rgb), 0.6);
+    transition: box-shadow 220ms cubic-bezier(0.22, 1, 0.36, 1),
+                transform 220ms cubic-bezier(0.22, 1, 0.36, 1),
+                filter 220ms ease;
+  }
+  .btn-accent:hover  { box-shadow: 0 10px 34px -8px rgba(var(--accent-rgb), 0.75); filter: brightness(1.06); }
+  .btn-accent:active { transform: translateY(1px) scale(0.995); }
+
+  .card-lift {
+    transition: transform 260ms cubic-bezier(0.22, 1, 0.36, 1),
+                border-color 260ms ease,
+                box-shadow 260ms ease;
+  }
+  .card-lift:hover {
+    transform: translateY(-3px);
+    border-color: rgba(var(--accent-rgb), 0.35);
+    box-shadow: var(--lift), 0 0 30px -12px rgba(var(--accent-rgb), 0.5);
   }
 
-  .glow-sm {
-    box-shadow: 0 0 20px rgba(124, 58, 237, 0.2);
+  /* A hairline that lights up along its length — used to top cards
+     that represent a verified result. */
+  .edge-lit { position: relative; }
+  .edge-lit::before {
+    content: '';
+    position: absolute;
+    inset-inline: 0;
+    top: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(var(--accent-rgb), 0.7), transparent);
+  }
+
+  /* Ring that pulses once when a score lands. */
+  .verify-pop { animation: verify-pop 620ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+  @keyframes verify-pop {
+    0%   { transform: scale(0.94); opacity: 0; }
+    55%  { transform: scale(1.02); opacity: 1; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+
+  /* Sweep for skeletons and "scanning" states. */
+  .scan-sweep {
+    background: linear-gradient(
+      100deg,
+      transparent 20%,
+      rgba(var(--accent-rgb), 0.14) 45%,
+      transparent 70%
+    );
+    background-size: 220% 100%;
+    animation: scan-sweep 1.6s ease-in-out infinite;
+  }
+  @keyframes scan-sweep {
+    from { background-position: 160% 0; }
+    to   { background-position: -60% 0; }
   }
 
   /* ─── existing animations ─── */
@@ -324,8 +514,8 @@ body {
   }
 
   @keyframes glowPulse {
-    0%, 100% { box-shadow: 0 0 24px rgba(124,58,237,0.35), 0 0 8px rgba(124,58,237,0.2); }
-    50%       { box-shadow: 0 0 48px rgba(124,58,237,0.65), 0 0 20px rgba(124,58,237,0.35); }
+    0%, 100% { box-shadow: 0 0 24px rgba(var(--accent-rgb), 0.35), 0 0 8px rgba(var(--accent-rgb), 0.2); }
+    50%       { box-shadow: 0 0 48px rgba(var(--accent-rgb), 0.65), 0 0 20px rgba(var(--accent-rgb), 0.35); }
   }
 
   @keyframes gradientMove {
@@ -377,7 +567,7 @@ body {
 
   /* animated gradient text */
   .gradient-text-animated {
-    background: linear-gradient(270deg, #c4b5fd, #60a5fa, #34d399, #a78bfa, #c4b5fd);
+    background: linear-gradient(270deg, #6EE7B7, #2DD4BF, #10B981, #A7F3D0, #6EE7B7);
     background-size: 300% 300%;
     -webkit-background-clip: text;
     background-clip: text;
@@ -447,21 +637,21 @@ body {
   }
   .scan-line {
     position: absolute; left: 0; right: 0; height: 2px;
-    background: linear-gradient(90deg, transparent, rgba(124,58,237,0.85), transparent);
-    box-shadow: 0 0 12px rgba(124,58,237,0.6);
+    background: linear-gradient(90deg, transparent, rgba(var(--accent-rgb), 0.85), transparent);
+    box-shadow: 0 0 12px rgba(var(--accent-rgb), 0.6);
     animation: scanLine 2.4s ease-in-out infinite;
   }
 
   @keyframes keywordPop {
     0%   { background-color: transparent; }
-    40%  { background-color: rgba(74,222,128,0.35); }
-    100% { background-color: rgba(124,58,237,0.18); }
+    40%  { background-color: rgba(var(--signal-rgb), 0.35); }
+    100% { background-color: rgba(var(--accent-rgb), 0.18); }
   }
   .keyword-pop { animation: keywordPop 1.6s ease-out both; }
 
   @keyframes pulseDot {
-    0%, 100% { transform: scale(1);   box-shadow: 0 0 0 0 rgba(124,58,237,0.55); }
-    50%      { transform: scale(1.12); box-shadow: 0 0 0 10px rgba(124,58,237,0); }
+    0%, 100% { transform: scale(1);   box-shadow: 0 0 0 0 rgba(var(--accent-rgb), 0.55); }
+    50%      { transform: scale(1.12); box-shadow: 0 0 0 10px rgba(var(--accent-rgb), 0); }
   }
   .pulse-dot { animation: pulseDot 2.4s ease-in-out infinite; }
 
@@ -480,11 +670,11 @@ body {
   .conic-spot {
     background:
       conic-gradient(from 180deg at 50% 50%,
-        rgba(124,58,237,0.22) 0deg,
-        rgba(59,130,246,0.18) 90deg,
-        rgba(34,197,94,0.10) 180deg,
+        rgba(var(--accent-rgb), 0.22) 0deg,
+        rgba(var(--accent-rgb), 0.18) 90deg,
+        rgba(var(--signal-rgb), 0.10) 180deg,
         rgba(245,158,11,0.10) 270deg,
-        rgba(124,58,237,0.22) 360deg);
+        rgba(var(--accent-rgb), 0.22) 360deg);
     filter: blur(60px);
   }
 
@@ -522,8 +712,8 @@ body {
   .number-pop { animation: numberPop 0.5s cubic-bezier(0.22,1,0.36,1) both; }
 
   @keyframes borderGlow {
-    0%, 100% { border-color: rgba(124,58,237,0.2); box-shadow: 0 0 0 rgba(124,58,237,0); }
-    50%       { border-color: rgba(124,58,237,0.5); box-shadow: 0 0 24px rgba(124,58,237,0.15); }
+    0%, 100% { border-color: rgba(var(--accent-rgb), 0.2); box-shadow: 0 0 0 rgba(var(--accent-rgb), 0); }
+    50%       { border-color: rgba(var(--accent-rgb), 0.5); box-shadow: 0 0 24px rgba(var(--accent-rgb), 0.15); }
   }
   .border-glow { animation: borderGlow 3s ease-in-out infinite; }
 
@@ -557,9 +747,9 @@ body {
 
 /* Scrollbar */
 ::-webkit-scrollbar { width: 6px; height: 4px; }
-::-webkit-scrollbar-track { background: #0f1629; }
+::-webkit-scrollbar-track { background: var(--surface); }
 ::-webkit-scrollbar-thumb { background: #2d3f6b; border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #7c3aed; }
+::-webkit-scrollbar-thumb:hover { background: var(--accent); }
 
 /* Hide scrollbar on mobile nav strips */
 .scrollbar-none::-webkit-scrollbar { display: none; }

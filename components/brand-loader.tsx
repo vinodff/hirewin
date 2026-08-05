@@ -37,7 +37,7 @@ function Mark() {
   );
 }
 
-export default function BrandLoader({ label = 'Loading', inline = false, background = '#080d1a' }: Props) {
+export default function BrandLoader({ label = 'Loading', inline = false, background = 'var(--ground)' }: Props) {
   const body = (
     <div className="flex flex-col items-center gap-4">
       <Mark />

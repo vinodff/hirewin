@@ -65,7 +65,7 @@ export default function BeforeAfter({ original, optimized, atsScore, jobFitScore
       {/* Controls bar */}
       <div
         className="rounded-2xl p-5"
-        style={{ background: '#0f1629', border: '1px solid rgba(255,255,255,0.07)' }}
+        style={{ background: 'var(--surface)', border: '1px solid rgba(255,255,255,0.07)' }}
       >
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-2 flex-wrap">
@@ -88,7 +88,7 @@ export default function BeforeAfter({ original, optimized, atsScore, jobFitScore
             )}
             {hasEdits && (
               <span className="text-xs font-medium px-2 py-0.5 rounded-md"
-                style={{ background: 'rgba(124,58,237,0.12)', color: '#c4b5fd', border: '1px solid rgba(124,58,237,0.25)' }}>
+                style={{ background: 'rgba(var(--accent-rgb), 0.12)', color: 'var(--accent-soft)', border: '1px solid rgba(var(--accent-rgb), 0.25)' }}>
                 Edited
               </span>
             )}
@@ -107,7 +107,7 @@ export default function BeforeAfter({ original, optimized, atsScore, jobFitScore
                   className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium transition-all"
                   style={
                     viewMode === mode
-                      ? { background: 'linear-gradient(135deg, #7c3aed, #3b82f6)', color: '#fff' }
+                      ? { background: 'var(--accent-fill)', color: 'var(--on-accent)' }
                       : { color: '#94a3b8' }
                   }
                 >
@@ -124,7 +124,7 @@ export default function BeforeAfter({ original, optimized, atsScore, jobFitScore
               onClick={copy}
               className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-slate-400 hover:text-white rounded-lg hover:bg-white/5 transition-all"
             >
-              {copied ? <Check className="w-3.5 h-3.5 text-green-400" /> : <Copy className="w-3.5 h-3.5" />}
+              {copied ? <Check className="w-3.5 h-3.5 text-[var(--signal)]" /> : <Copy className="w-3.5 h-3.5" />}
               {copied ? 'Copied!' : 'Copy'}
             </button>
           </div>
@@ -140,7 +140,7 @@ export default function BeforeAfter({ original, optimized, atsScore, jobFitScore
       {viewMode === 'compare' && (
         <div
           className="rounded-2xl sm:p-6"
-          style={{ background: '#0f1629', border: '1px solid rgba(255,255,255,0.07)' }}
+          style={{ background: 'var(--surface)', border: '1px solid rgba(255,255,255,0.07)' }}
         >
           {/* Mobile tab toggle */}
           <div className="flex sm:hidden mx-3 mt-3 mb-3 rounded-xl overflow-hidden"
@@ -212,7 +212,7 @@ export default function BeforeAfter({ original, optimized, atsScore, jobFitScore
           />
           <div
             className="rounded-2xl p-6"
-            style={{ background: '#0f1629', border: '1px solid rgba(255,255,255,0.07)' }}
+            style={{ background: 'var(--surface)', border: '1px solid rgba(255,255,255,0.07)' }}
           >
             <ResumePreview
               resumeText={editedText}
@@ -222,9 +222,9 @@ export default function BeforeAfter({ original, optimized, atsScore, jobFitScore
                 <span
                   className="text-xs font-medium px-2 py-0.5 rounded-md"
                   style={{
-                    background: 'rgba(124,58,237,0.12)',
-                    color: '#c4b5fd',
-                    border: '1px solid rgba(124,58,237,0.25)',
+                    background: 'rgba(var(--accent-rgb), 0.12)',
+                    color: 'var(--accent-soft)',
+                    border: '1px solid rgba(var(--accent-rgb), 0.25)',
                   }}
                 >
                   {template.charAt(0).toUpperCase() + template.slice(1)}
@@ -239,7 +239,7 @@ export default function BeforeAfter({ original, optimized, atsScore, jobFitScore
       {viewMode === 'preview' && (
         <div
           className="rounded-2xl p-6"
-          style={{ background: '#0f1629', border: '1px solid rgba(255,255,255,0.07)' }}
+          style={{ background: 'var(--surface)', border: '1px solid rgba(255,255,255,0.07)' }}
         >
           <div className="max-w-2xl mx-auto">
             <ResumePreview
@@ -250,9 +250,9 @@ export default function BeforeAfter({ original, optimized, atsScore, jobFitScore
                 <span
                   className="text-xs font-medium px-2 py-0.5 rounded-md"
                   style={{
-                    background: 'rgba(124,58,237,0.12)',
-                    color: '#c4b5fd',
-                    border: '1px solid rgba(124,58,237,0.25)',
+                    background: 'rgba(var(--accent-rgb), 0.12)',
+                    color: 'var(--accent-soft)',
+                    border: '1px solid rgba(var(--accent-rgb), 0.25)',
                   }}
                 >
                   {template.charAt(0).toUpperCase() + template.slice(1)} template

@@ -33,7 +33,7 @@ export default function ConnectExtensionPage() {
   useEffect(() => { load(); }, []);
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: '#080d1a' }}>
+    <div className="min-h-screen flex flex-col" style={{ background: 'var(--ground)' }}>
       <AppNav />
 
       <div className="flex-1 w-full max-w-lg mx-auto px-4 py-12">
@@ -49,7 +49,7 @@ export default function ConnectExtensionPage() {
           </p>
         </div>
 
-        <div className="rounded-2xl p-6" style={{ background: '#0f1629', border: '1px solid rgba(255,255,255,0.07)' }}>
+        <div className="rounded-2xl p-6" style={{ background: 'var(--surface)', border: '1px solid rgba(255,255,255,0.07)' }}>
           {loading ? (
             <div className="flex items-center justify-center gap-2 py-8 text-slate-400 text-sm">
               <Loader2 className="w-5 h-5 animate-spin" /> Generating your code…
@@ -57,7 +57,7 @@ export default function ConnectExtensionPage() {
           ) : error ? (
             <div className="text-center py-6">
               <p className="text-sm text-red-400 mb-4">{error}</p>
-              <button onClick={load} className="px-5 py-2.5 rounded-xl text-sm font-bold text-white" style={{ background: 'linear-gradient(135deg, #0a66c2, #3b82f6)' }}>
+              <button onClick={load} className="px-5 py-2.5 rounded-xl text-sm font-bold text-white" style={{ background: 'linear-gradient(135deg, #0a66c2, var(--accent))' }}>
                 Try again
               </button>
             </div>
@@ -71,13 +71,13 @@ export default function ConnectExtensionPage() {
               )}
               <label className="block text-xs font-semibold text-slate-300 mb-2">Connection code</label>
               <div className="rounded-xl p-3 mb-3 break-all text-xs text-slate-300 font-mono"
-                style={{ background: '#0a1020', border: '1px solid rgba(255,255,255,0.08)' }}>
+                style={{ background: 'var(--surface-2)', border: '1px solid rgba(255,255,255,0.08)' }}>
                 {token}
               </div>
               <button
                 onClick={async () => { await navigator.clipboard.writeText(token); setCopied(true); setTimeout(() => setCopied(false), 1800); }}
                 className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold text-white transition-all hover:opacity-90"
-                style={{ background: copied ? '#059669' : 'linear-gradient(135deg, #0a66c2, #3b82f6)' }}
+                style={{ background: copied ? '#059669' : 'linear-gradient(135deg, #0a66c2, var(--accent))' }}
               >
                 {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                 {copied ? 'Copied — now paste it in the extension' : 'Copy connection code'}

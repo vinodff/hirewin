@@ -29,12 +29,12 @@ type Props = {
 };
 
 const TAB_CONFIG: { key: Tab; icon: string; accent: string; bg: string; border: string }[] = [
-  { key: 'brief',  icon: '⚡', accent: '#a78bfa', bg: 'rgba(124,58,237,0.08)',  border: 'rgba(124,58,237,0.25)' },
-  { key: 'full',   icon: '🎯', accent: '#60a5fa', bg: 'rgba(59,130,246,0.08)',  border: 'rgba(59,130,246,0.25)' },
+  { key: 'brief',  icon: '⚡', accent: 'var(--accent-soft)', bg: 'rgba(var(--accent-rgb), 0.08)',  border: 'rgba(var(--accent-rgb), 0.25)' },
+  { key: 'full',   icon: '🎯', accent: '#60a5fa', bg: 'rgba(var(--accent-rgb), 0.08)',  border: 'rgba(var(--accent-rgb), 0.25)' },
   { key: 'casual', icon: '😊', accent: '#34d399', bg: 'rgba(52,211,153,0.08)', border: 'rgba(52,211,153,0.25)' },
 ];
 
-const CARD = { background: '#0f1629', border: '1px solid rgba(255,255,255,0.07)' };
+const CARD = { background: 'var(--surface)', border: '1px solid rgba(255,255,255,0.07)' };
 const INPUT_GHOST = { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' };
 
 export default function SelfDescription({ resumeText, role, company, jdText }: Props) {
@@ -79,11 +79,11 @@ export default function SelfDescription({ resumeText, role, company, jdText }: P
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <User className="w-4 h-4 text-purple-400" />
+          <User className="w-4 h-4 text-accent-400" />
           <h3 className="font-semibold text-white">Self-Introduction Generator</h3>
           <span
             className="text-xs px-2 py-0.5 rounded-full font-medium"
-            style={{ background: 'rgba(124,58,237,0.12)', color: '#c4b5fd', border: '1px solid rgba(124,58,237,0.25)' }}
+            style={{ background: 'rgba(var(--accent-rgb), 0.12)', color: 'var(--accent-soft)', border: '1px solid rgba(var(--accent-rgb), 0.25)' }}
           >
             AI-powered
           </span>
@@ -107,9 +107,9 @@ export default function SelfDescription({ resumeText, role, company, jdText }: P
         >
           <div
             className="w-12 h-12 rounded-full flex items-center justify-center"
-            style={{ background: 'rgba(124,58,237,0.12)' }}
+            style={{ background: 'rgba(var(--accent-rgb), 0.12)' }}
           >
-            <Sparkles className="w-6 h-6 text-purple-400" />
+            <Sparkles className="w-6 h-6 text-accent-400" />
           </div>
 
           <div>
@@ -140,8 +140,8 @@ export default function SelfDescription({ resumeText, role, company, jdText }: P
 
           <button
             onClick={generate}
-            className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-semibold text-white transition-all hover:opacity-90 active:scale-[0.98]"
-            style={{ background: 'linear-gradient(135deg, #7c3aed, #3b82f6)' }}
+            className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-semibold text-[var(--on-accent)] transition-all hover:opacity-90 active:scale-[0.98] btn-accent"
+            style={{ background: 'var(--accent-fill)' }}
           >
             <Sparkles className="w-4 h-4" />
             Generate My Self-Introduction
@@ -157,9 +157,9 @@ export default function SelfDescription({ resumeText, role, company, jdText }: P
           <div className="relative">
             <div
               className="w-14 h-14 rounded-full flex items-center justify-center"
-              style={{ background: 'rgba(124,58,237,0.12)' }}
+              style={{ background: 'rgba(var(--accent-rgb), 0.12)' }}
             >
-              <Loader2 className="w-7 h-7 text-purple-400 animate-spin" />
+              <Loader2 className="w-7 h-7 text-accent-400 animate-spin" />
             </div>
           </div>
           <p className="text-sm text-slate-400">
@@ -176,9 +176,9 @@ export default function SelfDescription({ resumeText, role, company, jdText }: P
           {/* Career narrative strip */}
           <div
             className="rounded-xl px-4 py-3 flex items-start gap-3"
-            style={{ background: 'rgba(124,58,237,0.07)', border: '1px solid rgba(124,58,237,0.18)' }}
+            style={{ background: 'rgba(var(--accent-rgb), 0.07)', border: '1px solid rgba(var(--accent-rgb), 0.18)' }}
           >
-            <ChevronRight className="w-4 h-4 text-purple-400 shrink-0 mt-0.5" />
+            <ChevronRight className="w-4 h-4 text-accent-400 shrink-0 mt-0.5" />
             <p className="text-sm text-slate-300 leading-relaxed italic">
               &ldquo;{data.careerNarrative}&rdquo;
             </p>
@@ -246,8 +246,8 @@ export default function SelfDescription({ resumeText, role, company, jdText }: P
               <div className="mt-4 flex items-center gap-3 flex-wrap">
                 <button
                   onClick={copy}
-                  className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white transition-all hover:opacity-90 active:scale-95"
-                  style={{ background: 'linear-gradient(135deg, #7c3aed, #3b82f6)' }}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-[var(--on-accent)] transition-all hover:opacity-90 active:scale-95 btn-accent"
+                  style={{ background: 'var(--accent-fill)' }}
                 >
                   {copied
                     ? <><Check className="w-4 h-4" /> Copied!</>

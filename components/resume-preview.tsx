@@ -196,7 +196,7 @@ export default function ResumePreview({ resumeText, template, label = 'Preview',
   return (
     <div>
       <div className="flex items-center justify-between mb-2 px-3 pt-3 sm:px-0 sm:pt-0 sm:mb-3">
-        <div className="text-xs font-semibold uppercase tracking-wide flex items-center gap-1.5 text-purple-400">
+        <div className="text-xs font-semibold uppercase tracking-wide flex items-center gap-1.5 text-accent-400">
           <FileText className="w-3.5 h-3.5" />
           {label}
         </div>

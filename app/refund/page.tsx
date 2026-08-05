@@ -15,7 +15,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 export default function RefundPage() {
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: '#080d1a' }}>
+    <div className="min-h-screen flex flex-col" style={{ background: 'var(--ground)' }}>
       <AppNav />
 
       <div className="flex-1 max-w-3xl mx-auto px-4 py-12 w-full">
@@ -51,7 +51,7 @@ export default function RefundPage() {
 
         <div
           className="rounded-2xl p-6 sm:p-8"
-          style={{ background: '#0f1629', border: '1px solid rgba(255,255,255,0.07)' }}
+          style={{ background: 'var(--surface)', border: '1px solid rgba(255,255,255,0.07)' }}
         >
           <Section title="1. Our Refund Philosophy">
             <p>
@@ -92,7 +92,7 @@ export default function RefundPage() {
           </Section>
 
           <Section title="5. How to Request a Refund">
-            <p>To request a refund, email us at <a href="mailto:support@hirewin.live" className="text-purple-400 hover:text-purple-300">support@hirewin.live</a> with:</p>
+            <p>To request a refund, email us at <a href="mailto:support@hirewin.live" className="text-accent-400 hover:text-accent-300">support@hirewin.live</a> with:</p>
             <ul className="list-disc list-inside space-y-1.5 pl-2">
               <li>Your registered email address</li>
               <li>The date of purchase</li>
@@ -111,7 +111,7 @@ export default function RefundPage() {
           <Section title="7. Contact">
             <p>
               Refund requests and payment questions:<br />
-              <a href="mailto:support@hirewin.live" className="text-purple-400 hover:text-purple-300">support@hirewin.live</a>
+              <a href="mailto:support@hirewin.live" className="text-accent-400 hover:text-accent-300">support@hirewin.live</a>
             </p>
           </Section>
         </div>

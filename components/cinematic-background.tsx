@@ -47,7 +47,7 @@ export default function CinematicBackground() {
       {/* Base gradient */}
       <div className="absolute inset-0"
         style={{
-          background: 'radial-gradient(ellipse at top, #0e1530 0%, #080d1a 50%, #050810 100%)',
+          background: 'radial-gradient(ellipse at top, #0e1530 0%, var(--ground) 50%, #050810 100%)',
         }} />
 
       {/* Animated grid */}
@@ -71,9 +71,9 @@ export default function CinematicBackground() {
       {/* Floating shapes */}
       <div className="absolute inset-0">
         {[
-          { size: 240, top: '12%', left: '8%',  hue: 'rgba(124,58,237,0.18)', delay: '0s',  dur: '22s' },
-          { size: 180, top: '20%', right: '12%', hue: 'rgba(59,130,246,0.16)', delay: '-7s', dur: '26s' },
-          { size: 320, bottom:'8%', left: '18%', hue: 'rgba(167,139,250,0.14)', delay: '-14s', dur: '28s' },
+          { size: 240, top: '12%', left: '8%',  hue: 'rgba(var(--accent-rgb), 0.18)', delay: '0s',  dur: '22s' },
+          { size: 180, top: '20%', right: '12%', hue: 'rgba(var(--accent-rgb), 0.16)', delay: '-7s', dur: '26s' },
+          { size: 320, bottom:'8%', left: '18%', hue: 'rgba(var(--accent-soft-rgb), 0.14)', delay: '-14s', dur: '28s' },
           { size: 200, bottom:'18%', right: '6%', hue: 'rgba(52,211,153,0.12)', delay: '-3s', dur: '24s' },
           { size: 150, top: '55%', left: '45%', hue: 'rgba(244,114,182,0.10)', delay: '-10s', dur: '32s' },
         ].map((s, i) => (
@@ -93,7 +93,7 @@ export default function CinematicBackground() {
       <div ref={spotRef}
         className="absolute w-[600px] h-[600px] rounded-full will-change-transform"
         style={{
-          background: 'radial-gradient(circle, rgba(124,58,237,0.07), transparent 65%)',
+          background: 'radial-gradient(circle, rgba(var(--accent-rgb), 0.07), transparent 65%)',
           transform: 'translate(-9999px,-9999px)',
         }} />
 

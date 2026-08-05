@@ -77,7 +77,7 @@ function FlowScore({ label, sublabel, score, isAfter, delay = 0 }: FlowScoreProp
           <div className="absolute top-0 left-0 right-0 h-px"
             style={{ background: 'linear-gradient(90deg,transparent,rgba(16,185,129,0.6),transparent)' }} />
         )}
-        <span className="text-5xl sm:text-7xl font-black leading-none tabular-nums" style={{ color: g.color }}>
+        <span className="text-5xl sm:text-7xl font-black leading-none tabular-nums data-num" style={{ color: g.color }}>
           {display}
         </span>
       </div>
@@ -144,7 +144,7 @@ export default function ScoreHero({ atsScore, jobFitScore, optimizedAtsScore }: 
 
           {coverageGain && (
             <div className="flex flex-col items-center justify-center pl-1 sm:pl-4 mb-6 shrink-0">
-              <span className="text-3xl sm:text-4xl font-black text-emerald-400 leading-none tabular-nums">
+              <span className="text-3xl sm:text-4xl font-black text-emerald-400 leading-none tabular-nums data-num">
                 +{delta}
               </span>
               <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-500/80 mt-1">
@@ -157,8 +157,8 @@ export default function ScoreHero({ atsScore, jobFitScore, optimizedAtsScore }: 
 
       {/* Category progress rows */}
       <div className="px-4 sm:px-5 pb-5 grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <MetricRow label="Keyword Match" pct={Math.round((afterScore / 100) * 85 + 10)} delay={200} color="#7c3aed" />
-        <MetricRow label="Impact Language"  pct={Math.round((afterScore / 100) * 90 + 5)}  delay={350} color="#3b82f6" />
+        <MetricRow label="Keyword Match" pct={Math.round((afterScore / 100) * 85 + 10)} delay={200} color="var(--accent)" />
+        <MetricRow label="Impact Language"  pct={Math.round((afterScore / 100) * 90 + 5)}  delay={350} color="var(--accent)" />
         <MetricRow label="ATS Compatibility" pct={Math.min(98, Math.round(afterScore * 0.95 + 5))} delay={500} color="#10b981" />
         <MetricRow label="Role Alignment"    pct={Math.round((jobFitScore + afterScore) / 2 + 5)}      delay={650} color="#f59e0b" />
       </div>

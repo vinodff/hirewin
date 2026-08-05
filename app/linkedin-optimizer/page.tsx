@@ -83,7 +83,7 @@ export default function LinkedInOptimizerPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: '#080d1a' }}>
+    <div className="min-h-screen flex flex-col" style={{ background: 'var(--ground)' }}>
       <AppNav />
 
       <div className="flex-1 w-full max-w-2xl mx-auto px-4 py-10">
@@ -106,9 +106,9 @@ export default function LinkedInOptimizerPage() {
         </div>
 
         {/* Step 1: resume */}
-        <div className="rounded-2xl p-5 sm:p-6 mb-5" style={{ background: '#0f1629', border: '1px solid rgba(255,255,255,0.07)' }}>
+        <div className="rounded-2xl p-5 sm:p-6 mb-5" style={{ background: 'var(--surface)', border: '1px solid rgba(255,255,255,0.07)' }}>
           <div className="flex items-center gap-2 mb-4">
-            <span className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0" style={{ background: 'linear-gradient(135deg, #0a66c2, #3b82f6)' }}>1</span>
+            <span className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0" style={{ background: 'linear-gradient(135deg, #0a66c2, var(--accent))' }}>1</span>
             <h2 className="text-sm font-bold text-white">Your resume <span className="text-slate-500 font-normal">— the source of truth</span></h2>
           </div>
 
@@ -127,8 +127,8 @@ export default function LinkedInOptimizerPage() {
               onClick={() => fileRef.current?.click()}
               onDragOver={(e) => e.preventDefault()}
               onDrop={(e) => { e.preventDefault(); const f = e.dataTransfer.files?.[0]; if (f) handleFile(f); }}
-              className="rounded-xl p-6 text-center cursor-pointer transition-all hover:border-blue-500/40"
-              style={{ background: '#0a1020', border: '1px dashed rgba(255,255,255,0.14)' }}
+              className="rounded-xl p-6 text-center cursor-pointer transition-all hover:border-accent-500/40"
+              style={{ background: 'var(--surface-2)', border: '1px dashed rgba(255,255,255,0.14)' }}
             >
               {parsing ? (
                 <div className="flex items-center justify-center gap-2 text-slate-400 text-sm"><Loader2 className="w-4 h-4 animate-spin" /> Reading your PDF…</div>
@@ -150,23 +150,23 @@ export default function LinkedInOptimizerPage() {
             onChange={(e) => { setResumeText(e.target.value); if (!resumeName) setResumeName('Pasted resume'); }}
             rows={5}
             placeholder="…or paste your resume text here"
-            className="mt-3 w-full px-3.5 py-2.5 rounded-xl text-sm text-white placeholder:text-slate-600 outline-none transition-all focus:border-blue-500/50 resize-y"
-            style={{ background: '#0a1020', border: '1px solid rgba(255,255,255,0.08)' }}
+            className="mt-3 w-full px-3.5 py-2.5 rounded-xl text-sm text-white placeholder:text-slate-600 outline-none transition-all focus:border-accent-500/50 resize-y"
+            style={{ background: 'var(--surface-2)', border: '1px solid rgba(255,255,255,0.08)' }}
           />
         </div>
 
         {/* Step 2: target role */}
-        <div className="rounded-2xl p-5 sm:p-6 mb-5" style={{ background: '#0f1629', border: '1px solid rgba(255,255,255,0.07)' }}>
+        <div className="rounded-2xl p-5 sm:p-6 mb-5" style={{ background: 'var(--surface)', border: '1px solid rgba(255,255,255,0.07)' }}>
           <div className="flex items-center gap-2 mb-4">
-            <span className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0" style={{ background: 'linear-gradient(135deg, #0a66c2, #3b82f6)' }}>2</span>
+            <span className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0" style={{ background: 'linear-gradient(135deg, #0a66c2, var(--accent))' }}>2</span>
             <h2 className="text-sm font-bold text-white">Target role <span className="text-slate-500 font-normal">— optional, sharpens keywords</span></h2>
           </div>
           <input
             value={targetRole}
             onChange={(e) => setTargetRole(e.target.value)}
             placeholder="e.g. Senior Frontend Engineer"
-            className="w-full px-3.5 py-2.5 rounded-xl text-sm text-white placeholder:text-slate-600 outline-none transition-all focus:border-blue-500/50"
-            style={{ background: '#0a1020', border: '1px solid rgba(255,255,255,0.08)' }}
+            className="w-full px-3.5 py-2.5 rounded-xl text-sm text-white placeholder:text-slate-600 outline-none transition-all focus:border-accent-500/50"
+            style={{ background: 'var(--surface-2)', border: '1px solid rgba(255,255,255,0.08)' }}
           />
         </div>
 
@@ -177,7 +177,7 @@ export default function LinkedInOptimizerPage() {
           onClick={handleOptimize}
           disabled={saving}
           className="w-full flex items-center justify-center gap-2 py-4 rounded-xl font-bold text-white text-base transition-all hover:opacity-90 active:scale-[0.99] disabled:opacity-60"
-          style={{ background: 'linear-gradient(135deg, #0a66c2, #3b82f6)' }}
+          style={{ background: 'linear-gradient(135deg, #0a66c2, var(--accent))' }}
         >
           {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Sparkles className="w-5 h-5" />}
           {saving ? 'Saving…' : 'Optimize on LinkedIn'}
@@ -187,19 +187,19 @@ export default function LinkedInOptimizerPage() {
         {saved && (
           <div className="mt-4 rounded-xl px-4 py-3.5 text-sm" style={{ background: 'rgba(52,211,153,0.08)', border: '1px solid rgba(52,211,153,0.2)', color: '#6ee7b7' }}>
             <div className="flex items-center gap-2 mb-1"><Check className="w-4 h-4 shrink-0" /> Saved. We opened your LinkedIn profile in a new tab.</div>
-            <p className="text-slate-400 text-xs leading-relaxed">There, click <strong className="text-slate-200">Optimize with HireWin</strong> (bottom-right). The panel auto-runs and rewrites each section from this resume. <a className="text-blue-400 underline" href={LINKEDIN_URL} target="_blank" rel="noreferrer">Open LinkedIn again</a></p>
+            <p className="text-slate-400 text-xs leading-relaxed">There, click <strong className="text-slate-200">Optimize with HireWin</strong> (bottom-right). The panel auto-runs and rewrites each section from this resume. <a className="text-accent-400 underline" href={LINKEDIN_URL} target="_blank" rel="noreferrer">Open LinkedIn again</a></p>
           </div>
         )}
 
         {/* Setup help */}
-        <div className="mt-6 rounded-2xl p-5" style={{ background: 'rgba(124,58,237,0.06)', border: '1px solid rgba(124,58,237,0.18)' }}>
+        <div className="mt-6 rounded-2xl p-5" style={{ background: 'rgba(var(--accent-rgb), 0.06)', border: '1px solid rgba(var(--accent-rgb), 0.18)' }}>
           <div className="flex items-center gap-2 mb-3">
-            <Puzzle className="w-4 h-4 text-purple-400" />
+            <Puzzle className="w-4 h-4 text-accent-400" />
             <h3 className="text-sm font-bold text-white">First time? Set up the extension (once)</h3>
           </div>
           <ol className="space-y-1.5 text-xs text-slate-400 list-decimal list-inside">
             <li>Install the HireWin LinkedIn extension in Chrome.</li>
-            <li><Link href="/connect-extension" className="text-blue-400 underline">Get your connection code</Link> and paste it into the extension popup.</li>
+            <li><Link href="/connect-extension" className="text-accent-400 underline">Get your connection code</Link> and paste it into the extension popup.</li>
             <li>Come back here, click <strong className="text-slate-200">Optimize on LinkedIn</strong>, and you're set.</li>
           </ol>
         </div>

@@ -36,7 +36,7 @@ export default function LoginPage() {
   return (
     <div
       className="min-h-screen flex flex-col items-center justify-center px-4 py-8 sm:py-12"
-      style={{ background: '#080d1a' }}
+      style={{ background: 'var(--ground)' }}
     >
       {/* Dot-grid texture */}
       <div
@@ -52,11 +52,11 @@ export default function LoginPage() {
       <div className="fixed inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
         <div
           className="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[500px] rounded-full opacity-20 animate-float"
-          style={{ background: 'radial-gradient(ellipse, rgba(124,58,237,0.7) 0%, transparent 70%)', animationDuration: '9s' }}
+          style={{ background: 'radial-gradient(ellipse, rgba(var(--accent-rgb), 0.7) 0%, transparent 70%)', animationDuration: '9s' }}
         />
         <div
           className="absolute bottom-0 right-1/3 w-[400px] h-[400px] rounded-full opacity-10 animate-float"
-          style={{ background: 'radial-gradient(ellipse, rgba(59,130,246,0.8) 0%, transparent 70%)', animationDelay: '-4s', animationDuration: '12s' }}
+          style={{ background: 'radial-gradient(ellipse, rgba(var(--accent-rgb), 0.8) 0%, transparent 70%)', animationDelay: '-4s', animationDuration: '12s' }}
         />
       </div>
 
@@ -65,8 +65,8 @@ export default function LoginPage() {
         {/* Logo */}
         <div className="flex flex-col items-center mb-8">
           <div
-            className="w-14 h-14 rounded-2xl flex items-center justify-center text-white text-xl font-extrabold mb-4 animate-glow-pulse"
-            style={{ background: 'linear-gradient(135deg, #7c3aed, #3b82f6)', boxShadow: '0 8px 32px rgba(124,58,237,0.4)' }}
+            className="w-14 h-14 rounded-2xl flex items-center justify-center text-[var(--on-accent)] text-xl font-extrabold mb-4 animate-glow-pulse btn-accent"
+            style={{ background: 'var(--accent-fill)', boxShadow: '0 8px 32px rgba(var(--accent-rgb), 0.4)' }}
           >
             H
           </div>
@@ -93,7 +93,7 @@ export default function LoginPage() {
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium text-slate-300"
               style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.09)' }}
             >
-              <Icon className="w-3.5 h-3.5 text-purple-400" />
+              <Icon className="w-3.5 h-3.5 text-accent-400" />
               {label}
             </div>
           ))}

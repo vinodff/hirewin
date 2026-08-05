@@ -22,7 +22,7 @@ type Phase = 'idle' | 'scanning' | 'transforming' | 'done';
 function ScoreRing({ score, size = 52 }: { score: number; size?: number }) {
   const r = (size - 8) / 2;
   const C = 2 * Math.PI * r;
-  const col = score >= 70 ? '#4ade80' : score >= 40 ? '#fbbf24' : '#f87171';
+  const col = score >= 70 ? 'var(--signal)' : score >= 40 ? '#fbbf24' : '#f87171';
   return (
     <div className="relative shrink-0" style={{ width: size, height: size }}>
       <svg width={size} height={size} style={{ transform: 'rotate(-90deg)', position: 'absolute', inset: 0 }}>
@@ -107,7 +107,7 @@ export default function HeroDemo() {
       style={{
         background: '#080f1e',
         border: '1px solid rgba(255,255,255,0.09)',
-        boxShadow: '0 40px 100px rgba(0,0,0,0.6), 0 0 0 1px rgba(124,58,237,0.08)',
+        boxShadow: '0 40px 100px rgba(0,0,0,0.6), 0 0 0 1px rgba(var(--accent-rgb), 0.08)',
       }}>
 
       {/* Window chrome */}
@@ -120,14 +120,14 @@ export default function HeroDemo() {
         </div>
         <div className="flex items-center gap-2">
           {isScanning && (
-            <span className="flex items-center gap-1.5 text-[10px] font-bold text-purple-300 animate-pulse">
-              <span className="w-1.5 h-1.5 rounded-full bg-purple-400" />
+            <span className="flex items-center gap-1.5 text-[10px] font-bold text-accent-300 animate-pulse">
+              <span className="w-1.5 h-1.5 rounded-full bg-accent-400" />
               AI SCANNING JD KEYWORDS
             </span>
           )}
           {isTransformed && (
-            <span className="flex items-center gap-1.5 text-[10px] font-bold text-green-300">
-              <CheckCircle className="w-3 h-3 text-green-400" />
+            <span className="flex items-center gap-1.5 text-[10px] font-bold text-[var(--signal)]">
+              <CheckCircle className="w-3 h-3 text-[var(--signal)]" />
               OPTIMIZED · ATS-READY
             </span>
           )}
@@ -166,7 +166,7 @@ export default function HeroDemo() {
             <div className="flex flex-wrap gap-1 mb-3">
               {JD_KEYWORDS.slice(0, kwCount).map(kw => (
                 <span key={kw} className="keyword-pop text-[9px] px-1.5 py-0.5 rounded font-bold"
-                  style={{ background: 'rgba(74,222,128,0.12)', color: '#4ade80', border: '1px solid rgba(74,222,128,0.25)' }}>
+                  style={{ background: 'rgba(var(--signal-rgb), 0.12)', color: 'var(--signal)', border: '1px solid rgba(var(--signal-rgb), 0.25)' }}>
                   ✓ {kw}
                 </span>
               ))}
@@ -197,18 +197,18 @@ export default function HeroDemo() {
 
         {/* ─── RIGHT: After ─── */}
         <div className="relative p-4 sm:p-5 transition-all duration-700"
-          style={{ background: isTransformed ? 'rgba(74,222,128,0.025)' : 'transparent' }}>
+          style={{ background: isTransformed ? 'rgba(var(--signal-rgb), 0.025)' : 'transparent' }}>
 
           {/* Green top accent */}
           {isTransformed && (
             <div className="absolute top-0 left-0 right-0 h-px"
-              style={{ background: 'linear-gradient(90deg,transparent,rgba(74,222,128,0.6),transparent)' }} />
+              style={{ background: 'linear-gradient(90deg,transparent,rgba(var(--signal-rgb), 0.6),transparent)' }} />
           )}
 
           <div className="flex items-start justify-between mb-3">
             <div>
               <div className="text-[9px] font-bold uppercase tracking-widest mb-1 transition-colors duration-500"
-                style={{ color: isTransformed ? '#4ade80' : '#1e293b' }}>
+                style={{ color: isTransformed ? 'var(--signal)' : '#1e293b' }}>
                 HireWin Optimized
               </div>
               <div className="text-sm font-semibold text-white">Arjun Sharma</div>
@@ -219,7 +219,7 @@ export default function HeroDemo() {
 
           <div className="space-y-1.5">
             <div className="text-[9px] font-bold uppercase tracking-widest mb-2 transition-colors duration-500"
-              style={{ color: isTransformed ? '#4ade80' : '#1e293b' }}>
+              style={{ color: isTransformed ? 'var(--signal)' : '#1e293b' }}>
               Experience
             </div>
             {AFTER_BULLETS.map((b, i) => (
@@ -230,12 +230,12 @@ export default function HeroDemo() {
                   transform: i < bulletIdx ? 'none' : 'translateY(6px)',
                   transitionDelay: `${i * 40}ms`,
                 }}>
-                <span className="text-green-400 text-[8px] mt-0.5 shrink-0 font-bold">↑</span>
+                <span className="text-[var(--signal)] text-[8px] mt-0.5 shrink-0 font-bold">↑</span>
                 {b}
               </div>
             ))}
             <div className="text-[9px] font-bold uppercase tracking-widest mt-3 mb-1 transition-colors duration-500"
-              style={{ color: isTransformed ? '#4ade80' : '#1e293b' }}>
+              style={{ color: isTransformed ? 'var(--signal)' : '#1e293b' }}>
               Skills
             </div>
             <div className="flex flex-wrap gap-1 transition-all duration-500"
@@ -243,9 +243,9 @@ export default function HeroDemo() {
               {['Java', 'Spring Boot', 'AWS', 'Docker', 'REST API', 'CI/CD'].map((s, i) => (
                 <span key={s} className="text-[9px] px-1.5 py-0.5 rounded font-medium"
                   style={{
-                    background: 'rgba(74,222,128,0.12)',
-                    border: '1px solid rgba(74,222,128,0.2)',
-                    color: '#4ade80',
+                    background: 'rgba(var(--signal-rgb), 0.12)',
+                    border: '1px solid rgba(var(--signal-rgb), 0.2)',
+                    color: 'var(--signal)',
                     transitionDelay: `${i * 60}ms`,
                   }}>
                   {s}
@@ -258,8 +258,8 @@ export default function HeroDemo() {
         {/* ─── Center AI badge (desktop) ─── */}
         {isTransformed && (
           <div className="absolute hidden sm:flex items-center justify-center left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-20 pointer-events-none">
-            <div className="w-10 h-10 rounded-full flex items-center justify-center animate-glow-pulse"
-              style={{ background: 'linear-gradient(135deg,#7c3aed,#3b82f6)', boxShadow: '0 0 24px rgba(124,58,237,0.7), 0 0 8px rgba(124,58,237,0.5)' }}>
+            <div className="w-10 h-10 rounded-full flex items-center justify-center animate-glow-pulse btn-accent"
+              style={{ background: 'var(--accent-fill)', boxShadow: '0 0 24px rgba(var(--accent-rgb), 0.7), 0 0 8px rgba(var(--accent-rgb), 0.5)' }}>
               <Zap className="w-4 h-4 text-white" />
             </div>
           </div>
@@ -270,15 +270,15 @@ export default function HeroDemo() {
       <div className="flex items-center gap-4 sm:gap-8 px-4 py-2.5 flex-wrap"
         style={{ background: '#0a1223', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
         <div className="flex items-center gap-1.5 text-[10px]">
-          <Target className="w-3 h-3 text-purple-400 shrink-0" />
+          <Target className="w-3 h-3 text-accent-400 shrink-0" />
           <span className="text-slate-500">ATS Score</span>
           <span className="font-bold ml-1 transition-colors duration-500"
-            style={{ color: score >= 70 ? '#4ade80' : '#ef4444' }}>{score}</span>
+            style={{ color: score >= 70 ? 'var(--signal)' : '#ef4444' }}>{score}</span>
         </div>
         <div className="flex items-center gap-1.5 text-[10px]">
-          <TrendingUp className="w-3 h-3 text-blue-400 shrink-0" />
+          <TrendingUp className="w-3 h-3 text-accent-400 shrink-0" />
           <span className="text-slate-500">Keywords injected</span>
-          <span className="font-bold text-blue-400 ml-1">+{isTransformed ? 11 : 0}</span>
+          <span className="font-bold text-accent-400 ml-1">+{isTransformed ? 11 : 0}</span>
         </div>
         <div className="flex items-center gap-1.5 text-[10px]">
           <Zap className="w-3 h-3 text-yellow-400 shrink-0" />

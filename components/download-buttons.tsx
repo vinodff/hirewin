@@ -136,7 +136,7 @@ export default function DownloadButtons({ optimizedResume, versionId, template, 
 
       <div className="relative rounded-2xl overflow-hidden"
         style={{
-          background: 'linear-gradient(160deg, #0f1629, #0a1020)',
+          background: 'linear-gradient(160deg, var(--surface), var(--surface-2))',
           border: '1px solid rgba(255,255,255,0.07)',
           boxShadow: '0 20px 50px -15px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05)',
         }}>
@@ -144,7 +144,7 @@ export default function DownloadButtons({ optimizedResume, versionId, template, 
         {/* Top accent stripe */}
         {canDownload && (
           <div className="absolute top-0 inset-x-0 h-px"
-            style={{ background: 'linear-gradient(90deg, transparent, rgba(124,58,237,0.6), rgba(59,130,246,0.6), transparent)' }} />
+            style={{ background: 'linear-gradient(90deg, transparent, rgba(var(--accent-rgb), 0.6), rgba(var(--accent-rgb), 0.6), transparent)' }} />
         )}
 
         <div className="p-5 sm:p-6">
@@ -162,7 +162,7 @@ export default function DownloadButtons({ optimizedResume, versionId, template, 
             </div>
             {template && template !== 'classic' && (
               <span className="flex items-center gap-1.5 text-xs font-medium px-2 py-0.5 rounded-md"
-                style={{ background: 'rgba(124,58,237,0.12)', color: '#c4b5fd', border: '1px solid rgba(124,58,237,0.25)' }}>
+                style={{ background: 'rgba(var(--accent-rgb), 0.12)', color: 'var(--accent-soft)', border: '1px solid rgba(var(--accent-rgb), 0.25)' }}>
                 <Palette className="w-3 h-3" />
                 {template.charAt(0).toUpperCase() + template.slice(1)}
               </span>
@@ -172,8 +172,8 @@ export default function DownloadButtons({ optimizedResume, versionId, template, 
           {/* Credits remaining from a purchased pack */}
           {showCreditsLeft && (
             <div className="rounded-xl p-3 mb-5 flex items-center gap-2.5"
-              style={{ background: 'rgba(124,58,237,0.1)', border: '1px solid rgba(124,58,237,0.3)' }}>
-              <Gift className="w-4 h-4 text-purple-300 shrink-0" />
+              style={{ background: 'rgba(var(--accent-rgb), 0.1)', border: '1px solid rgba(var(--accent-rgb), 0.3)' }}>
+              <Gift className="w-4 h-4 text-accent-300 shrink-0" />
               <p className="text-xs text-slate-300">
                 <span className="font-bold text-white">{downloadsLeft}</span> download{downloadsLeft === 1 ? '' : 's'} left on your pack.
               </p>
@@ -184,9 +184,9 @@ export default function DownloadButtons({ optimizedResume, versionId, template, 
           {sharesUnlocked && justUnlocked && (
             <div className="rounded-xl p-4 mb-5 flex items-center gap-3"
               style={{ background: 'rgba(37,211,102,0.1)', border: '1px solid rgba(37,211,102,0.3)' }}>
-              <CheckCircle2 className="w-5 h-5 text-green-400 shrink-0" />
+              <CheckCircle2 className="w-5 h-5 text-[var(--signal)] shrink-0" />
               <div>
-                <p className="text-sm font-bold text-green-300">Download unlocked. Thanks for sharing.</p>
+                <p className="text-sm font-bold text-[var(--signal)]">Download unlocked. Thanks for sharing.</p>
                 <p className="text-xs text-slate-400 mt-0.5">Click PDF or DOCX below.</p>
               </div>
             </div>
@@ -197,8 +197,8 @@ export default function DownloadButtons({ optimizedResume, versionId, template, 
             <button onClick={() => download('pdf')} disabled={pdfLoading || docxLoading}
               className="group relative flex-1 flex items-center justify-center gap-2 py-3.5 sm:py-3 rounded-xl font-bold text-white transition-all hover:opacity-95 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden"
               style={{
-                background: 'linear-gradient(135deg, #7c3aed, #3b82f6)',
-                boxShadow: canDownload ? '0 8px 24px -8px rgba(124,58,237,0.5)' : 'none',
+                background: 'var(--accent-fill)',
+                boxShadow: canDownload ? '0 8px 24px -8px rgba(var(--accent-rgb), 0.5)' : 'none',
               }}>
               {pdfLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
               <span>Download PDF</span>
@@ -219,7 +219,7 @@ export default function DownloadButtons({ optimizedResume, versionId, template, 
               style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
               <Lock className="w-4 h-4 text-slate-500 shrink-0" />
               <p className="text-xs text-slate-400 flex-1">
-                <Link href="/auth/login" className="text-purple-400 font-semibold hover:underline">Sign in</Link>
+                <Link href="/auth/login" className="text-accent-400 font-semibold hover:underline">Sign in</Link>
                 {' '}to claim your free download.
               </p>
             </div>
@@ -231,7 +231,7 @@ export default function DownloadButtons({ optimizedResume, versionId, template, 
               <div className="flex items-center gap-2 mb-3">
                 <Share2 className="w-4 h-4 text-slate-500" />
                 <span className="text-sm font-semibold text-slate-300">Or unlock more by sharing</span>
-                <span className="text-xs font-bold ml-auto tabular-nums" style={{ color: shareCount > 0 ? '#25d366' : '#64748b' }}>
+                <span className="text-xs font-bold ml-auto tabular-nums data-num" style={{ color: shareCount > 0 ? '#25d366' : '#64748b' }}>
                   {shareCount}/{SHARES_NEEDED}
                 </span>
               </div>
@@ -270,7 +270,7 @@ export default function DownloadButtons({ optimizedResume, versionId, template, 
                 <span className="text-sm font-medium text-slate-300">Share your win</span>
                 {beforeScore !== undefined && (
                   <span className="text-xs text-slate-500">
-                    {beforeScore} → <span className="text-green-400 font-semibold">{afterScore}</span> ATS
+                    {beforeScore} → <span className="text-[var(--signal)] font-semibold">{afterScore}</span> ATS
                   </span>
                 )}
               </div>

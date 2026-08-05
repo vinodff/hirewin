@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next';
-import { Inter } from 'next/font/google';
+import { Inter, Archivo, IBM_Plex_Mono } from 'next/font/google';
 import './globals.css';
 import PresenceBeat from '@/components/presence-beat';
 import Script from 'next/script';
@@ -15,10 +15,34 @@ const inter = Inter({
   preload: true,
 });
 
+/* Three roles, not one face doing every job:
+   DISPLAY — Archivo. A sturdier grotesque than Inter, so headlines read as a
+     deliberate voice rather than scaled-up body copy. Only 600/700 ship.
+   BODY    — Inter. Already tuned for UI reading; no reason to replace it.
+   DATA    — IBM Plex Mono. This product's substance is numbers (34 → 89,
+     trust 82, keyword counts). Setting them in an engineering face makes the
+     whole thing read as an instrument, which is exactly the brand claim.
+   Both are self-hosted and subset by next/font — no CDN, no layout shift. */
+const archivo = Archivo({
+  subsets: ['latin'],
+  weight: ['600', '700'],
+  display: 'swap',
+  variable: '--font-display',
+  preload: true,
+});
+
+const plexMono = IBM_Plex_Mono({
+  subsets: ['latin'],
+  weight: ['400', '500'],
+  display: 'swap',
+  variable: '--font-data',
+  preload: false,             // data face is below the fold on most pages
+});
+
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  themeColor: '#080d1a',
+  themeColor: 'var(--ground)',
 };
 
 export const metadata: Metadata = {
@@ -38,7 +62,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={inter.variable}>
+    <html lang="en" className={`${inter.variable} ${archivo.variable} ${plexMono.variable}`}>
       <head>
         {/* Preconnect to Supabase for faster auth round-trip */}
         {process.env.NEXT_PUBLIC_SUPABASE_URL && (

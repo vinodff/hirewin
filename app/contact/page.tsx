@@ -5,7 +5,7 @@ import { Mail, MessageSquare, Clock, CheckCircle2, MapPin, Phone } from 'lucide-
 import AppNav from '@/components/app-nav';
 import Footer from '@/components/footer';
 
-const cardStyle = { background: '#0f1629', border: '1px solid rgba(255,255,255,0.07)' };
+const cardStyle = { background: 'var(--surface)', border: '1px solid rgba(255,255,255,0.07)' };
 const inputStyle = {
   background: 'rgba(255,255,255,0.04)',
   border: '1px solid rgba(255,255,255,0.1)',
@@ -40,7 +40,7 @@ export default function ContactPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: '#080d1a' }}>
+    <div className="min-h-screen flex flex-col" style={{ background: 'var(--ground)' }}>
       <AppNav />
 
       <div className="flex-1 max-w-4xl mx-auto px-4 py-12 w-full">
@@ -56,18 +56,18 @@ export default function ContactPage() {
           {/* Info cards */}
           <div className="space-y-4">
             <div className="rounded-2xl p-5" style={cardStyle}>
-              <Mail className="w-5 h-5 text-purple-400 mb-3" />
+              <Mail className="w-5 h-5 text-accent-400 mb-3" />
               <h3 className="font-semibold text-white text-sm mb-1">Email Us</h3>
-              <a href="mailto:support@hirewin.live" className="text-xs text-purple-400 hover:text-purple-300 transition-colors">
+              <a href="mailto:support@hirewin.live" className="text-xs text-accent-400 hover:text-accent-300 transition-colors">
                 support@hirewin.live
               </a>
               <p className="text-xs text-slate-500 mt-1">For all inquiries and support</p>
             </div>
 
             <div className="rounded-2xl p-5" style={cardStyle}>
-              <Phone className="w-5 h-5 text-green-400 mb-3" />
+              <Phone className="w-5 h-5 text-[var(--signal)] mb-3" />
               <h3 className="font-semibold text-white text-sm mb-1">Call / WhatsApp</h3>
-              <a href="tel:+918019238515" className="text-xs text-green-400 hover:text-green-300 transition-colors">
+              <a href="tel:+918019238515" className="text-xs text-[var(--signal)] hover:text-[var(--signal)] transition-colors">
                 +91 80192 38515
               </a>
               <p className="text-xs text-slate-500 mt-1">Mon–Sat, 9 AM – 6 PM IST</p>
@@ -87,7 +87,7 @@ export default function ContactPage() {
             </div>
 
             <div className="rounded-2xl p-5" style={cardStyle}>
-              <Clock className="w-5 h-5 text-blue-400 mb-3" />
+              <Clock className="w-5 h-5 text-accent-400 mb-3" />
               <h3 className="font-semibold text-white text-sm mb-1">Response Time</h3>
               <p className="text-xs text-slate-400">Within 24 hours</p>
               <p className="text-xs text-slate-500 mt-1">Mon–Sat, 9 AM – 6 PM IST</p>
@@ -117,7 +117,7 @@ export default function ContactPage() {
                 </p>
                 <button
                   onClick={() => { setSent(false); setForm({ name: '', email: '', subject: '', message: '' }); }}
-                  className="text-sm text-purple-400 hover:text-purple-300 transition-colors mt-2"
+                  className="text-sm text-accent-400 hover:text-accent-300 transition-colors mt-2"
                 >
                   Send another message
                 </button>
@@ -136,7 +136,7 @@ export default function ContactPage() {
                       value={form.name}
                       onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                       placeholder="Your name"
-                      className="w-full rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-purple-500/50 placeholder-slate-600"
+                      className="w-full rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-accent-500/50 placeholder-slate-600"
                       style={inputStyle}
                     />
                   </div>
@@ -149,7 +149,7 @@ export default function ContactPage() {
                       value={form.email}
                       onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
                       placeholder="your@email.com"
-                      className="w-full rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-purple-500/50 placeholder-slate-600"
+                      className="w-full rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-accent-500/50 placeholder-slate-600"
                       style={inputStyle}
                     />
                   </div>
@@ -162,7 +162,7 @@ export default function ContactPage() {
                     value={form.subject}
                     onChange={e => setForm(f => ({ ...f, subject: e.target.value }))}
                     placeholder="How can we help?"
-                    className="w-full rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-purple-500/50 placeholder-slate-600"
+                    className="w-full rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-1 focus:ring-accent-500/50 placeholder-slate-600"
                     style={inputStyle}
                   />
                 </div>
@@ -176,7 +176,7 @@ export default function ContactPage() {
                     onChange={e => setForm(f => ({ ...f, message: e.target.value }))}
                     placeholder="Describe your issue or question in detail…"
                     rows={6}
-                    className="w-full rounded-xl px-3 py-2.5 text-sm resize-none focus:outline-none focus:ring-1 focus:ring-purple-500/50 placeholder-slate-600"
+                    className="w-full rounded-xl px-3 py-2.5 text-sm resize-none focus:outline-none focus:ring-1 focus:ring-accent-500/50 placeholder-slate-600"
                     style={inputStyle}
                   />
                 </div>
@@ -186,8 +186,8 @@ export default function ContactPage() {
                 <button
                   type="submit"
                   disabled={sending}
-                  className="w-full py-3 rounded-xl text-sm font-bold text-white transition-all hover:opacity-90 disabled:opacity-60"
-                  style={{ background: 'linear-gradient(135deg, #7c3aed, #3b82f6)' }}
+                  className="w-full py-3 rounded-xl text-sm font-bold text-[var(--on-accent)] transition-all hover:opacity-90 disabled:opacity-60 btn-accent"
+                  style={{ background: 'var(--accent-fill)' }}
                 >
                   {sending ? 'Opening email…' : 'Send Message →'}
                 </button>

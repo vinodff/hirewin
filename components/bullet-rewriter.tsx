@@ -10,7 +10,7 @@ const TRANSFORMS = [
     before: 'Worked on Java modules in the Wipro team project.',
     after:  'Architected 4 Spring Boot microservices at Wipro, cutting API latency 42% and enabling 3× throughput for 2M+ daily transactions.',
     tag:    'Impact + Numbers',
-    color:  '#a78bfa',
+    color:  'var(--accent-soft)',
   },
   {
     job:    'Swiggy · Product Manager',

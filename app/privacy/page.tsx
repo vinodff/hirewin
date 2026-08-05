@@ -14,7 +14,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 export default function PrivacyPage() {
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: '#080d1a' }}>
+    <div className="min-h-screen flex flex-col" style={{ background: 'var(--ground)' }}>
       <AppNav />
 
       <div className="flex-1 max-w-3xl mx-auto px-4 py-12 w-full">
@@ -25,14 +25,14 @@ export default function PrivacyPage() {
 
         <div
           className="rounded-2xl p-6 sm:p-8"
-          style={{ background: '#0f1629', border: '1px solid rgba(255,255,255,0.07)' }}
+          style={{ background: 'var(--surface)', border: '1px solid rgba(255,255,255,0.07)' }}
         >
           <Section title="1. Who We Are">
             <p>
               HireWin (&ldquo;we&rdquo;, &ldquo;our&rdquo;, &ldquo;us&rdquo;) operates <strong className="text-white">hirewin.live</strong> — an AI-powered resume optimization platform. We are committed to protecting your personal information and your right to privacy.
             </p>
             <p>
-              If you have questions about this policy, contact us at <a href="mailto:support@hirewin.live" className="text-purple-400 hover:text-purple-300">support@hirewin.live</a>.
+              If you have questions about this policy, contact us at <a href="mailto:support@hirewin.live" className="text-accent-400 hover:text-accent-300">support@hirewin.live</a>.
             </p>
           </Section>
 
@@ -65,7 +65,7 @@ export default function PrivacyPage() {
               Your resume and job description are sent to Anthropic&rsquo;s Claude API for AI processing. Anthropic processes this data to generate the optimized resume. We recommend not including highly sensitive personal information (e.g., national ID numbers, financial details) in your resume when using our service.
             </p>
             <p>
-              Anthropic&rsquo;s privacy policy governs their handling of data: <a href="https://www.anthropic.com/privacy" className="text-purple-400 hover:text-purple-300" target="_blank" rel="noopener noreferrer">anthropic.com/privacy</a>.
+              Anthropic&rsquo;s privacy policy governs their handling of data: <a href="https://www.anthropic.com/privacy" className="text-accent-400 hover:text-accent-300" target="_blank" rel="noopener noreferrer">anthropic.com/privacy</a>.
             </p>
           </Section>
 
@@ -104,7 +104,7 @@ export default function PrivacyPage() {
               <li>Export your optimization history.</li>
             </ul>
             <p>
-              To exercise any of these rights, email us at <a href="mailto:support@hirewin.live" className="text-purple-400 hover:text-purple-300">support@hirewin.live</a>. We will respond within 30 days.
+              To exercise any of these rights, email us at <a href="mailto:support@hirewin.live" className="text-accent-400 hover:text-accent-300">support@hirewin.live</a>. We will respond within 30 days.
             </p>
           </Section>
 
@@ -123,7 +123,7 @@ export default function PrivacyPage() {
           <Section title="11. Contact">
             <p>
               For privacy-related questions or requests, contact:<br />
-              <a href="mailto:support@hirewin.live" className="text-purple-400 hover:text-purple-300">support@hirewin.live</a>
+              <a href="mailto:support@hirewin.live" className="text-accent-400 hover:text-accent-300">support@hirewin.live</a>
             </p>
           </Section>
         </div>

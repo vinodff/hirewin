@@ -10,7 +10,7 @@ const values = [
     icon: Target,
     title: 'Built for Jobseekers',
     desc: 'Every feature is designed around one goal — helping you land more interviews. Not a generic AI tool, but a focused career tool.',
-    color: '#a78bfa',
+    color: 'var(--accent-soft)',
   },
   {
     icon: Shield,
@@ -34,21 +34,21 @@ const values = [
 
 export default function AboutPage() {
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: '#080d1a' }}>
+    <div className="min-h-screen flex flex-col" style={{ background: 'var(--ground)' }}>
       <AppNav />
 
       <div className="flex-1">
         {/* Hero */}
         <div className="max-w-4xl mx-auto px-4 pt-16 pb-12 text-center">
           <div
-            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold text-purple-300 mb-6"
-            style={{ background: 'rgba(124,58,237,0.1)', border: '1px solid rgba(124,58,237,0.25)' }}
+            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold text-accent-300 mb-6"
+            style={{ background: 'rgba(var(--accent-rgb), 0.1)', border: '1px solid rgba(var(--accent-rgb), 0.25)' }}
           >
             Our Story
           </div>
           <h1 className="text-4xl sm:text-5xl font-extrabold text-white mb-6 leading-tight tracking-tight">
             We built HireWin because<br />
-            <span style={{ background: 'linear-gradient(135deg,#a78bfa,#60a5fa)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+            <span style={{ background: 'linear-gradient(135deg,var(--accent-soft),#60a5fa)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
               great candidates were losing to bad resumes.
             </span>
           </h1>
@@ -61,7 +61,7 @@ export default function AboutPage() {
         <div className="max-w-3xl mx-auto px-4 pb-16">
           <div
             className="rounded-2xl p-8 mb-10"
-            style={{ background: '#0f1629', border: '1px solid rgba(255,255,255,0.07)' }}
+            style={{ background: 'var(--surface)', border: '1px solid rgba(255,255,255,0.07)' }}
           >
             <h2 className="text-xl font-bold text-white mb-4">Our Mission</h2>
             <p className="text-slate-400 leading-relaxed">
@@ -79,7 +79,7 @@ export default function AboutPage() {
               <div
                 key={title}
                 className="rounded-2xl p-6"
-                style={{ background: '#0f1629', border: '1px solid rgba(255,255,255,0.07)' }}
+                style={{ background: 'var(--surface)', border: '1px solid rgba(255,255,255,0.07)' }}
               >
                 <div
                   className="w-10 h-10 rounded-xl flex items-center justify-center mb-4"
@@ -97,8 +97,8 @@ export default function AboutPage() {
           <div
             className="rounded-2xl p-8 mb-10"
             style={{
-              background: 'linear-gradient(135deg, rgba(124,58,237,0.1), rgba(59,130,246,0.08))',
-              border: '1px solid rgba(124,58,237,0.2)',
+              background: 'linear-gradient(135deg, rgba(var(--accent-rgb), 0.1), rgba(var(--accent-rgb), 0.08))',
+              border: '1px solid rgba(var(--accent-rgb), 0.2)',
             }}
           >
             <div className="grid grid-cols-3 gap-6 text-center">
@@ -118,7 +118,7 @@ export default function AboutPage() {
           {/* Contact */}
           <div
             className="rounded-2xl p-8 text-center"
-            style={{ background: '#0f1629', border: '1px solid rgba(255,255,255,0.07)' }}
+            style={{ background: 'var(--surface)', border: '1px solid rgba(255,255,255,0.07)' }}
           >
             <h2 className="text-xl font-bold text-white mb-3">Get in Touch</h2>
             <p className="text-sm text-slate-400 mb-5 max-w-sm mx-auto">
@@ -127,8 +127,8 @@ export default function AboutPage() {
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <Link
                 href="/contact"
-                className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-sm font-bold text-white transition-all hover:opacity-90"
-                style={{ background: 'linear-gradient(135deg, #7c3aed, #3b82f6)' }}
+                className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl text-sm font-bold text-[var(--on-accent)] transition-all hover:opacity-90 btn-accent"
+                style={{ background: 'var(--accent-fill)' }}
               >
                 Contact Us
               </Link>

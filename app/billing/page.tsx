@@ -6,7 +6,7 @@ import { CreditCard, Zap, ChevronLeft } from 'lucide-react';
 import AppNav from '@/components/app-nav';
 import type { Plan, PlanLimits } from '@/types';
 
-const cardStyle = { background: '#0f1629', border: '1px solid rgba(255,255,255,0.07)' };
+const cardStyle = { background: 'var(--surface)', border: '1px solid rgba(255,255,255,0.07)' };
 
 const PLAN_LABELS: Record<Plan, string> = {
   free: 'Free Plan',
@@ -95,7 +95,7 @@ export default function BillingPage() {
   const isFree = data?.plan === 'free';
 
   return (
-    <div className="min-h-screen" style={{ background: '#080d1a' }}>
+    <div className="min-h-screen" style={{ background: 'var(--ground)' }}>
       <AppNav />
 
       <div className="max-w-2xl mx-auto px-4 py-8">
@@ -117,7 +117,7 @@ export default function BillingPage() {
         {loading && (
           <div className="space-y-4">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="rounded-2xl h-24 animate-pulse" style={{ background: '#0f1629' }} />
+              <div key={i} className="rounded-2xl h-24 animate-pulse" style={{ background: 'var(--surface)' }} />
             ))}
           </div>
         )}
@@ -139,9 +139,9 @@ export default function BillingPage() {
                   <span
                     className="inline-block mt-1 text-xs font-semibold px-2.5 py-0.5 rounded-full"
                     style={{
-                      background: 'rgba(74,222,128,0.12)',
-                      color: '#4ade80',
-                      border: '1px solid rgba(74,222,128,0.2)',
+                      background: 'rgba(var(--signal-rgb), 0.12)',
+                      color: 'var(--signal)',
+                      border: '1px solid rgba(var(--signal-rgb), 0.2)',
                     }}
                   >
                     Active
@@ -149,8 +149,8 @@ export default function BillingPage() {
                 </div>
                 <Link
                   href="/pricing"
-                  className="flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded-xl text-white transition-all hover:opacity-90 shrink-0"
-                  style={{ background: 'linear-gradient(135deg, #7c3aed, #3b82f6)' }}
+                  className="flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded-xl text-[var(--on-accent)] transition-all hover:opacity-90 shrink-0 btn-accent"
+                  style={{ background: 'var(--accent-fill)' }}
                 >
                   <Zap className="w-3.5 h-3.5" />
                   Upgrade your plan
@@ -206,8 +206,8 @@ export default function BillingPage() {
                   {isFree && (
                     <Link
                       href="/pricing"
-                      className="inline-flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded-xl text-white transition-all hover:opacity-90"
-                      style={{ background: 'linear-gradient(135deg, #7c3aed, #3b82f6)' }}
+                      className="inline-flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded-xl text-[var(--on-accent)] transition-all hover:opacity-90 btn-accent"
+                      style={{ background: 'var(--accent-fill)' }}
                     >
                       View Plans
                     </Link>
@@ -243,7 +243,7 @@ export default function BillingPage() {
                             className="text-xs px-2 py-0.5 rounded-full capitalize"
                             style={
                               order.status === 'paid'
-                                ? { background: 'rgba(74,222,128,0.1)', color: '#4ade80', border: '1px solid rgba(74,222,128,0.2)' }
+                                ? { background: 'rgba(var(--signal-rgb), 0.1)', color: 'var(--signal)', border: '1px solid rgba(var(--signal-rgb), 0.2)' }
                                 : { background: 'rgba(255,255,255,0.06)', color: '#94a3b8' }
                             }
                           >

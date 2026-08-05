@@ -19,7 +19,7 @@ import BrandLoader from '@/components/brand-loader';
 const VoiceInterview = dynamic(() => import('@/components/voice-interview'), { ssr: false });
 const SelfDescription = dynamic(() => import('@/components/self-description'), { ssr: false });
 
-const cardStyle = { background: '#0f1629', border: '1px solid rgba(255,255,255,0.07)' };
+const cardStyle = { background: 'var(--surface)', border: '1px solid rgba(255,255,255,0.07)' };
 
 const companyTypeLabels: Record<string, string> = {
   startup: 'Startup',
@@ -51,7 +51,7 @@ export default function HistoryDetailPage() {
   }, [params?.id]);
 
   return (
-    <div className="min-h-screen" style={{ background: '#080d1a' }}>
+    <div className="min-h-screen" style={{ background: 'var(--ground)' }}>
       <AppNav />
 
       <div className="max-w-5xl mx-auto px-4 py-8 space-y-5">
@@ -64,7 +64,7 @@ export default function HistoryDetailPage() {
         {error && (
           <div className="rounded-2xl p-8 text-center" style={cardStyle}>
             <p className="text-red-400 mb-4">{error}</p>
-            <Link href="/history" className="text-purple-400 hover:text-purple-300 text-sm font-medium">
+            <Link href="/history" className="text-accent-400 hover:text-accent-300 text-sm font-medium">
               ← Back to history
             </Link>
           </div>
@@ -277,8 +277,8 @@ function InterviewResultsSection({ report }: { report: InterviewReport }) {
                 <p className="text-xs text-slate-400 leading-relaxed mb-2">{qf.feedback}</p>
                 {qf.betterAnswer && (
                   <div className="rounded-lg p-3"
-                    style={{ background: 'rgba(124,58,237,0.07)', border: '1px solid rgba(124,58,237,0.15)' }}>
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-purple-400 mb-1">Stronger Answer</p>
+                    style={{ background: 'rgba(var(--accent-rgb), 0.07)', border: '1px solid rgba(var(--accent-rgb), 0.15)' }}>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-accent-400 mb-1">Stronger Answer</p>
                     <p className="text-xs text-slate-300 leading-relaxed">{qf.betterAnswer}</p>
                   </div>
                 )}
@@ -399,7 +399,7 @@ function OutreachSection({
                 onClick={() => setTab(t)}
                 className="px-4 py-1.5 text-sm rounded-lg font-medium transition-all"
                 style={tab === t
-                  ? { background: 'linear-gradient(135deg, #7c3aed, #3b82f6)', color: '#fff' }
+                  ? { background: 'var(--accent-fill)', color: 'var(--on-accent)' }
                   : { background: 'rgba(255,255,255,0.06)', color: '#94a3b8' }}
               >
                 {t === 'email' ? 'Cold Email' : 'LinkedIn Note'}
@@ -415,7 +415,7 @@ function OutreachSection({
               onClick={copy}
               className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-white transition-colors"
             >
-              {copied ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
+              {copied ? <Check className="w-4 h-4 text-[var(--signal)]" /> : <Copy className="w-4 h-4" />}
               {copied ? 'Copied!' : 'Copy'}
             </button>
           </div>

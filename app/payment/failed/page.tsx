@@ -15,7 +15,7 @@ function FailedContent() {
   return (
     <div
       className="min-h-screen flex flex-col items-center justify-center px-4 py-12"
-      style={{ background: '#080d1a' }}
+      style={{ background: 'var(--ground)' }}
     >
       <div
         className="w-full max-w-md rounded-2xl p-8 text-center"
@@ -46,8 +46,8 @@ function FailedContent() {
         <div className="space-y-3">
           <Link
             href="/pricing"
-            className="flex items-center justify-center gap-2 w-full py-3.5 rounded-xl font-semibold text-white transition-all hover:opacity-90 active:scale-[0.98]"
-            style={{ background: 'linear-gradient(135deg, #7c3aed, #3b82f6)' }}
+            className="flex items-center justify-center gap-2 w-full py-3.5 rounded-xl font-semibold text-[var(--on-accent)] transition-all hover:opacity-90 active:scale-[0.98] btn-accent"
+            style={{ background: 'var(--accent-fill)' }}
           >
             <RefreshCw className="w-4 h-4" />
             Try Again
@@ -64,7 +64,7 @@ function FailedContent() {
 
         <p className="text-xs text-slate-600 mt-6">
           Need help?{' '}
-          <a href="mailto:support@hirewin.live" className="text-purple-400 hover:text-purple-300 underline transition-colors">
+          <a href="mailto:support@hirewin.live" className="text-accent-400 hover:text-accent-300 underline transition-colors">
             Contact support
           </a>
         </p>

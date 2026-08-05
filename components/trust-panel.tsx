@@ -43,7 +43,7 @@ export default function TrustPanel({ trustScore, skillEvidence, interviewRisks, 
   if (variant === 'risks') {
     return (
       <div className="rounded-2xl p-6"
-        style={{ background: '#0f1629', border: '1px solid rgba(255,255,255,0.07)' }}>
+        style={{ background: 'var(--surface)', border: '1px solid rgba(255,255,255,0.07)' }}>
         <div className="flex items-center gap-2 mb-3">
           <ShieldAlert className="w-5 h-5 text-amber-400" />
           <h3 className="font-semibold text-white">Interview Risk Alerts</h3>
@@ -69,12 +69,12 @@ export default function TrustPanel({ trustScore, skillEvidence, interviewRisks, 
 
   return (
     <div className="rounded-2xl p-6"
-      style={{ background: '#0f1629', border: '1px solid rgba(255,255,255,0.07)' }}>
+      style={{ background: 'var(--surface)', border: '1px solid rgba(255,255,255,0.07)' }}>
 
       {/* Header with trust score */}
       <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
         <div className="flex items-center gap-2">
-          <ShieldCheck className="w-5 h-5 text-purple-400" />
+          <ShieldCheck className="w-5 h-5 text-accent-400" />
           <h3 className="font-semibold text-white">Trust & Evidence</h3>
         </div>
         {hasScore && trust && (

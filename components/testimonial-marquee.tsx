@@ -18,7 +18,7 @@ const TESTIMONIALS: Testimonial[] = [
     quote: 'I had applied to 70+ roles with zero callbacks. Re-tailored once with HireWin. Got 3 interviews in a week.',
     result: '0 → 3 interviews / week',
     initial: 'A',
-    color: '#a78bfa',
+    color: 'var(--accent-soft)',
   },
   {
     name: 'Karthik M.',
@@ -83,7 +83,7 @@ function Card({ t }: { t: Testimonial }) {
     <div
       className="shrink-0 w-[280px] sm:w-[340px] mx-2 rounded-2xl p-5"
       style={{
-        background: '#0f1629',
+        background: 'var(--surface)',
         border: '1px solid rgba(255,255,255,0.06)',
       }}
     >

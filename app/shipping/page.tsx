@@ -15,7 +15,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 export default function ShippingPage() {
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: '#080d1a' }}>
+    <div className="min-h-screen flex flex-col" style={{ background: 'var(--ground)' }}>
       <AppNav />
 
       <div className="flex-1 max-w-3xl mx-auto px-4 py-12 w-full">
@@ -26,10 +26,10 @@ export default function ShippingPage() {
 
         {/* Quick summary cards */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-          <div className="rounded-2xl p-5 flex gap-3" style={{ background: 'rgba(124,58,237,0.08)', border: '1px solid rgba(124,58,237,0.2)' }}>
-            <Zap className="w-5 h-5 text-purple-400 shrink-0 mt-0.5" />
+          <div className="rounded-2xl p-5 flex gap-3" style={{ background: 'rgba(var(--accent-rgb), 0.08)', border: '1px solid rgba(var(--accent-rgb), 0.2)' }}>
+            <Zap className="w-5 h-5 text-accent-400 shrink-0 mt-0.5" />
             <div>
-              <p className="text-xs font-bold text-purple-400 mb-1">Digital Only</p>
+              <p className="text-xs font-bold text-accent-400 mb-1">Digital Only</p>
               <p className="text-xs text-slate-400">No physical goods are shipped</p>
             </div>
           </div>
@@ -40,10 +40,10 @@ export default function ShippingPage() {
               <p className="text-xs text-slate-400">Delivered online immediately after payment</p>
             </div>
           </div>
-          <div className="rounded-2xl p-5 flex gap-3" style={{ background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.2)' }}>
-            <Mail className="w-5 h-5 text-blue-400 shrink-0 mt-0.5" />
+          <div className="rounded-2xl p-5 flex gap-3" style={{ background: 'rgba(var(--accent-rgb), 0.08)', border: '1px solid rgba(var(--accent-rgb), 0.2)' }}>
+            <Mail className="w-5 h-5 text-accent-400 shrink-0 mt-0.5" />
             <div>
-              <p className="text-xs font-bold text-blue-400 mb-1">Email Confirmation</p>
+              <p className="text-xs font-bold text-accent-400 mb-1">Email Confirmation</p>
               <p className="text-xs text-slate-400">Receipt sent to your registered email</p>
             </div>
           </div>
@@ -51,7 +51,7 @@ export default function ShippingPage() {
 
         <div
           className="rounded-2xl p-6 sm:p-8"
-          style={{ background: '#0f1629', border: '1px solid rgba(255,255,255,0.07)' }}
+          style={{ background: 'var(--surface)', border: '1px solid rgba(255,255,255,0.07)' }}
         >
           <Section title="1. Nature of Our Service">
             <p>
@@ -83,7 +83,7 @@ export default function ShippingPage() {
             <p>
               If your payment succeeded but you cannot access your purchase or download your files, please contact us. We will
               resolve genuine technical failures promptly, including a refund where applicable under our{' '}
-              <a href="/refund" className="text-purple-400 hover:text-purple-300">Refund Policy</a>. When contacting us, include:
+              <a href="/refund" className="text-accent-400 hover:text-accent-300">Refund Policy</a>. When contacting us, include:
             </p>
             <ul className="list-disc list-inside space-y-1.5 pl-2">
               <li>Your registered email address</li>
@@ -95,12 +95,12 @@ export default function ShippingPage() {
           <Section title="5. Contact">
             <p>
               For any delivery or access questions, email us at{' '}
-              <a href="mailto:support@hirewin.live" className="text-purple-400 hover:text-purple-300">support@hirewin.live</a>.
+              <a href="mailto:support@hirewin.live" className="text-accent-400 hover:text-accent-300">support@hirewin.live</a>.
               We respond within <strong className="text-white">2 business days</strong> (Mon–Sat, 9 AM – 6 PM IST).
             </p>
             <p className="text-xs text-slate-500">
               HireWin is operated by Kondeti Vinod Kumar (Sole Proprietorship). Registered address available on our{' '}
-              <a href="/contact" className="text-purple-400 hover:text-purple-300">Contact</a> page.
+              <a href="/contact" className="text-accent-400 hover:text-accent-300">Contact</a> page.
             </p>
           </Section>
         </div>

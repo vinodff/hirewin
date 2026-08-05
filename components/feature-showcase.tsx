@@ -23,13 +23,13 @@ function Bar({ label, value, color }: { label: string; value: number; color: str
 function OptimizerPreview() {
   return (
     <div className="mt-5 space-y-2.5">
-      <Bar label="ATS Match" value={87} color="#a78bfa" />
+      <Bar label="ATS Match" value={87} color="var(--accent-soft)" />
       <Bar label="Trust Score" value={94} color="#34d399" />
       <Bar label="Job Fit" value={91} color="#60a5fa" />
       <div className="pt-2 flex flex-wrap gap-1.5">
         {['React', 'TypeScript', 'CI/CD', '+8 matched'].map(k => (
           <span key={k} className="text-[9px] px-2 py-0.5 rounded-full"
-            style={{ background: 'rgba(167,139,250,0.1)', color: '#c4b5fd', border: '1px solid rgba(167,139,250,0.2)' }}>
+            style={{ background: 'rgba(var(--accent-soft-rgb), 0.1)', color: 'var(--accent-soft)', border: '1px solid rgba(var(--accent-soft-rgb), 0.2)' }}>
             ✓ {k}
           </span>
         ))}
@@ -48,7 +48,7 @@ function VoicePreview() {
       <div className="rounded-xl p-3" style={{ background: 'rgba(96,165,250,0.07)', border: '1px solid rgba(96,165,250,0.14)' }}>
         <div className="flex items-center gap-1.5 mb-2">
           <span className="text-sm">👤</span>
-          <span className="text-[9px] font-bold text-blue-400 uppercase tracking-wider">Recruiter</span>
+          <span className="text-[9px] font-bold text-accent-400 uppercase tracking-wider">Recruiter</span>
           <span className="text-[9px] text-slate-600 ml-auto flex items-center gap-0.5">
             <Volume2 className="w-2.5 h-2.5" /> speaking
           </span>
@@ -87,7 +87,7 @@ function SelfIntroPreview() {
         {[{ l: '⚡ Brief', a: true }, { l: '🎯 Full', a: false }, { l: '😊 Casual', a: false }].map(t => (
           <div key={t.l} className="text-[9px] px-2 py-1 rounded-lg"
             style={t.a
-              ? { background: 'rgba(167,139,250,0.15)', color: '#c4b5fd', border: '1px solid rgba(167,139,250,0.25)' }
+              ? { background: 'rgba(var(--accent-soft-rgb), 0.15)', color: 'var(--accent-soft)', border: '1px solid rgba(var(--accent-soft-rgb), 0.25)' }
               : { background: 'rgba(255,255,255,0.04)', color: '#475569', border: '1px solid rgba(255,255,255,0.06)' }}>
             {t.l}
           </div>
@@ -97,7 +97,7 @@ function SelfIntroPreview() {
         style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
         &ldquo;With 4 years in full-stack development, I&apos;ve shipped products used by 100k+ users — and I&apos;m excited about this role because…&rdquo;
       </div>
-      <div className="text-[10px] text-purple-400 flex items-center gap-1">
+      <div className="text-[10px] text-accent-400 flex items-center gap-1">
         <Sparkles className="w-2.5 h-2.5" /> Tailored to your JD + resume
       </div>
     </div>
@@ -115,7 +115,7 @@ function OutreachPreview() {
       </div>
       <div className="rounded-lg px-2.5 py-2 flex items-center gap-2"
         style={{ background: 'rgba(10,102,194,0.07)', border: '1px solid rgba(10,102,194,0.15)' }}>
-        <span className="text-[10px] font-semibold text-blue-400">LinkedIn note ready</span>
+        <span className="text-[10px] font-semibold text-accent-400">LinkedIn note ready</span>
         <span className="ml-auto text-[9px] text-slate-600">128 chars</span>
       </div>
     </div>
@@ -140,7 +140,7 @@ function TrackerPreview() {
             {stages.map((s, i) => (
               <span key={s} className="text-[8px] px-1.5 py-0.5 rounded font-medium flex-1 text-center"
                 style={i < r.stage
-                  ? { background: i === 2 ? 'rgba(52,211,153,0.15)' : 'rgba(124,58,237,0.12)', color: i === 2 ? '#34d399' : '#a78bfa' }
+                  ? { background: i === 2 ? 'rgba(52,211,153,0.15)' : 'rgba(var(--accent-rgb), 0.12)', color: i === 2 ? '#34d399' : 'var(--accent-soft)' }
                   : { background: 'rgba(255,255,255,0.04)', color: '#334155' }}>
                 {s}
               </span>
@@ -173,7 +173,7 @@ const FEATURES: Feature[] = [
     icon: BarChart2, tag: 'Core tool',
     title: 'Resume Optimizer',
     desc: 'ATS match, trust score, and recruiter-ready rewrites — tailored to any job in ~20 seconds. Free to preview.',
-    color: '#a78bfa', href: '/analyze', cta: 'Optimize free',
+    color: 'var(--accent-soft)', href: '/analyze', cta: 'Optimize free',
     preview: <OptimizerPreview />,
   },
   {
@@ -189,7 +189,7 @@ const FEATURES: Feature[] = [
     icon: User, tag: 'Interview prep',
     title: 'Self-Introduction',
     desc: '3 tailored versions of your intro — brief pitch, full 2-min answer, casual — written in your voice.',
-    color: '#c4b5fd', href: '/analyze', cta: 'Generate intro',
+    color: 'var(--accent-soft)', href: '/analyze', cta: 'Generate intro',
     preview: <SelfIntroPreview />,
   },
   {
@@ -238,9 +238,9 @@ function FeatureCard({ feature, index }: { feature: Feature; index: number }) {
         transition: `opacity 0.65s cubic-bezier(0.22,1,0.36,1) ${index * 90}ms, transform 0.65s cubic-bezier(0.22,1,0.36,1) ${index * 90}ms`,
       }}>
       <Link href={feature.href}
-        className="group relative flex flex-col h-full rounded-2xl sm:rounded-3xl overflow-hidden transition-[transform,box-shadow] duration-300 hover:scale-[1.02]"
+        className="group relative flex flex-col h-full rounded-2xl sm:rounded-3xl overflow-hidden transition-[transform,box-shadow] duration-300 hover:scale-[1.02] card-lift"
         style={{
-          background: 'linear-gradient(145deg, #0e1530, #0a1020)',
+          background: 'linear-gradient(145deg, #0e1530, var(--surface-2))',
           border: '1px solid rgba(255,255,255,0.07)',
           boxShadow: '0 4px 24px rgba(0,0,0,0.35)',
         }}>
@@ -293,8 +293,8 @@ export default function FeatureShowcase() {
 
       {/* Heading */}
       <div className="text-center mb-12 sm:mb-14">
-        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold text-purple-300 mb-5"
-          style={{ background: 'rgba(124,58,237,0.1)', border: '1px solid rgba(124,58,237,0.25)', backdropFilter: 'blur(8px)' }}>
+        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold text-accent-300 mb-5"
+          style={{ background: 'rgba(var(--accent-rgb), 0.1)', border: '1px solid rgba(var(--accent-rgb), 0.25)', backdropFilter: 'blur(8px)' }}>
           <Sparkles className="w-3.5 h-3.5" />
           5 tools. One complete kit.
         </div>
@@ -322,14 +322,14 @@ export default function FeatureShowcase() {
       {/* Resume Builder — full-width banner card */}
       <div className="mt-4 sm:mt-5">
         <Link href="/builder"
-          className="group relative flex items-center justify-between gap-4 rounded-2xl sm:rounded-3xl overflow-hidden px-5 sm:px-8 py-4 sm:py-5 transition-all duration-300 hover:scale-[1.01]"
+          className="group relative flex items-center justify-between gap-4 rounded-2xl sm:rounded-3xl overflow-hidden px-5 sm:px-8 py-4 sm:py-5 transition-all duration-300 hover:scale-[1.01] card-lift"
           style={{
-            background: 'linear-gradient(135deg, rgba(52,211,153,0.07), rgba(59,130,246,0.05))',
+            background: 'linear-gradient(135deg, rgba(52,211,153,0.07), rgba(var(--accent-rgb), 0.05))',
             border: '1px solid rgba(52,211,153,0.18)',
             boxShadow: '0 4px 20px rgba(0,0,0,0.25)',
           }}>
           <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-400 pointer-events-none"
-            style={{ background: 'linear-gradient(135deg, rgba(52,211,153,0.05), rgba(59,130,246,0.04))' }} />
+            style={{ background: 'linear-gradient(135deg, rgba(52,211,153,0.05), rgba(var(--accent-rgb), 0.04))' }} />
 
           <div className="relative flex items-center gap-4 min-w-0">
             <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"

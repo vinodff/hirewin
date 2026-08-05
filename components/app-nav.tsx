@@ -115,7 +115,7 @@ export default function AppNav() {
             return (
               <Link key={href} href={href}
                 className="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
-                style={active ? { color: '#fff', background: 'rgba(124,58,237,0.18)' } : { color: '#94a3b8' }}
+                style={active ? { color: '#fff', background: 'rgba(var(--accent-rgb), 0.18)' } : { color: '#94a3b8' }}
               >
                 {label}
               </Link>
@@ -128,8 +128,8 @@ export default function AppNav() {
 
           {/* Upgrade pill — desktop */}
           <Link href="/pricing"
-            className="hidden md:flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg text-white hover:opacity-90 transition-all"
-            style={{ background: 'linear-gradient(135deg, #7c3aed, #3b82f6)' }}
+            className="hidden md:flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg text-[var(--on-accent)] hover:opacity-90 transition-all btn-accent"
+            style={{ background: 'var(--accent-fill)' }}
           >
             <Zap className="w-3 h-3" />
             Upgrade
@@ -140,8 +140,8 @@ export default function AppNav() {
             <div className="w-8 h-8 rounded-full animate-pulse" style={{ background: 'rgba(255,255,255,0.06)' }} />
           ) : !user ? (
             <Link href="/auth/login"
-              className="text-sm font-semibold px-3 py-1.5 rounded-lg text-white hover:opacity-90 transition-all"
-              style={{ background: 'linear-gradient(135deg, #7c3aed, #3b82f6)' }}
+              className="text-sm font-semibold px-3 py-1.5 rounded-lg text-[var(--on-accent)] hover:opacity-90 transition-all btn-accent"
+              style={{ background: 'var(--accent-fill)' }}
             >
               Sign in
             </Link>
@@ -159,8 +159,8 @@ export default function AppNav() {
                       onError={() => setAvatarError(true)}
                     />
                   ) : (
-                    <span className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0"
-                      style={{ background: 'linear-gradient(135deg, #7c3aed, #3b82f6)' }}>
+                    <span className="w-7 h-7 rounded-full flex items-center justify-center text-[var(--on-accent)] text-xs font-bold shrink-0 btn-accent"
+                      style={{ background: 'var(--accent-fill)' }}>
                       {initial}
                     </span>
                   )}
@@ -172,7 +172,7 @@ export default function AppNav() {
 
                 {menuOpen && (
                   <div className="absolute right-0 top-full mt-2 w-56 rounded-xl p-1 z-50"
-                    style={{ background: '#0f1629', border: '1px solid rgba(255,255,255,0.08)', boxShadow: '0 10px 30px rgba(0,0,0,0.5)' }}
+                    style={{ background: 'var(--surface)', border: '1px solid rgba(255,255,255,0.08)', boxShadow: '0 10px 30px rgba(0,0,0,0.5)' }}
                   >
                     <div className="px-3 py-2 border-b border-white/5 mb-1">
                       <div className="text-xs font-semibold text-white truncate">{name}</div>
@@ -206,15 +206,15 @@ export default function AppNav() {
                     onError={() => setAvatarError(true)}
                   />
                 ) : (
-                  <span className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0"
-                    style={{ background: 'linear-gradient(135deg, #7c3aed, #3b82f6)' }}>
+                  <span className="w-7 h-7 rounded-full flex items-center justify-center text-[var(--on-accent)] text-xs font-bold shrink-0 btn-accent"
+                    style={{ background: 'var(--accent-fill)' }}>
                     {initial}
                   </span>
                 )}
                 <button
                   onClick={() => setMobileOpen((v) => !v)}
                   className="flex items-center justify-center w-9 h-9 rounded-xl transition-colors active:scale-95"
-                  style={{ background: mobileOpen ? 'rgba(124,58,237,0.2)' : 'rgba(255,255,255,0.06)' }}
+                  style={{ background: mobileOpen ? 'rgba(var(--accent-rgb), 0.2)' : 'rgba(255,255,255,0.06)' }}
                   aria-label="Open menu"
                 >
                   {mobileOpen
@@ -242,8 +242,8 @@ export default function AppNav() {
                 onError={() => setAvatarError(true)}
               />
             ) : (
-              <span className="w-11 h-11 rounded-full flex items-center justify-center text-white font-bold text-lg shrink-0"
-                style={{ background: 'linear-gradient(135deg, #7c3aed, #3b82f6)' }}>
+              <span className="w-11 h-11 rounded-full flex items-center justify-center text-[var(--on-accent)] font-bold text-lg shrink-0 btn-accent"
+                style={{ background: 'var(--accent-fill)' }}>
                 {initial}
               </span>
             )}
@@ -262,11 +262,11 @@ export default function AppNav() {
                   onClick={() => setMobileOpen(false)}
                   className="flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-medium transition-all active:scale-[0.98]"
                   style={active
-                    ? { color: '#fff', background: 'rgba(124,58,237,0.18)', border: '1px solid rgba(124,58,237,0.3)' }
+                    ? { color: '#fff', background: 'rgba(var(--accent-rgb), 0.18)', border: '1px solid rgba(var(--accent-rgb), 0.3)' }
                     : { color: '#94a3b8', border: '1px solid transparent' }
                   }
                 >
-                  <Icon className="w-4 h-4 shrink-0" style={{ color: active ? '#a78bfa' : '#475569' }} />
+                  <Icon className="w-4 h-4 shrink-0" style={{ color: active ? 'var(--accent-soft)' : '#475569' }} />
                   {label}
                 </Link>
               );
@@ -286,7 +286,7 @@ export default function AppNav() {
           <div className="px-3 pt-2 pb-5 space-y-2 border-t border-white/[0.06]">
             <Link href="/pricing" onClick={() => setMobileOpen(false)}
               className="flex items-center justify-center gap-2 w-full py-3.5 rounded-xl text-sm font-bold text-white transition-all active:scale-[0.98]"
-              style={{ background: 'linear-gradient(135deg, #7c3aed, #3b82f6)' }}
+              style={{ background: 'var(--accent-fill)' }}
             >
               <Zap className="w-4 h-4" />
               Upgrade to Pro

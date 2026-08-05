@@ -1,3 +1,5 @@
+// Colours here are literal hex on purpose: email clients do not support
+// CSS custom properties. Keep in sync with :root in app/globals.css.
 import { Resend } from 'resend';
 
 let _resend: Resend | null = null;
@@ -53,7 +55,7 @@ function buildCreditsResetHtml(opts: {
           <!-- Logo / Brand -->
           <tr>
             <td align="center" style="padding-bottom:28px;">
-              <span style="font-size:22px;font-weight:700;letter-spacing:-0.5px;background:linear-gradient(135deg,#7c3aed,#3b82f6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;color:#7c3aed;">
+              <span style="font-size:22px;font-weight:700;letter-spacing:-0.5px;background:linear-gradient(135deg,#10B981,#059669);-webkit-background-clip:text;-webkit-text-fill-color:transparent;color:#059669;">
                 HireWin
               </span>
             </td>
@@ -75,7 +77,7 @@ function buildCreditsResetHtml(opts: {
               <table width="100%" cellpadding="0" cellspacing="0" style="background:linear-gradient(135deg,#f5f3ff,#eff6ff);border-radius:12px;border:1px solid #e0e7ff;margin-bottom:32px;">
                 <tr>
                   <td style="padding:24px 28px;">
-                    <p style="margin:0 0 4px;font-size:12px;font-weight:600;color:#7c3aed;text-transform:uppercase;letter-spacing:0.8px;">Available now</p>
+                    <p style="margin:0 0 4px;font-size:12px;font-weight:600;color:#059669;text-transform:uppercase;letter-spacing:0.8px;">Available now</p>
                     <p style="margin:0;font-size:52px;font-weight:800;color:#4c1d95;line-height:1;">${freeCredits}</p>
                     <p style="margin:4px 0 0;font-size:14px;color:#6d28d9;font-weight:500;">free optimization${freeCredits !== 1 ? 's' : ''} this month</p>
                   </td>
@@ -90,7 +92,7 @@ function buildCreditsResetHtml(opts: {
               <!-- CTA -->
               <table cellpadding="0" cellspacing="0">
                 <tr>
-                  <td style="border-radius:10px;background:linear-gradient(135deg,#7c3aed,#3b82f6);">
+                  <td style="border-radius:10px;background:linear-gradient(135deg,#10B981,#059669);">
                     <a href="${SITE_URL}/analyze"
                        style="display:inline-block;padding:14px 28px;font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;border-radius:10px;letter-spacing:-0.2px;">
                       Optimize my resume →
@@ -102,7 +104,7 @@ function buildCreditsResetHtml(opts: {
               <!-- Upsell -->
               <p style="margin:28px 0 0;font-size:13px;color:#94a3b8;line-height:1.6;">
                 Want more than ${freeCredits} per month?
-                <a href="${SITE_URL}/pricing" style="color:#7c3aed;text-decoration:none;font-weight:500;">Pro gives you 20</a>
+                <a href="${SITE_URL}/pricing" style="color:#059669;text-decoration:none;font-weight:500;">Pro gives you 20</a>
                 — enough for a serious job search.
               </p>
 

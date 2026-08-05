@@ -18,8 +18,8 @@ type Props = {
 };
 
 const categoryConfig: Record<string, { color: string; bg: string; border: string }> = {
-  Behavioral: { color: '#a78bfa', bg: 'rgba(124,58,237,0.08)', border: 'rgba(124,58,237,0.2)' },
-  Technical: { color: '#60a5fa', bg: 'rgba(59,130,246,0.08)', border: 'rgba(59,130,246,0.2)' },
+  Behavioral: { color: 'var(--accent-soft)', bg: 'rgba(var(--accent-rgb), 0.08)', border: 'rgba(var(--accent-rgb), 0.2)' },
+  Technical: { color: '#60a5fa', bg: 'rgba(var(--accent-rgb), 0.08)', border: 'rgba(var(--accent-rgb), 0.2)' },
   'Role-Specific': { color: '#34d399', bg: 'rgba(52,211,153,0.08)', border: 'rgba(52,211,153,0.2)' },
   'Culture & Motivation': { color: '#fbbf24', bg: 'rgba(251,191,36,0.08)', border: 'rgba(251,191,36,0.2)' },
 };
@@ -55,15 +55,15 @@ export default function InterviewQA({ resumeText, role, company, jdText }: Props
   return (
     <div
       className="rounded-2xl p-6"
-      style={{ background: '#0f1629', border: '1px solid rgba(255,255,255,0.07)' }}
+      style={{ background: 'var(--surface)', border: '1px solid rgba(255,255,255,0.07)' }}
     >
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <Mic className="w-4 h-4 text-purple-400" />
+          <Mic className="w-4 h-4 text-accent-400" />
           <h3 className="font-semibold text-white">Interview Prep</h3>
           <span
             className="text-xs px-2 py-0.5 rounded-full font-medium"
-            style={{ background: 'rgba(124,58,237,0.12)', color: '#c4b5fd', border: '1px solid rgba(124,58,237,0.25)' }}
+            style={{ background: 'rgba(var(--accent-rgb), 0.12)', color: 'var(--accent-soft)', border: '1px solid rgba(var(--accent-rgb), 0.25)' }}
           >
             AI-powered
           </span>
@@ -71,8 +71,8 @@ export default function InterviewQA({ resumeText, role, company, jdText }: Props
         {!generated && !loading && (
           <button
             onClick={generate}
-            className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl text-white transition-all hover:opacity-90 active:scale-95"
-            style={{ background: 'linear-gradient(135deg, #7c3aed, #3b82f6)' }}
+            className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl text-[var(--on-accent)] transition-all hover:opacity-90 active:scale-95 btn-accent"
+            style={{ background: 'var(--accent-fill)' }}
           >
             Generate Questions
           </button>
@@ -94,9 +94,9 @@ export default function InterviewQA({ resumeText, role, company, jdText }: Props
         >
           <div
             className="w-10 h-10 rounded-full flex items-center justify-center"
-            style={{ background: 'rgba(124,58,237,0.12)' }}
+            style={{ background: 'rgba(var(--accent-rgb), 0.12)' }}
           >
-            <MessageSquare className="w-5 h-5 text-purple-400" />
+            <MessageSquare className="w-5 h-5 text-accent-400" />
           </div>
           <div>
             <p className="text-sm font-medium text-slate-300 mb-1">Ready to prep for your {role} interview?</p>
@@ -106,8 +106,8 @@ export default function InterviewQA({ resumeText, role, company, jdText }: Props
           </div>
           <button
             onClick={generate}
-            className="mt-1 flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition-all hover:opacity-90 active:scale-95"
-            style={{ background: 'linear-gradient(135deg, #7c3aed, #3b82f6)' }}
+            className="mt-1 flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-[var(--on-accent)] transition-all hover:opacity-90 active:scale-95 btn-accent"
+            style={{ background: 'var(--accent-fill)' }}
           >
             Generate Interview Questions
           </button>
@@ -116,7 +116,7 @@ export default function InterviewQA({ resumeText, role, company, jdText }: Props
 
       {loading && (
         <div className="flex items-center justify-center gap-3 py-8 text-slate-400">
-          <Loader2 className="w-5 h-5 animate-spin text-purple-400" />
+          <Loader2 className="w-5 h-5 animate-spin text-accent-400" />
           <span className="text-sm">Generating questions for {role} at {company}…</span>
         </div>
       )}

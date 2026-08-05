@@ -109,22 +109,22 @@ export default function TimeSaved() {
       <div className="rounded-2xl overflow-hidden transition-all duration-700"
         style={{
           background: '#0c1220',
-          border: '1px solid rgba(74,222,128,0.15)',
+          border: '1px solid rgba(var(--signal-rgb), 0.15)',
           opacity: vis ? 1 : 0,
           transform: vis ? 'none' : 'translateY(16px)',
           transitionDelay: '150ms',
         }}>
         <div className="flex items-center gap-3 px-5 py-4 border-b"
-          style={{ background: 'rgba(74,222,128,0.04)', borderColor: 'rgba(74,222,128,0.12)' }}>
+          style={{ background: 'rgba(var(--signal-rgb), 0.04)', borderColor: 'rgba(var(--signal-rgb), 0.12)' }}>
           <div className="w-9 h-9 rounded-xl flex items-center justify-center"
-            style={{ background: 'rgba(74,222,128,0.1)', border: '1px solid rgba(74,222,128,0.2)' }}>
-            <Zap className="w-4.5 h-4.5 text-green-400" />
+            style={{ background: 'rgba(var(--signal-rgb), 0.1)', border: '1px solid rgba(var(--signal-rgb), 0.2)' }}>
+            <Zap className="w-4.5 h-4.5 text-[var(--signal)]" />
           </div>
           <div>
-            <div className="text-xs font-bold uppercase tracking-wider text-green-400">With HireWin</div>
+            <div className="text-xs font-bold uppercase tracking-wider text-[var(--signal)]">With HireWin</div>
             <div className="text-base font-extrabold text-white">30 seconds. Seriously.</div>
           </div>
-          <div className="ml-auto text-3xl font-black text-green-400 opacity-20">30s</div>
+          <div className="ml-auto text-3xl font-black text-[var(--signal)] opacity-20">30s</div>
         </div>
 
         <div className="px-5 py-4 space-y-3">
@@ -136,11 +136,11 @@ export default function TimeSaved() {
                 transitionDelay: `${i * 120 + 300}ms`,
               }}>
               <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
-                style={{ background: 'rgba(74,222,128,0.1)', border: '1px solid rgba(74,222,128,0.2)' }}>
-                <s.icon className="w-3.5 h-3.5 text-green-400" />
+                style={{ background: 'rgba(var(--signal-rgb), 0.1)', border: '1px solid rgba(var(--signal-rgb), 0.2)' }}>
+                <s.icon className="w-3.5 h-3.5 text-[var(--signal)]" />
               </div>
               <span className="text-sm text-slate-300 flex-1">{s.text}</span>
-              <span className="text-[11px] font-bold text-green-400 shrink-0 font-mono">{s.time}</span>
+              <span className="text-[11px] font-bold text-[var(--signal)] shrink-0 font-mono">{s.time}</span>
             </div>
           ))}
 
@@ -152,8 +152,8 @@ export default function TimeSaved() {
         <div className="px-5 pb-4">
           <div className="flex items-center gap-3 mb-1.5">
             <span className="text-xs text-slate-500">Total time</span>
-            <AnimBar pct={0.4} color="#4ade80" delay={vis ? 700 : 99999} />
-            <span className="text-sm font-bold text-green-400 shrink-0 font-mono">30 sec</span>
+            <AnimBar pct={0.4} color="var(--signal)" delay={vis ? 700 : 99999} />
+            <span className="text-sm font-bold text-[var(--signal)] shrink-0 font-mono">30 sec</span>
           </div>
           <p className="text-[11px] text-emerald-700 leading-relaxed mt-2">
             Spend the time you saved preparing for the interview instead. That&apos;s where jobs are actually won.

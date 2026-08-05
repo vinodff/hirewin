@@ -1,36 +1,55 @@
-import { Plan, PlanLimits, PLAN_LIMITS } from '@/types';
+import { Plan, PlanLimits, PLAN_LIMITS, ADMIN_LIMITS } from '@/types';
+import { isAdminEmail } from '@/lib/admin-emails';
 
 export function getPlanLimits(plan: Plan): PlanLimits {
   return PLAN_LIMITS[plan];
 }
 
-export function canImprove(plan: Plan, improvementsUsed: number): boolean {
+/**
+ * The limits that actually apply to a request.
+ *
+ * Single resolution point for the admin testing bypass: every quota gate reads
+ * its ceiling from here, so admin access can never be enforced inconsistently
+ * across routes. `email` MUST come from supabase.auth.getUser() on the server —
+ * an email from a request body would make this a trivial paywall bypass.
+ */
+export function getEffectiveLimits(plan: Plan, email?: string | null): PlanLimits {
+  if (isAdminEmail(email)) return ADMIN_LIMITS;
+  return PLAN_LIMITS[plan];
+}
+
+/** True when this session bypasses quotas and rate limits entirely. */
+export function isUnlimitedSession(email?: string | null): boolean {
+  return isAdminEmail(email);
+}
+
+export function canImprove(plan: Plan, improvementsUsed: number, email?: string | null): boolean {
   if (process.env.USAGE_LIMITS_DISABLED === 'true') return true;
-  const limits = getPlanLimits(plan);
+  const limits = getEffectiveLimits(plan, email);
   return limits.improvements === Infinity || improvementsUsed < limits.improvements;
 }
 
-export function canDownload(plan: Plan, downloadsUsed: number): boolean {
+export function canDownload(plan: Plan, downloadsUsed: number, email?: string | null): boolean {
   if (process.env.DOWNLOAD_LIMITS_DISABLED === 'true') return true;
-  const limits = getPlanLimits(plan);
+  const limits = getEffectiveLimits(plan, email);
   if (limits.downloads === 0) return false;
   if (limits.downloads === Infinity) return true;
   return downloadsUsed < limits.downloads;
 }
 
-export function canGenerateRoadmap(plan: Plan, roadmapsUsed: number): boolean {
-  const limits = getPlanLimits(plan);
+export function canGenerateRoadmap(plan: Plan, roadmapsUsed: number, email?: string | null): boolean {
+  const limits = getEffectiveLimits(plan, email);
   return limits.roadmaps === Infinity || roadmapsUsed < limits.roadmaps;
 }
 
-export function canDeepEvaluate(plan: Plan, deepEvalsUsed: number): boolean {
-  const limits = getPlanLimits(plan);
+export function canDeepEvaluate(plan: Plan, deepEvalsUsed: number, email?: string | null): boolean {
+  const limits = getEffectiveLimits(plan, email);
   if (limits.deepEvals === 0) return false;
   return limits.deepEvals === Infinity || deepEvalsUsed < limits.deepEvals;
 }
 
-export function canScan(plan: Plan, scansUsed: number): boolean {
-  const limits = getPlanLimits(plan);
+export function canScan(plan: Plan, scansUsed: number, email?: string | null): boolean {
+  const limits = getEffectiveLimits(plan, email);
   if (limits.scansPerMonth === 0) return false;
   return limits.scansPerMonth === Infinity || scansUsed < limits.scansPerMonth;
 }

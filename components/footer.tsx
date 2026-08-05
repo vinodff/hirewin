@@ -24,7 +24,7 @@ export default function Footer() {
   return (
     <footer
       className="border-t mt-auto"
-      style={{ borderColor: 'rgba(255,255,255,0.05)', background: '#080d1a' }}
+      style={{ borderColor: 'rgba(255,255,255,0.05)', background: 'var(--ground)' }}
     >
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-12">
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-8 mb-10">
@@ -33,7 +33,7 @@ export default function Footer() {
             <Link href="/" className="flex items-center gap-1.5 mb-3">
               <img src="/logo.png" alt="HireWin" className="w-6 h-6 object-contain" />
               <span className="font-bold text-white text-sm">
-                Hire<span style={{ background: 'linear-gradient(135deg,#a78bfa,#60a5fa)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Win</span>
+                Hire<span style={{ background: 'linear-gradient(135deg,var(--accent-soft),#60a5fa)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Win</span>
               </span>
             </Link>
             <p className="text-xs text-slate-500 leading-relaxed max-w-[180px]">
@@ -41,7 +41,7 @@ export default function Footer() {
             </p>
             <a
               href="mailto:support@hirewin.live"
-              className="inline-block mt-3 text-xs text-purple-400 hover:text-purple-300 transition-colors"
+              className="inline-block mt-3 text-xs text-accent-400 hover:text-accent-300 transition-colors"
             >
               support@hirewin.live
             </a>

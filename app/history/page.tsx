@@ -12,8 +12,8 @@ import { APPLICATION_STATUS_LABELS } from '@/types';
 
 const STATUS_CFG: Record<ApplicationStatus, { label: string; color: string; bg: string; border: string; dot: string }> = {
   evaluated: { label: 'Evaluated', color: '#94a3b8', bg: 'rgba(148,163,184,0.1)',  border: 'rgba(148,163,184,0.25)', dot: '#64748b' },
-  applied:   { label: 'Applied',   color: '#60a5fa', bg: 'rgba(59,130,246,0.12)',  border: 'rgba(59,130,246,0.35)',  dot: '#3b82f6' },
-  responded: { label: 'Responded', color: '#a78bfa', bg: 'rgba(167,139,250,0.12)', border: 'rgba(167,139,250,0.35)', dot: '#8b5cf6' },
+  applied:   { label: 'Applied',   color: '#60a5fa', bg: 'rgba(var(--accent-rgb), 0.12)',  border: 'rgba(var(--accent-rgb), 0.35)',  dot: 'var(--accent)' },
+  responded: { label: 'Responded', color: 'var(--accent-soft)', bg: 'rgba(var(--accent-soft-rgb), 0.12)', border: 'rgba(var(--accent-soft-rgb), 0.35)', dot: '#8b5cf6' },
   interview: { label: 'Interview', color: '#fbbf24', bg: 'rgba(251,191,36,0.12)',  border: 'rgba(251,191,36,0.35)',  dot: '#f59e0b' },
   offer:     { label: '🎉 Offer',  color: '#34d399', bg: 'rgba(52,211,153,0.12)',  border: 'rgba(52,211,153,0.35)',  dot: '#10b981' },
   rejected:  { label: 'Rejected',  color: '#f87171', bg: 'rgba(248,113,113,0.1)',  border: 'rgba(248,113,113,0.3)',  dot: '#ef4444' },
@@ -143,8 +143,8 @@ function NoteEditor({ versionId, note, onSave }: {
         />
         <div className="flex gap-2 mt-2">
           <button onClick={save} disabled={busy}
-            className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg font-semibold text-white disabled:opacity-50"
-            style={{ background: 'linear-gradient(135deg,#7c3aed,#3b82f6)', minHeight: 32 }}>
+            className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg font-semibold text-[var(--on-accent)] disabled:opacity-50 btn-accent"
+            style={{ background: 'var(--accent-fill)', minHeight: 32 }}>
             <Check className="w-3 h-3" />{busy ? 'Saving…' : 'Save'}
           </button>
           <button onClick={cancel}
@@ -219,7 +219,7 @@ function JobCard({ v, index, onStatusChange, onDelete, onNoteChange, onView }: {
         {/* Title + meta */}
         <div className="flex-1 min-w-0">
           <Link href={`/history/${v.id}`}
-            className="font-semibold text-white text-sm sm:text-base truncate block hover:text-purple-300 transition-colors">
+            className="font-semibold text-white text-sm sm:text-base truncate block hover:text-accent-300 transition-colors">
             {v.role && v.company ? `${v.role} · ${v.company}` : v.role || 'Optimization'}
           </Link>
           <div className="flex items-center gap-2 mt-0.5 flex-wrap">
@@ -242,7 +242,7 @@ function JobCard({ v, index, onStatusChange, onDelete, onNoteChange, onView }: {
             type="button"
             onClick={(e) => { e.stopPropagation(); onView(v); }}
             title="View resume"
-            className="p-2 rounded-lg text-slate-600 hover:text-purple-400 hover:bg-purple-500/10 transition-all">
+            className="p-2 rounded-lg text-slate-600 hover:text-accent-400 hover:bg-accent-500/10 transition-all">
             <FileText className="w-4 h-4" />
           </button>
           <button
@@ -272,7 +272,7 @@ function SummaryBar({ versions }: { versions: ResumeVersion[] }) {
   if (total === 0) return null;
 
   const stages = [
-    { label: 'Applied',   count: versions.filter(v => ['applied','responded','interview','offer'].includes(v.application_status ?? 'evaluated')).length, color: '#3b82f6' },
+    { label: 'Applied',   count: versions.filter(v => ['applied','responded','interview','offer'].includes(v.application_status ?? 'evaluated')).length, color: 'var(--accent)' },
     { label: 'Interview', count: versions.filter(v => ['interview','offer'].includes(v.application_status ?? 'evaluated')).length,                       color: '#f59e0b' },
     { label: 'Offer',     count: versions.filter(v => (v.application_status ?? 'evaluated') === 'offer').length,                                         color: '#10b981' },
     { label: 'Rejected',  count: versions.filter(v => (v.application_status ?? 'evaluated') === 'rejected').length,                                      color: '#ef4444' },
@@ -374,7 +374,7 @@ export default function HistoryPage() {
   });
 
   return (
-    <div className="min-h-screen" style={{ background: '#080d1a' }}>
+    <div className="min-h-screen" style={{ background: 'var(--ground)' }}>
       <AppNav />
       <div className="max-w-2xl mx-auto px-4 py-6 sm:py-8">
 
@@ -382,7 +382,7 @@ export default function HistoryPage() {
         <div className="flex items-center justify-between mb-5">
           <div>
             <h1 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2">
-              <Briefcase className="w-5 h-5 text-purple-400" />
+              <Briefcase className="w-5 h-5 text-accent-400" />
               Job Tracker
             </h1>
             {!loading && (
@@ -392,8 +392,8 @@ export default function HistoryPage() {
             )}
           </div>
           <Link href="/analyze"
-            className="flex items-center gap-1.5 text-sm font-semibold px-4 py-2.5 rounded-xl text-white hover:opacity-90 active:scale-95 transition-all"
-            style={{ background: 'linear-gradient(135deg,#7c3aed,#3b82f6)' }}>
+            className="flex items-center gap-1.5 text-sm font-semibold px-4 py-2.5 rounded-xl text-[var(--on-accent)] hover:opacity-90 active:scale-95 transition-all btn-accent"
+            style={{ background: 'var(--accent-fill)' }}>
             <Plus className="w-4 h-4" />
             <span className="hidden sm:inline">New Resume</span>
             <span className="sm:hidden">New</span>
@@ -432,7 +432,7 @@ export default function HistoryPage() {
                 <button key={key} onClick={() => setFilter(key)}
                   className="shrink-0 flex items-center gap-1.5 px-3.5 py-2 text-xs font-medium rounded-lg whitespace-nowrap transition-all"
                   style={on
-                    ? { background: 'linear-gradient(135deg,#7c3aed,#3b82f6)', color: '#fff' }
+                    ? { background: 'var(--accent-fill)', color: 'var(--on-accent)' }
                     : { background: 'rgba(255,255,255,0.04)', color: '#64748b', border: '1px solid rgba(255,255,255,0.07)' }
                   }>
                   {label}
@@ -463,16 +463,16 @@ export default function HistoryPage() {
           <div className="rounded-2xl p-12 text-center"
             style={{ background: '#0c1220', border: '1px solid rgba(255,255,255,0.07)' }}>
             <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-5"
-              style={{ background: 'rgba(124,58,237,0.1)', border: '1px solid rgba(124,58,237,0.2)' }}>
-              <TrendingUp className="w-7 h-7 text-purple-400" />
+              style={{ background: 'rgba(var(--accent-rgb), 0.1)', border: '1px solid rgba(var(--accent-rgb), 0.2)' }}>
+              <TrendingUp className="w-7 h-7 text-accent-400" />
             </div>
             <h2 className="font-bold text-white text-lg mb-2">Start tracking your job hunt</h2>
             <p className="text-sm text-slate-500 mb-6 max-w-xs mx-auto">
               Optimize a resume, then track every application — interviews, follow-ups, and offers — right here.
             </p>
             <Link href="/analyze"
-              className="inline-flex items-center gap-2 text-white px-6 py-3 rounded-xl text-sm font-semibold hover:opacity-90 transition-all active:scale-95"
-              style={{ background: 'linear-gradient(135deg,#7c3aed,#3b82f6)' }}>
+              className="inline-flex items-center gap-2 text-[var(--on-accent)] px-6 py-3 rounded-xl text-sm font-semibold hover:opacity-90 transition-all active:scale-95 btn-accent"
+              style={{ background: 'var(--accent-fill)' }}>
               <Plus className="w-4 h-4" />Optimize My First Resume
             </Link>
           </div>
@@ -484,7 +484,7 @@ export default function HistoryPage() {
             style={{ background: '#0c1220', border: '1px solid rgba(255,255,255,0.07)' }}>
             <p className="text-sm text-slate-500 mb-3">No results match your filters.</p>
             <button onClick={() => { setFilter('all'); setSearch(''); }}
-              className="text-xs text-purple-400 hover:text-purple-300 transition-colors">
+              className="text-xs text-accent-400 hover:text-accent-300 transition-colors">
               Clear filters →
             </button>
           </div>

@@ -69,8 +69,8 @@ export default function NavAuth() {
     return (
       <Link
         href="/auth/login"
-        className="text-sm font-semibold px-3 py-1.5 rounded-lg text-white transition-all hover:opacity-90"
-        style={{ background: 'linear-gradient(135deg, #7c3aed, #3b82f6)' }}
+        className="text-sm font-semibold px-3 py-1.5 rounded-lg text-[var(--on-accent)] transition-all hover:opacity-90 btn-accent"
+        style={{ background: 'var(--accent-fill)' }}
       >
         Sign in
       </Link>
@@ -92,8 +92,8 @@ export default function NavAuth() {
           <img src={avatar} alt={name} className="w-7 h-7 rounded-full" />
         ) : (
           <span
-            className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold"
-            style={{ background: 'linear-gradient(135deg, #7c3aed, #3b82f6)' }}
+            className="w-7 h-7 rounded-full flex items-center justify-center text-[var(--on-accent)] text-xs font-bold btn-accent"
+            style={{ background: 'var(--accent-fill)' }}
           >
             {initial}
           </span>
@@ -104,7 +104,7 @@ export default function NavAuth() {
       {menuOpen && (
         <div
           className="absolute right-0 top-full mt-2 w-56 rounded-xl p-1 z-50"
-          style={{ background: '#0f1629', border: '1px solid rgba(255,255,255,0.08)', boxShadow: '0 10px 30px rgba(0,0,0,0.5)' }}
+          style={{ background: 'var(--surface)', border: '1px solid rgba(255,255,255,0.08)', boxShadow: '0 10px 30px rgba(0,0,0,0.5)' }}
         >
           <div className="px-3 py-2 text-xs text-slate-500 border-b border-white/5 mb-1 truncate">{user.email}</div>
           <Link
@@ -118,7 +118,7 @@ export default function NavAuth() {
           {isAdmin && (
             <Link
               href="/admin"
-              className="flex items-center gap-2 px-3 py-2 text-sm text-purple-300 hover:bg-purple-500/10 rounded-lg transition-colors"
+              className="flex items-center gap-2 px-3 py-2 text-sm text-accent-300 hover:bg-accent-500/10 rounded-lg transition-colors"
               onClick={() => setMenuOpen(false)}
             >
               <Shield className="w-4 h-4" />

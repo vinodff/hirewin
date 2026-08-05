@@ -19,7 +19,7 @@ const PILLARS: Pillar[] = [
     tag: 'Trust Score',
     title: 'We score how truthful your resume is.',
     desc: 'Every claim is cross-checked against your original resume. If something is inflated, we flag it before a recruiter does.',
-    color: '#a78bfa',
+    color: 'var(--accent-soft)',
     others: 'Keyword stuffing. Adds skills you can\'t defend.',
     hirewin: 'Honesty-graded. 0–100 trust score on every export.',
   },
@@ -105,7 +105,7 @@ function PillarCard({ pillar, index }: { pillar: Pillar; index: number }) {
       {/* Card */}
       <div className="relative rounded-3xl overflow-hidden h-full"
         style={{
-          background: 'linear-gradient(145deg, #0e1530, #0a1020)',
+          background: 'linear-gradient(145deg, #0e1530, var(--surface-2))',
           border: '1px solid rgba(255,255,255,0.08)',
           boxShadow: `0 30px 60px -20px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.06)`,
         }}>
@@ -168,8 +168,8 @@ export default function WhyDifferent() {
     <section className="relative max-w-6xl mx-auto px-4 sm:px-6 py-16 sm:py-28">
       {/* Section heading */}
       <div className="text-center mb-12 sm:mb-16">
-        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold text-purple-400 mb-5"
-          style={{ background: 'rgba(124,58,237,0.1)', border: '1px solid rgba(124,58,237,0.2)' }}>
+        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold text-accent-400 mb-5"
+          style={{ background: 'rgba(var(--accent-rgb), 0.1)', border: '1px solid rgba(var(--accent-rgb), 0.2)' }}>
           <ShieldCheck className="w-3.5 h-3.5" />
           Built differently
         </div>

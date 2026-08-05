@@ -271,6 +271,55 @@ export const ONE_TIME_PLANS: Plan[] = ['starter', 'pack3'];
 /** Subscriptions. A one-time pack purchase must never downgrade one of these. */
 export const SUBSCRIPTION_PLANS: Plan[] = ['pro', 'power', 'team'];
 
+/**
+ * What a successful payment does to a profile.
+ *
+ * Extracted from the verify route so it can be tested — this is the logic that
+ * decides whether someone keeps the plan they pay a subscription for, and it
+ * has no business being unreachable inside an HTTP handler.
+ *
+ *   order.plan is a subscription ──────────► set plan (an upgrade/renewal)
+ *
+ *   order.plan is a one-time pack
+ *        ├── buyer is on pro/power/team ───► credits only, KEEP subscription
+ *        ├── buyer holds pack3, buys ₹19 ──► credits only, KEEP pack3
+ *        └── otherwise ────────────────────► set plan + reset credits
+ *
+ * Credits reset rather than increment because the pack plans carry their
+ * allowance in PLAN_LIMITS.downloads; zeroing the counter re-grants the pack.
+ */
+export function resolvePurchaseUpdate(
+  orderPlan: Plan,
+  currentPlan: Plan
+): { plan?: Plan; downloads_used?: number } {
+  if (!ONE_TIME_PLANS.includes(orderPlan)) return { plan: orderPlan };
+
+  const update: { plan?: Plan; downloads_used?: number } = { downloads_used: 0 };
+
+  const onSubscription = SUBSCRIPTION_PLANS.includes(currentPlan);
+  const wouldShrink = currentPlan === 'pack3' && orderPlan === 'starter';
+  if (!onSubscription && !wouldShrink) update.plan = orderPlan;
+
+  return update;
+}
+
+/**
+ * Testing override for accounts listed in ADMIN_EMAILS.
+ *
+ * Every limit is unbounded so an admin can exercise the whole product without
+ * burning through quotas. This is a real bypass of the paywall and of the cost
+ * controls, so it is keyed strictly to the server-verified email on the
+ * session — see lib/usage.ts getEffectiveLimits().
+ */
+export const ADMIN_LIMITS: PlanLimits = {
+  improvements: Infinity,
+  roadmaps: Infinity,
+  downloads: Infinity,
+  historyMonths: 120,
+  deepEvals: Infinity,
+  scansPerMonth: Infinity,
+};
+
 // Scan caps are cost-driven: a single job-scan is the most expensive call we make.
 // Team is metered, not unlimited — Infinity here is an unbounded liability.
 export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
