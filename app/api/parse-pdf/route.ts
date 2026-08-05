@@ -1,9 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { parsePdf } from '@/lib/pdf-parser';
+import { createClient } from '@/lib/supabase/server';
+import { checkRateLimit, clientIp } from '@/lib/rate-limit';
 
 export const maxDuration = 30;
 
 export async function POST(req: NextRequest) {
+  // Stays usable signed-out (the analyze flow parses before sign-in), but
+  // metered: parsing a 5 MB PDF is CPU-heavy and was completely unthrottled.
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  const { success } = await checkRateLimit(
+    user ? `parse-pdf:${user.id}` : `parse-pdf:ip:${clientIp(req)}`,
+    { tier: user ? 'default' : 'anon' }
+  );
+  if (!success) {
+    return NextResponse.json({ error: 'Too many uploads — try again later.' }, { status: 429 });
+  }
+
   const formData = await req.formData();
   const file = formData.get('file') as File | null;
 

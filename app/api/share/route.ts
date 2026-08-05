@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { PLAN_LIMITS, type Plan } from '@/types';
+import type { Plan } from '@/types';
+import { getEffectiveLimits } from '@/lib/usage';
 
 const SHARES_NEEDED = 5;
 const MAX_SHARES_STORED = 10;
@@ -24,6 +25,24 @@ async function resolveOwnedVersionId(
   return data?.id ?? null;
 }
 
+/** Count a user's shares for a version.
+ *
+ *  `.eq('version_id', null)` compiles to `version_id = NULL`, which is never
+ *  true in SQL — so the no-version case always counted 0. That made the
+ *  MAX_SHARES_STORED cap unreachable (unbounded row inserts) and pinned the
+ *  displayed share count at 0. NULL needs `IS NULL`. */
+function countShares(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+  versionId: string | null
+) {
+  const q = supabase
+    .from('share_events')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', userId);
+  return versionId === null ? q.is('version_id', null) : q.eq('version_id', versionId);
+}
+
 export async function POST(req: NextRequest) {
   try {
     const { versionId: rawVersionId } = await req.json();
@@ -42,11 +61,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid version' }, { status: 400 });
     }
 
-    const { count: existing } = await supabase
-      .from('share_events')
-      .select('id', { count: 'exact', head: true })
-      .eq('user_id', user.id)
-      .eq('version_id', versionId);
+    const { count: existing } = await countShares(supabase, user.id, versionId);
 
     if ((existing ?? 0) >= MAX_SHARES_STORED) {
       const shareCount = Math.min(existing ?? 0, SHARES_NEEDED);
@@ -82,11 +97,7 @@ export async function GET(req: NextRequest) {
     const versionId = await resolveOwnedVersionId(supabase, user.id, rawVersionId);
 
     const [{ count }, profileRes] = await Promise.all([
-      supabase
-        .from('share_events')
-        .select('id', { count: 'exact', head: true })
-        .eq('user_id', user.id)
-        .eq('version_id', versionId),
+      countShares(supabase, user.id, versionId),
       supabase
         .from('profiles')
         .select('plan, downloads_used')
@@ -97,7 +108,7 @@ export async function GET(req: NextRequest) {
     const shareCount = Math.min(count ?? 0, SHARES_NEEDED);
     const plan = (profileRes.data?.plan ?? 'free') as Plan;
     const downloadsUsed = profileRes.data?.downloads_used ?? 0;
-    const limit = PLAN_LIMITS[plan].downloads;
+    const limit = getEffectiveLimits(plan, user.email).downloads;
     const planUnlimited = limit === Infinity;
     const downloadsLeft = planUnlimited ? -1 : Math.max(0, limit - downloadsUsed);
 

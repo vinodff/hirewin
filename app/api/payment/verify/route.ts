@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServiceClient } from '@/lib/supabase/server';
-import { ONE_TIME_PLANS, SUBSCRIPTION_PLANS, type Plan } from '@/types';
+import { resolvePurchaseUpdate, type Plan } from '@/types';
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? 'https://hirewin.live';
 
@@ -114,31 +114,19 @@ async function verifyPayment(orderId: string | null) {
       return redirect(`${BASE_URL}/payment/success?plan=${order.plan}`);
     }
 
-    // One-time packs (₹19 / ₹49) are download credits, not subscriptions.
-    // Clear the counter so a repeat purchase actually grants downloads, and
-    // never overwrite an active subscription — a Pro user buying a ₹19 pack
-    // must not be downgraded to starter and lose unlimited downloads.
-    const isOneTimePack = ONE_TIME_PLANS.includes(order.plan as Plan);
-    const profileUpdate: Record<string, unknown> = {};
+    // See resolvePurchaseUpdate in types/index.ts for the full decision table.
+    // The short version: a one-time pack grants credits and must never
+    // overwrite an active subscription.
+    const { data: profile } = await serviceSupabase
+      .from('profiles')
+      .select('plan')
+      .eq('id', targetUserId)
+      .maybeSingle();
 
-    if (isOneTimePack) {
-      profileUpdate.downloads_used = 0;
-
-      const { data: profile } = await serviceSupabase
-        .from('profiles')
-        .select('plan')
-        .eq('id', targetUserId)
-        .maybeSingle();
-
-      const currentPlan = (profile?.plan ?? 'free') as Plan;
-      const onSubscription = SUBSCRIPTION_PLANS.includes(currentPlan);
-      // Also don't downgrade a 3-pack holder to a 1-download starter.
-      const wouldShrink = currentPlan === 'pack3' && order.plan === 'starter';
-
-      if (!onSubscription && !wouldShrink) profileUpdate.plan = order.plan;
-    } else {
-      profileUpdate.plan = order.plan;
-    }
+    const profileUpdate = resolvePurchaseUpdate(
+      order.plan as Plan,
+      (profile?.plan ?? 'free') as Plan
+    );
 
     // Upgrade plan — retry once on transient failure
     let planUpgradeError = null;

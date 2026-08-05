@@ -9,10 +9,16 @@ export const maxDuration = 60;
 // vercel.json: { "crons": [{ "path": "/api/cron/monthly-reset", "schedule": "0 8 1 * *" }] }
 
 export async function GET(req: NextRequest) {
-  // Verify the request comes from Vercel Cron (or our own CRON_SECRET)
-  const authHeader = req.headers.get('authorization');
+  // Verify the request comes from Vercel Cron (or our own CRON_SECRET).
+  // Fail CLOSED: this route runs with the service-role key, enumerates every
+  // user's email via auth.admin.listUsers() and sends mail. Skipping the check
+  // when CRON_SECRET happens to be unset left all of that open to the internet.
   const cronSecret = process.env.CRON_SECRET;
-  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+  if (!cronSecret) {
+    console.error('[monthly-reset] CRON_SECRET is not configured — refusing to run');
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+  if (req.headers.get('authorization') !== `Bearer ${cronSecret}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { PLAN_LIMITS, APPLICATION_STATUSES, type ApplicationStatus } from '@/types';
+import { APPLICATION_STATUSES, type ApplicationStatus, type Plan } from '@/types';
+import { getEffectiveLimits } from '@/lib/usage';
 
 const MAX_NOTE_CHARS = 1000;
 
@@ -19,7 +20,7 @@ export async function GET() {
     .single();
 
   const plan = profile?.plan ?? 'free';
-  const historyMonths = PLAN_LIMITS[plan as keyof typeof PLAN_LIMITS]?.historyMonths ?? 1;
+  const historyMonths = getEffectiveLimits(plan as Plan, user.email).historyMonths;
 
   const cutoff = new Date();
   cutoff.setMonth(cutoff.getMonth() - historyMonths);

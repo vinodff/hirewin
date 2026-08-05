@@ -1,17 +1,9 @@
 import { createClient } from '@/lib/supabase/server';
+import { isAdminEmail } from '@/lib/admin-emails';
 
-function parseAdminEmails(): string[] {
-  return (process.env.ADMIN_EMAILS ?? '')
-    .split(',')
-    .map((e) => e.trim().toLowerCase())
-    .filter(Boolean);
-}
-
-export function isAdminEmail(email: string | null | undefined): boolean {
-  if (!email) return false;
-  const list = parseAdminEmails();
-  return list.includes(email.toLowerCase());
-}
+// Re-exported so existing callers keep working; the implementation lives in
+// lib/admin-emails.ts because that module has no server-only imports.
+export { isAdminEmail, parseAdminEmails } from '@/lib/admin-emails';
 
 /** Returns the admin user or null. Use in admin pages + API routes. */
 export async function requireAdmin() {

@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { getAnthropicClient, CHEAP_MODEL_NAME } from '@/lib/anthropic';
-import { canScan } from '@/lib/usage';
-import { PLAN_LIMITS, type Plan } from '@/types';
+import { canScan, getEffectiveLimits } from '@/lib/usage';
+import type { Plan } from '@/types';
 
 export const maxDuration = 60;
 export const dynamic = 'force-dynamic';
@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
       const scansUsed = profile?.scans_used || 0;
 
       // Check scan limit
-      if (!canScan(plan, scansUsed)) {
+      if (!canScan(plan, scansUsed, user.email)) {
         return NextResponse.json(
           { error: 'limit_reached', message: 'You have reached your monthly scan limit. Please upgrade to Pro for unlimited scans.' },
           { status: 403 }
@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
 
       // Increment scans_used. Read the cap from PLAN_LIMITS — a hardcoded copy
       // here silently ignores plan changes. -1 means unlimited to the RPC.
-      const planLimit = PLAN_LIMITS[plan as Plan]?.scansPerMonth ?? 0;
+      const planLimit = getEffectiveLimits(plan as Plan, user.email).scansPerMonth;
       const limit = planLimit === Infinity ? -1 : planLimit;
       const { data: incremented } = await supabase.rpc('try_increment_scans_used', {
         p_user_id: user.id,

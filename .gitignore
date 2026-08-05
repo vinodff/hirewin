@@ -49,3 +49,9 @@ client_secret*.json
 
 # job-scan debug dumps
 jina-search-result.txt
+
+# graphify knowledge-graph output (1.1MB of generated artifacts — regenerate with `graphify update .`)
+graphify-out/
+
+# Windows crash dumps
+*.stackdump

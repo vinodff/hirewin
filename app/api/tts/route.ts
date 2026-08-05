@@ -1,13 +1,33 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@/lib/supabase/server';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY;
 // "Rachel" — conversational professional female voice
 const VOICE_ID = process.env.ELEVENLABS_VOICE_ID ?? 'EXAVITQu4vr4xnSDxMaL';
 const MODEL_ID = 'eleven_turbo_v2_5';
+// ElevenLabs bills per character. One interview line is well under this.
+const MAX_TTS_CHARS = 1000;
 
 export async function POST(req: NextRequest) {
-  const { text } = await req.json();
-  if (!text?.trim()) return NextResponse.json({ error: 'text required' }, { status: 400 });
+  // This proxies our ElevenLabs key and is billed per character. Unauthenticated
+  // it was a free text-to-speech API for the internet, charged to us.
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: 'Sign in required' }, { status: 401 });
+
+  const { success } = await checkRateLimit(`tts:${user.id}`, { failClosed: true });
+  if (!success) {
+    return NextResponse.json({ error: 'Too many requests — try again shortly.' }, { status: 429 });
+  }
+
+  const { text } = await req.json().catch(() => ({ text: null }));
+  if (typeof text !== 'string' || !text.trim()) {
+    return NextResponse.json({ error: 'text required' }, { status: 400 });
+  }
+  if (text.length > MAX_TTS_CHARS) {
+    return NextResponse.json({ error: 'Text too long' }, { status: 413 });
+  }
 
   if (!ELEVENLABS_API_KEY) {
     return NextResponse.json({ error: 'no_api_key' }, { status: 503 });
@@ -36,8 +56,10 @@ export async function POST(req: NextRequest) {
     );
 
     if (!res.ok) {
-      const msg = await res.text();
-      return NextResponse.json({ error: msg }, { status: res.status });
+      // Log upstream detail server-side; don't relay provider errors (which can
+      // carry account and quota details) to the browser.
+      console.error('[tts] ElevenLabs error:', res.status, await res.text());
+      return NextResponse.json({ error: 'Voice generation failed' }, { status: 502 });
     }
 
     const audio = await res.arrayBuffer();
