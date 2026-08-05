@@ -1,14 +1,23 @@
 import { NextRequest } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@/lib/supabase/server';
-import { checkRateLimit } from '@/lib/rate-limit';
-import { streamAnalysis, AnalysisResultSchema } from '@/lib/anthropic';
+import { checkRateLimit, clientIp } from '@/lib/rate-limit';
+import {
+  streamAnalysis,
+  AnalysisResultSchema,
+  exceedsLengthBudget,
+  compressResumeToBudget,
+  countWords,
+  LENGTH_BUDGETS,
+} from '@/lib/anthropic';
+import { scoreResume } from '@/lib/ats-score';
 import { logUsage } from '@/lib/usage-log';
 import { fetchJobDescription, isKnownAtsDomain } from '@/lib/jina';
 import { parsePdf } from '@/lib/pdf-parser';
 import { parse as parsePartial } from 'partial-json';
 import { v4 as uuidv4 } from 'uuid';
-import type { AnalysisResult } from '@/types';
+import type { AnalysisResult, Plan } from '@/types';
+import { getEffectiveLimits, isUnlimitedSession } from '@/lib/usage';
 
 export const maxDuration = 60;
 export const dynamic = 'force-dynamic';
@@ -90,23 +99,63 @@ export async function POST(req: NextRequest) {
         const { data: { user } } = await supabase.auth.getUser();
 
         // --- Rate limiting ---
-        const ip = req.headers.get('x-forwarded-for')?.split(',')[0] ?? 'unknown';
-        const rateLimitId = user ? `user:${user.id}` : `ip:${ip}`;
-        const { success: withinRateLimit } = await checkRateLimit(rateLimitId);
+        // failClosed: this is our most expensive call. If Redis is unreachable
+        // we must not fall back to "allow everything" — anonymous callers have
+        // no DB quota, so the limiter is the only thing metering them.
+        // Admin testing accounts skip rate limiting too — a 100/hr cap makes
+        // exercising the product end-to-end impossible.
+        const isAdmin = isUnlimitedSession(user?.email);
+        const ip = clientIp(req);
+        const { success: withinRateLimit } = isAdmin
+          ? { success: true }
+          : await checkRateLimit(
+              user ? `user:${user.id}` : `ip:${ip}`,
+              { tier: user ? 'default' : 'anon', failClosed: true }
+            );
         if (!withinRateLimit) {
-          emit({ type: 'error', message: 'Too many requests — try again in an hour.' });
+          emit({
+            type: 'error',
+            message: user
+              ? 'Too many requests — try again in an hour.'
+              : 'Free preview limit reached. Sign in to keep optimising.',
+          });
           controller.close();
           return;
         }
 
-        // Improvements are unlimited and free — paywall lives on download (PDF/DOCX) routes.
-        // Track usage for analytics so plan dashboards remain accurate.
+        // --- Enforce the monthly improvement quota ---
+        // This used to pass p_limit: -1 ("unlimited") and only count for
+        // analytics, so PLAN_LIMITS.improvements was never actually applied —
+        // the free tier advertised 2 rewrites a month and enforced none.
         if (user) {
           await supabase.rpc('reset_monthly_usage_if_needed', { profile_id: user.id });
-          await supabase.rpc('try_increment_improvements_used', {
+
+          const { data: quotaProfile } = await supabase
+            .from('profiles')
+            .select('plan')
+            .eq('id', user.id)
+            .single();
+
+          const planLimit = getEffectiveLimits(
+            (quotaProfile?.plan ?? 'free') as Plan,
+            user.email
+          ).improvements;
+          const rpcLimit =
+            process.env.USAGE_LIMITS_DISABLED === 'true' || planLimit === Infinity ? -1 : planLimit;
+
+          const { data: allowed } = await supabase.rpc('try_increment_improvements_used', {
             p_user_id: user.id,
-            p_limit: -1,
+            p_limit: rpcLimit,
           });
+
+          if (!allowed && rpcLimit !== -1) {
+            emit({
+              type: 'error',
+              message: `You've used all ${planLimit} resume rewrites this month. Upgrade for more.`,
+            });
+            controller.close();
+            return;
+          }
         }
 
         // --- Stream from Claude ---
@@ -120,6 +169,11 @@ export async function POST(req: NextRequest) {
           cache_creation_input_tokens: 0,
           cache_read_input_tokens: 0,
         };
+
+        // The JD's keyword set — the union of matched + missing. Captured once
+        // the model has emitted both lists, then reused for BOTH score calls so
+        // the before and after numbers are measured against the same yardstick.
+        let jdKeywords: string[] | null = null;
 
         async function consumeStream(textStream: AsyncIterable<string>) {
           for await (const text of textStream) {
@@ -137,6 +191,23 @@ export async function POST(req: NextRequest) {
                 }
                 // Always overwrite fullResult with the latest parse — partial values get refined as more tokens arrive
                 fullResult = partial;
+
+                // Score the ORIGINAL resume as soon as the keyword lists land.
+                // They're first in the output order, so the gauge still fills
+                // within the first moment of the stream. Wait for a field that
+                // comes after both lists, otherwise partial-json hands us a
+                // half-streamed array and we'd score against 2 of 10 keywords.
+                if (
+                  !jdKeywords &&
+                  Array.isArray(partial.keywordsMatched) &&
+                  Array.isArray(partial.keywordsMissing) &&
+                  partial.jobFitScore !== undefined
+                ) {
+                  jdKeywords = [...partial.keywordsMatched, ...partial.keywordsMissing];
+                  const before = scoreResume(finalResume, jdKeywords);
+                  emit({ type: 'field', field: 'atsScore', value: before });
+                  emittedFields.add('atsScore');
+                }
               }
             } catch {
               // partial-json failed — continue buffering
@@ -207,6 +278,7 @@ export async function POST(req: NextRequest) {
               buffer = '';
               emittedFields.clear();
               fullResult = {};
+              jdKeywords = null;
               const retry = await streamAnalysis(
                 finalResume,
                 finalJd + '\n\nIMPORTANT: Return ONLY valid JSON, no other text.',
@@ -242,7 +314,58 @@ export async function POST(req: NextRequest) {
           return;
         }
 
-        const result = parsed.data;
+        // --- Score both resumes (measured, not model-generated) -----------
+        // The same function against the same JD keyword list, so "before" and
+        // "after" are actually comparable. Deterministic: identical input gives
+        // an identical number every run, and a resume HireWin already optimized
+        // scores high as a "before" because it genuinely is one.
+        const keywords = jdKeywords ?? [
+          ...parsed.data.keywordsMatched,
+          ...parsed.data.keywordsMissing,
+        ];
+
+        let result: AnalysisResult = {
+          ...parsed.data,
+          atsScore: scoreResume(finalResume, keywords),
+          // Recomputed after length compression below — that step rewrites the
+          // resume, so scoring here would grade text the user never sees.
+          optimizedAtsScore: scoreResume(parsed.data.optimizedResume, keywords),
+        };
+
+        // --- Enforce the requested page length ---------------------------
+        // The prompt asks for a word ceiling, but the model overshoots on
+        // senior candidates. Verify and compress rather than trusting it —
+        // "1 Page" has to mean one page. Fixing the text (not just the PDF)
+        // keeps the preview, PDF and DOCX consistent.
+        if (exceedsLengthBudget(result.optimizedResume, resumeLength)) {
+          const { maxWords } = LENGTH_BUDGETS[resumeLength];
+          const before = countWords(result.optimizedResume);
+          try {
+            const compressed = await compressResumeToBudget(result.optimizedResume, maxWords);
+            totalUsage.input_tokens += compressed.usage.input_tokens;
+            totalUsage.output_tokens += compressed.usage.output_tokens;
+
+            const after = countWords(compressed.text);
+            // Only accept a compression that actually helped and didn't gut the
+            // resume — a truncated or empty reply is worse than being long.
+            if (compressed.text && after < before && after >= maxWords * 0.4) {
+              result = { ...result, optimizedResume: compressed.text };
+              emit({ type: 'field', field: 'optimizedResume', value: compressed.text });
+            } else {
+              console.warn('[analyze] length compression rejected', { before, after, maxWords });
+            }
+          } catch (e) {
+            console.error('[analyze] length compression failed:', e);
+          }
+
+          // Compression rewrote the resume — rescore the text we're shipping.
+          result = {
+            ...result,
+            optimizedAtsScore: scoreResume(result.optimizedResume, keywords),
+          };
+        }
+
+        emit({ type: 'field', field: 'optimizedAtsScore', value: result.optimizedAtsScore });
 
         // --- Save to Supabase + increment usage ---
         let versionId = uuidv4();
