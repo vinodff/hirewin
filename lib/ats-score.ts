@@ -23,7 +23,17 @@ const WEIGHTS = {
 
 const MIN_WORDS = 300;
 const MAX_WORDS = 1200;
-const MAX_BULLET_WORDS = 20;
+
+// One to two printed lines. The old cap of 20 failed ordinary
+// "Designed and developed X, implementing Y to improve Z" bullets.
+const MAX_BULLET_WORDS = 30;
+
+// Coverage that counts as a strong match. Real ATS tooling treats roughly
+// three-quarters as a pass, and a JD always lists tech the candidate does not
+// have — demanding 100% caps an honest resume in the low 70s no matter how
+// good the rewrite is. Inserting keywords the candidate can't back up is
+// lying on their behalf, so the ceiling has to move instead.
+const KEYWORD_TARGET = 0.75;
 
 // Section headers a parser looks for. Experience and projects are
 // interchangeable — a student with only projects isn't missing a section.
@@ -46,7 +56,31 @@ const ACTION_VERBS = [
   'delivered', 'launched', 'automated', 'optimized', 'reduced', 'improved',
   'migrated', 'refactored', 'deployed', 'maintained', 'analyzed', 'engineered',
   'collaborated', 'coordinated', 'authored', 'tested', 'configured', 'resolved',
+  // Verbs our own optimizer emits constantly and the original list missed.
+  'applied', 'solved', 'grew', 'presented', 'achieved', 'drove', 'owned',
+  'shipped', 'wrote', 'researched', 'mentored', 'trained', 'streamlined',
+  'increased', 'boosted', 'cut', 'saved', 'secured', 'published', 'organized',
+  'facilitated', 'supported', 'executed', 'produced', 'standardized',
+  'validated', 'benchmarked', 'profiled', 'rewrote', 'redesigned', 'ranked',
 ];
+
+/**
+ * A header line: "PROJECTS", "Technical Skills". Short, unbulleted, and either
+ * shouting or a name we know.
+ */
+const KNOWN_HEADER =
+  /^(professional\s+summary|summary|profile|objective|technical\s+skills|skills|core\s+competencies|experience|employment|work\s+history|projects?|education|academic|certifications?|achievements?|awards?|languages?|interests|publications|content\s+creation.*)\s*:?\s*$/i;
+
+/** Sections whose bullets describe work, and so should open with a verb. */
+const EXPERIENCE_SECTION =
+  /\b(experience|employment|work\s+history|projects?|internship|content\s+creation)\b/i;
+
+function isSectionHeader(line: string): boolean {
+  if (/^[•\-*]/.test(line)) return false;
+  if (KNOWN_HEADER.test(line)) return true;
+  // All-caps and short — the shape every resume uses for a heading.
+  return line.length <= 60 && /^[A-Z][A-Z0-9\s&/,'-]{2,}$/.test(line);
+}
 
 /** Non-word chars collapse to spaces so "Node.js" matches "node js". */
 function canonical(s: string): string {
@@ -79,7 +113,7 @@ function keywordScore(tokens: string[], keywords: string[]): number {
   const unique = Array.from(new Set(keywords.map(canonical).filter(Boolean)));
   if (unique.length === 0) return 1; // no JD signal — don't punish the resume
   const hits = unique.filter((k) => containsKeyword(tokens, k)).length;
-  return hits / unique.length;
+  return clamp01(hits / unique.length / KEYWORD_TARGET);
 }
 
 function sectionScore(text: string): number {
@@ -92,12 +126,32 @@ function contactScore(text: string): number {
   return found / CONTACT_PATTERNS.length;
 }
 
+/**
+ * Only bullets under Experience/Projects. A certification reads "Salesforce
+ * Certified — Salesforce" and an award reads "1st Prize — College Hackathon";
+ * neither opens with a verb, and neither should. Grading them as work bullets
+ * penalised resumes for being correctly structured.
+ */
+function experienceBullets(text: string): string[] {
+  const bullets: string[] = [];
+  let underExperience = false;
+
+  for (const raw of text.split('\n')) {
+    const line = raw.trim();
+    if (!line) continue;
+    if (isSectionHeader(line)) {
+      underExperience = EXPERIENCE_SECTION.test(line);
+      continue;
+    }
+    if (underExperience && /^[•\-*]/.test(line)) {
+      bullets.push(line.replace(/^[•\-*]\s*/, ''));
+    }
+  }
+  return bullets;
+}
+
 function bulletScore(text: string): number {
-  const bullets = text
-    .split('\n')
-    .map((l) => l.trim())
-    .filter((l) => /^[•\-*•]/.test(l))
-    .map((l) => l.replace(/^[•\-*•]\s*/, ''));
+  const bullets = experienceBullets(text);
 
   if (bullets.length === 0) return 0;
 
