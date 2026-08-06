@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import {
-  LogOut, FileText, CreditCard, History, Zap, LayoutGrid, Shield, Menu, X, Briefcase, Linkedin,
+  LogOut, FileText, CreditCard, History, Zap, LayoutGrid, Shield, Menu, X, Briefcase, Linkedin, Compass,
 } from 'lucide-react';
 import type { User } from '@supabase/supabase-js';
 import Link from 'next/link';
@@ -11,6 +11,7 @@ import { usePathname } from 'next/navigation';
 
 const NAV_LINKS = [
   { href: '/analyze',           label: 'Optimize',         icon: FileText   },
+  { href: '/opportunities',     label: 'Opportunities',    icon: Compass    },
   { href: '/job-scan',          label: 'Job Scan',         icon: Briefcase  },
   { href: '/linkedin-optimizer', label: 'LinkedIn',        icon: Linkedin   },
   { href: '/my-resumes',        label: 'My Resumes',       icon: LayoutGrid },

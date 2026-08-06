@@ -1,3 +1,9 @@
+## Design System
+
+Read DESIGN.md before making any visual or UI decision. Fonts, color tokens,
+spacing, motion, and the data-display rules are defined there. Do not deviate
+without explicit approval, and flag code that contradicts it during review.
+
 ## graphify
 
 This project has a graphify knowledge graph at graphify-out/.
