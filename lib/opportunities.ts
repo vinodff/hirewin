@@ -23,6 +23,10 @@ export type Opportunity = {
   title: string;
   url: string | null;
   deadline: string | null;
+  /** Set only when a real date could be read out of the free-text deadline. */
+  deadlineIso: string | null;
+  /** Whole days from now to the deadline. Negative means it has passed. */
+  daysLeft: number | null;
   status: string;
   urgency: Urgency;
   benefits: string | null;
@@ -78,6 +82,31 @@ function safeUrl(raw: string): string | null {
   }
 }
 
+/**
+ * The deadline column is free text: "2026-08-10 17:00 ET", "On/before 2026-07-30",
+ * "Rolling, fills by mid-Nov". Pull a calendar date out when one is actually there —
+ * a countdown is worth far more to an applicant than the raw string — and give up
+ * quietly when it isn't.
+ */
+function readDeadline(raw: string | null): string | null {
+  if (!raw) return null;
+  const m = raw.match(/(\d{4})-(\d{2})-(\d{2})/);
+  if (!m) return null;
+  const date = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3])));
+  return Number.isNaN(date.getTime()) ? null : date.toISOString();
+}
+
+const DAY_MS = 86_400_000;
+
+/**
+ * Recomputed on every render rather than stored, so the committed fallback snapshot
+ * can't ship a countdown that was true the day it was generated.
+ */
+function daysUntil(iso: string | null, now: number): number | null {
+  if (!iso) return null;
+  return Math.ceil((new Date(iso).getTime() - now) / DAY_MS);
+}
+
 function classifyUrgency(status: string): Urgency {
   const s = status.toLowerCase();
   if (s.includes('closing')) return 'closing';
@@ -108,6 +137,7 @@ function toOpportunities(csv: string): Opportunity[] {
     .filter((r) => r[0]?.trim() && r[0].trim() !== 'Company')
     .map((r, i) => {
       const status = clean(at(r, 'Status')) ?? 'Unknown';
+      const deadline = clean(at(r, 'Last Date to Apply'));
       return {
         id: `${(at(r, 'Company') ?? '').trim()}-${i}`.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
         company: (at(r, 'Company') ?? '').trim(),
@@ -115,7 +145,9 @@ function toOpportunities(csv: string): Opportunity[] {
         type: clean(at(r, 'Opportunity Type')) ?? 'Job',
         title: (at(r, 'Title') ?? '').trim(),
         url: safeUrl(at(r, 'Application Link') ?? ''),
-        deadline: clean(at(r, 'Last Date to Apply')),
+        deadline,
+        deadlineIso: readDeadline(deadline),
+        daysLeft: null,
         status,
         urgency: classifyUrgency(status),
         benefits: clean(at(r, 'Key Benefits')),
@@ -132,6 +164,12 @@ export type OpportunityFeed = {
   isStale: boolean;
 };
 
+/** Countdowns are stamped at read time so a cached page never shows a stale one. */
+function withCountdown(rows: Opportunity[]): Opportunity[] {
+  const now = Date.now();
+  return rows.map((o) => ({ ...o, daysLeft: daysUntil(o.deadlineIso, now) }));
+}
+
 export async function getOpportunities(): Promise<OpportunityFeed> {
   try {
     const res = await fetch(SHEET_CSV, { next: { revalidate: REVALIDATE_SECONDS } });
@@ -140,11 +178,11 @@ export async function getOpportunities(): Promise<OpportunityFeed> {
     const opportunities = toOpportunities(await res.text());
     if (opportunities.length === 0) throw new Error('sheet parsed to zero rows');
 
-    return { opportunities, isStale: false };
+    return { opportunities: withCountdown(opportunities), isStale: false };
   } catch {
-    return { opportunities: fallback as Opportunity[], isStale: true };
+    return { opportunities: withCountdown(fallback as Opportunity[]), isStale: true };
   }
 }
 
 // Exported for the snapshot generator and tests.
-export const __internal = { parseCsv, toOpportunities, safeUrl, classifyUrgency };
+export const __internal = { parseCsv, toOpportunities, safeUrl, classifyUrgency, readDeadline, daysUntil };

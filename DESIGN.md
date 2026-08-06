@@ -59,6 +59,15 @@ so a palette change never leaves class names lying.
 **Rule:** color carries meaning. Emerald means verified or actionable, amber means time
 pressure, faint means unverified. Never decorative.
 
+**One exception, deliberate:** company monogram tiles use a deterministic muted tint
+purely so a company is recognisable at a glance. Identity, never status.
+
+The set is sky / cyan / rose / slate, and the exclusions are the point: emerald and
+amber are load-bearing (actionable, time pressure) so identity must not borrow them,
+and the violet-blue family belongs to the retired brand palette that
+`__tests__/palette.test.ts` fails the build over. Nothing else may borrow these four
+hues to mean anything.
+
 ## Spacing & Layout
 - **Base unit:** 4px (Tailwind default scale).
 - **Density:** Comfortable in marketing, compact in data views.
@@ -82,15 +91,26 @@ Added by `/opportunities`, applies to any list of records:
    in the header so the whole list can be read at a glance.
 3. **Unverified data stays visible and stays marked.** Dim it, label it, sort it last.
    Hiding data you collected is worse than labelling it.
-4. **Rows collapse, cards do not.** When most records have empty fields, use rows.
-   Cards leave holes that read as broken data.
-5. **Filters derive from the data.** A new category in the source needs no code change.
-6. **Label every filter dimension.** Two unlabelled chip rows with a shared value read
+4. **Every card slot has a fallback.** Cards only survive sparse data if no slot can
+   render empty. Missing comp becomes "Compensation not published" in faint, missing
+   deadline falls through to the status word. A slot that can vanish belongs in a row
+   layout, not a card.
+5. **CTA weight is a promise.** Solid accent means this is live and worth your time.
+   A listing whose deadline has passed, or that we cannot vouch for, keeps its link but
+   drops to an outline button with a different verb ("Check listing", not "Apply now").
+   Dimming a card is not enough — a full-strength button overrides it.
+6. **Urgency must be earned by a real date.** The countdown ribbon only appears when a
+   calendar date was actually parsed and is within seven days. Never decorate a card
+   with urgency the data does not support.
+7. **Filters derive from the data.** A new category in the source needs no code change.
+8. **Label every filter dimension.** Two unlabelled chip rows with a shared value read
    as one confusing strip.
 
 ## Decisions Log
 | Date | Decision | Rationale |
 |------|----------|-----------|
 | 2026-08-06 | Documented the existing system rather than proposing a new one | Archivo/Inter/IBM Plex Mono + emerald-on-near-black was already shipped and coherent; the gap was that it lived only in CSS comments |
-| 2026-08-06 | `/opportunities` uses an instrument list, not a card grid | 24 of 52 rows have no deadline and none have logos; cards would render half-empty |
-| 2026-08-06 | Comp figures set in the data face as the row's visual hook | Comp is what makes a student click, and it is the one field competitors bury |
+| 2026-08-06 | Comp figures set in the data face as the card's visual hook | Comp is what makes a student click, and it is the one field competitors bury |
+| 2026-08-06 | `/opportunities` shipped first as an instrument list | 24 of 52 rows have no deadline and none have logos, so cards risked half-empty slots |
+| 2026-08-06 | Rebuilt as a card grid, e-commerce product-card pattern | Owner's call after seeing the list. The sparse-data risk is answered by rule 4 (every slot has a fallback) rather than by avoiding cards |
+| 2026-08-06 | Countdowns replace raw deadline strings where a date is parseable | "Closes in 4 days" changes what an applicant does today; "2026-08-10 17:00 ET" does not |

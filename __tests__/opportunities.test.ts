@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { __internal } from '@/lib/opportunities';
 
-const { toOpportunities, safeUrl, classifyUrgency } = __internal;
+const { toOpportunities, safeUrl, classifyUrgency, readDeadline, daysUntil } = __internal;
 
 /** Shaped like the real sheet: a title row, a mid-data repeated header, a blank spacer. */
 const CSV = `Job & Internship Openings,,,,,,,,
@@ -56,6 +56,27 @@ describe('opportunities feed', () => {
     expect(classifyUrgency('Verify / Possibly Closed')).toBe('stale');
     expect(classifyUrgency('Not Yet Open')).toBe('upcoming');
     expect(classifyUrgency('Rolling')).toBe('open');
+  });
+
+  it('reads a real date out of free-text deadlines, and gives up quietly otherwise', () => {
+    expect(readDeadline('2026-08-10 17:00 ET')).toBe('2026-08-10T00:00:00.000Z');
+    expect(readDeadline('On/before 2026-07-30')).toBe('2026-07-30T00:00:00.000Z');
+    expect(readDeadline('Rolling, fills by mid-Nov')).toBeNull();
+    expect(readDeadline('Not specified')).toBeNull();
+    expect(readDeadline(null)).toBeNull();
+  });
+
+  it('counts whole days to a deadline and goes negative once it passes', () => {
+    const now = Date.UTC(2026, 7, 6); // 2026-08-06
+    expect(daysUntil('2026-08-10T00:00:00.000Z', now)).toBe(4);
+    expect(daysUntil('2026-08-06T00:00:00.000Z', now)).toBe(0);
+    expect(daysUntil('2026-08-01T00:00:00.000Z', now)).toBe(-5);
+    expect(daysUntil(null, now)).toBeNull();
+  });
+
+  it('leaves daysLeft unstamped at parse time so a cached snapshot cannot ship a stale countdown', () => {
+    expect(rows.every((r) => r.daysLeft === null)).toBe(true);
+    expect(rows.find((r) => r.company === 'Devpost')?.deadlineIso).toBe('2026-08-10T00:00:00.000Z');
   });
 
   it('returns nothing rather than garbage when the header is missing', () => {
