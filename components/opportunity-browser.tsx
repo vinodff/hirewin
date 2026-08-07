@@ -5,7 +5,7 @@ import {
   ArrowUpRight, Search, Clock, Flame, GraduationCap, Briefcase, Trophy,
   AlertTriangle, CalendarClock, Wallet, Building2,
 } from 'lucide-react';
-import type { Opportunity, Urgency } from '@/lib/opportunities';
+import { splitHighlight, type Opportunity, type Urgency } from '@/lib/opportunities';
 import LOGOS from '@/lib/company-logos.json';
 
 const ALL = 'All';
@@ -110,6 +110,7 @@ function Card({ item }: { item: Opportunity }) {
   const signal = SIGNAL[item.urgency];
   const TypeIcon = TYPE_ICON[item.type] ?? Briefcase;
   const timer = countdown(item.daysLeft);
+  const { value, rest } = splitHighlight(item.benefits ?? '');
   const urgent = item.daysLeft !== null && item.daysLeft >= 0 && item.daysLeft <= 7;
   const expired = item.daysLeft !== null && item.daysLeft < 0;
   const unverified = item.urgency === 'stale' || expired;
@@ -143,7 +144,12 @@ function Card({ item }: { item: Opportunity }) {
         <div className="flex items-start gap-3">
           <CompanyMark company={item.company} />
           <div className="min-w-0 flex-1">
-            <h3 className="font-display font-semibold text-sm leading-tight truncate" style={{ color: 'var(--fg)' }}>
+            {/* The company is the scan anchor — it must win against the role title. */}
+            <h3
+              className="font-display font-bold text-[17px] leading-tight truncate tracking-tight"
+              style={{ color: '#FFFFFF' }}
+              title={item.company}
+            >
               {item.company}
             </h3>
             <p className="mt-0.5 flex items-center gap-1 text-[11px]" style={{ color: 'var(--faint)' }}>
@@ -162,10 +168,10 @@ function Card({ item }: { item: Opportunity }) {
           )}
         </div>
 
-        {/* Role */}
+        {/* Role — deliberately a step below the company in weight and brightness */}
         <p
-          className="mt-3 text-sm font-medium leading-snug line-clamp-2"
-          style={{ color: 'var(--fg)', minHeight: '2.5rem' }}
+          className="mt-3 text-sm leading-snug line-clamp-2"
+          style={{ color: 'var(--fg)', opacity: 0.86, minHeight: '2.5rem' }}
           title={item.title}
         >
           {item.title}
@@ -179,20 +185,34 @@ function Card({ item }: { item: Opportunity }) {
             border: `1px solid ${item.benefits ? 'rgba(var(--accent-rgb),0.16)' : 'var(--edge)'}`,
           }}
         >
-          <div className="flex items-start gap-2">
-            <Wallet
-              className="w-3.5 h-3.5 mt-0.5 shrink-0"
-              style={{ color: item.benefits ? 'var(--accent-soft)' : 'var(--faint)' }}
-              aria-hidden
-            />
-            <p
-              className="font-data text-xs leading-relaxed line-clamp-2"
-              style={{ color: item.benefits ? 'var(--accent-soft)' : 'var(--faint)' }}
-              title={item.benefits ?? undefined}
-            >
-              {item.benefits ?? 'Compensation not published'}
-            </p>
-          </div>
+          {item.benefits ? (
+            <div className="flex items-start gap-2">
+              <Wallet className="w-3.5 h-3.5 mt-1 shrink-0" style={{ color: 'var(--accent-soft)' }} aria-hidden />
+              <div className="min-w-0" title={item.benefits}>
+                {value && (
+                  <p
+                    className="font-data font-medium text-[15px] leading-tight tracking-tight"
+                    style={{ color: 'var(--accent-soft)' }}
+                  >
+                    {value}
+                  </p>
+                )}
+                {rest && (
+                  <p
+                    className={`text-xs leading-snug ${value ? 'mt-1 line-clamp-2' : 'line-clamp-3'}`}
+                    style={{ color: value ? 'var(--dim)' : 'var(--accent-soft)' }}
+                  >
+                    {rest}
+                  </p>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <Wallet className="w-3.5 h-3.5 shrink-0" style={{ color: 'var(--faint)' }} aria-hidden />
+              <p className="text-xs" style={{ color: 'var(--faint)' }}>Compensation not published</p>
+            </div>
+          )}
         </div>
 
         {/* Timing + kind. Never blank: falls back to the status word. */}

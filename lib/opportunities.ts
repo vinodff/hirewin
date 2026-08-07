@@ -186,5 +186,32 @@ export async function getOpportunities(): Promise<OpportunityFeed> {
   }
 }
 
+/** "$147k-$211k", "Rs.6.33 LPA", "~$60.58/hr", "$20,500" */
+const MONEY =
+  /~?\s*(?:[$₹]|Rs\.?\s*)[\d,]+(?:\.\d+)?\s*(?:[kKmM]\b|LPA\b)?(?:\s*[–-]\s*(?:[$₹]|Rs\.?\s*)?[\d,]+(?:\.\d+)?\s*(?:[kKmM]\b|LPA\b)?)?(?:\s*\/\s*(?:hr|mo|month|yr|year))?/;
+
+/** "12 weeks", "12-week" — the payoff when no figure is published. */
+const DURATION = /\b\d+[-\s]?(?:week|month)s?\b/i;
+
+/**
+ * Key Benefits is mostly prose with one number buried in it: "~$60.58/hr + housing,
+ * 1:1 lead + mentor pairing, real deployed-software work". Setting the whole string
+ * in the mono data face made 12px of green sentence, which is the hardest thing on
+ * the card to read. Lift the figure out to carry the weight and let the rest be text.
+ */
+export function splitHighlight(text: string): { value: string | null; rest: string } {
+  const match = text.match(MONEY) ?? text.match(DURATION);
+  if (!match) return { value: null, rest: text };
+
+  const value = match[0].trim();
+  const rest = (text.slice(0, match.index) + text.slice(match.index! + match[0].length))
+    .replace(/^\s*[+,;:–-]\s*/, '')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+
+  return { value, rest };
+}
+
+
 // Exported for the snapshot generator and tests.
 export const __internal = { parseCsv, toOpportunities, safeUrl, classifyUrgency, readDeadline, daysUntil };
