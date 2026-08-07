@@ -95,16 +95,40 @@ Added by `/opportunities`, applies to any list of records:
    render empty. Missing comp becomes "Compensation not published" in faint, missing
    deadline falls through to the status word. A slot that can vanish belongs in a row
    layout, not a card.
-5. **CTA weight is a promise.** Solid accent means this is live and worth your time.
-   A listing whose deadline has passed, or that we cannot vouch for, keeps its link but
-   drops to an outline button with a different verb ("Check listing", not "Apply now").
-   Dimming a card is not enough — a full-strength button overrides it.
+5. **CTA weight is a promise, in three tiers.** Fifty identical solid-emerald buttons
+   is wallpaper, not hierarchy — nothing stands out because everything shouts.
+   - **Solid accent** — on a clock. Reserved for a parsed deadline inside seven days.
+   - **Tinted accent** — the everyday live listing. Fills in on hover.
+   - **Outline, different verb** — deadline passed or unverified. Keeps its link, says
+     "Check listing" rather than "Apply now". Dimming the card is not enough; a
+     full-strength button overrides it.
 6. **Urgency must be earned by a real date.** The countdown ribbon only appears when a
    calendar date was actually parsed and is within seven days. Never decorate a card
    with urgency the data does not support.
 7. **Filters derive from the data.** A new category in the source needs no code change.
-8. **Label every filter dimension.** Two unlabelled chip rows with a shared value read
-   as one confusing strip.
+8. **One filter row, single-select.** Two dimensions meant two "All" chips and
+   "Hackathon" appearing twice. Type and company-kind are folded into one list; search
+   handles anything more specific. If a second dimension ever becomes unavoidable, it
+   must be labelled — an unlabelled second row reads as one confusing strip.
+
+## Company Marks
+Logos live in `public/logos/`, extracted once by a dev-only script and committed. The
+runtime makes no external requests, matching how fonts are self-hosted.
+
+- **Two sources, because neither covers the board.** `simple-icons` (CC0, a
+  devDependency that never ships) has dropped most large brands over redistribution
+  policy — Adobe, Amazon, IBM, Oracle, ServiceNow are all gone. Favicons cover those
+  but return 16-32px for Intel, Oracle, Palantir, Qualcomm and Cisco, which
+  simple-icons still carries. Vector first, favicon second, monogram last. 38 of 46.
+- **Reject anything under 48px** rather than shipping a blurry upscale. A clean
+  monogram beats a smeared logo.
+- **Tiles are white.** Brand marks are drawn for light backgrounds; ServiceNow's is
+  dark green and EPAM's is black, and both vanish on a dark tile. Recolouring the marks
+  would wreck the ones that are already pale, so the background moves instead.
+- Every mark, vector or raster, sits in the same 48px tile at the same size. A mixed
+  set only reads as one system if the container is identical.
+- Logos identify the employer on a listing — nominative use. They are not endorsements
+  and must never appear as decoration detached from a real opportunity.
 
 ## Decisions Log
 | Date | Decision | Rationale |

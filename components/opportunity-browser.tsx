@@ -6,8 +6,11 @@ import {
   AlertTriangle, CalendarClock, Wallet, Building2,
 } from 'lucide-react';
 import type { Opportunity, Urgency } from '@/lib/opportunities';
+import LOGOS from '@/lib/company-logos.json';
 
 const ALL = 'All';
+
+const LOGO_BY_COMPANY = LOGOS as Record<string, string>;
 
 const SIGNAL: Record<Urgency, { label: string; color: string; tint: string; Icon: typeof Flame }> = {
   closing:  { label: 'Closing soon', color: 'var(--warn)',        tint: 'rgba(251,191,36,0.12)',  Icon: Flame },
@@ -39,6 +42,45 @@ const MONOGRAM_TINTS = [
   { bg: 'rgba(148,163,184,0.16)', fg: '#CBD5E1' },
 ];
 
+/**
+ * The company's real mark where we have one, initials where we don't. Both sit in
+ * the same tile at the same size so a mixed set still reads as one system.
+ *
+ * The tile is white on purpose. Brand marks are drawn for light backgrounds —
+ * ServiceNow's is dark green, EPAM's is black — and on a dark tile they simply
+ * vanish. Lightening them instead would wreck the ones that are already pale, so
+ * the background moves rather than the logo.
+ */
+function CompanyMark({ company }: { company: string }) {
+  const file = LOGO_BY_COMPANY[company];
+  const mono = monogram(company);
+
+  return (
+    <div
+      className="w-12 h-12 rounded-xl grid place-items-center shrink-0 overflow-hidden"
+      style={{
+        background: file ? '#F4F7F8' : mono.bg,
+        border: '1px solid rgba(255,255,255,0.09)',
+      }}
+    >
+      {file ? (
+        // eslint-disable-next-line @next/next/no-img-element -- static local asset, no optimizer needed
+        <img
+          src={`/logos/${file}`}
+          alt=""
+          width={28}
+          height={28}
+          loading="lazy"
+          decoding="async"
+          className="w-7 h-7 object-contain"
+        />
+      ) : (
+        <span className="font-display font-bold text-sm" style={{ color: mono.fg }}>{mono.letters}</span>
+      )}
+    </div>
+  );
+}
+
 function monogram(company: string) {
   const letters = company
     .replace(/\(.*?\)/g, '')
@@ -67,7 +109,6 @@ function countdown(days: number | null): string | null {
 function Card({ item }: { item: Opportunity }) {
   const signal = SIGNAL[item.urgency];
   const TypeIcon = TYPE_ICON[item.type] ?? Briefcase;
-  const mono = monogram(item.company);
   const timer = countdown(item.daysLeft);
   const urgent = item.daysLeft !== null && item.daysLeft >= 0 && item.daysLeft <= 7;
   const expired = item.daysLeft !== null && item.daysLeft < 0;
@@ -75,11 +116,15 @@ function Card({ item }: { item: Opportunity }) {
 
   return (
     <article
-      className="group relative flex flex-col rounded-2xl overflow-hidden transition-all duration-200 hover:-translate-y-0.5"
+      className="group relative flex flex-col rounded-2xl overflow-hidden transition-all duration-200 hover:-translate-y-1"
       style={{
-        background: 'var(--surface-2)',
-        border: `1px solid ${urgent ? 'rgba(251,191,36,0.28)' : 'var(--edge)'}`,
-        opacity: item.urgency === 'stale' ? 0.7 : 1,
+        // Layered: a lit top edge fading into the ground, not one flat fill.
+        background: urgent
+          ? 'linear-gradient(180deg, rgba(251,191,36,0.06) 0%, var(--surface-2) 42%)'
+          : 'linear-gradient(180deg, var(--surface) 0%, var(--surface-2) 46%)',
+        border: `1px solid ${urgent ? 'rgba(251,191,36,0.3)' : 'var(--edge)'}`,
+        boxShadow: urgent ? '0 10px 30px -18px rgba(251,191,36,0.35)' : 'var(--lift)',
+        opacity: item.urgency === 'stale' ? 0.72 : 1,
       }}
     >
       {/* Deal-style ribbon. Only ever earned by a real date inside a week. */}
@@ -96,13 +141,7 @@ function Card({ item }: { item: Opportunity }) {
       <div className="flex flex-col flex-1 p-4">
         {/* Identity */}
         <div className="flex items-start gap-3">
-          <div
-            className="w-11 h-11 rounded-xl grid place-items-center font-display font-bold text-sm shrink-0"
-            style={{ background: mono.bg, color: mono.fg }}
-            aria-hidden
-          >
-            {mono.letters}
-          </div>
+          <CompanyMark company={item.company} />
           <div className="min-w-0 flex-1">
             <h3 className="font-display font-semibold text-sm leading-tight truncate" style={{ color: 'var(--fg)' }}>
               {item.company}
@@ -175,17 +214,25 @@ function Card({ item }: { item: Opportunity }) {
               href={item.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center justify-center gap-1.5 w-full rounded-xl py-2.5 text-sm font-semibold transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2"
-              // A listing whose deadline has passed, or that we can't vouch for, keeps its
-              // link but loses the loud button. Solid emerald is a promise the row is live.
+              className="flex items-center justify-center gap-1.5 w-full rounded-xl py-2.5 text-sm font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 group-hover:brightness-110"
+              /* Three weights, so the page has a hierarchy instead of 52 identical
+                 green buttons. Solid emerald is reserved for the ones on a clock;
+                 the everyday case is a tinted button that fills in on hover; a
+                 listing we can't vouch for keeps its link but drops to outline. */
               style={
                 unverified
                   ? { background: 'transparent', border: '1px solid var(--edge-strong)', color: 'var(--dim)' }
-                  : { background: 'var(--accent-fill)', color: 'var(--on-accent)' }
+                  : urgent
+                    ? { background: 'var(--accent-fill)', color: 'var(--on-accent)' }
+                    : {
+                        background: 'rgba(var(--accent-rgb),0.12)',
+                        border: '1px solid rgba(var(--accent-rgb),0.3)',
+                        color: 'var(--accent-soft)',
+                      }
               }
             >
               {unverified ? 'Check listing' : 'Apply now'}
-              <ArrowUpRight className="w-4 h-4" aria-hidden />
+              <ArrowUpRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" aria-hidden />
             </a>
           ) : (
             <span
@@ -218,47 +265,32 @@ function Chip({ active, children, onClick }: { active: boolean; children: React.
   );
 }
 
-function ChipGroup({
-  label, options, value, onChange,
-}: {
-  label: string;
-  options: string[];
-  value: string;
-  onChange: (v: string) => void;
-}) {
-  return (
-    <div className="flex flex-wrap items-center gap-2">
-      <span className="text-[11px] uppercase tracking-wider w-full sm:w-24 shrink-0" style={{ color: 'var(--faint)' }}>
-        {label}
-      </span>
-      {options.map((o) => (
-        <Chip key={o} active={value === o} onClick={() => onChange(o)}>{o}</Chip>
-      ))}
-    </div>
-  );
-}
-
 export default function OpportunityBrowser({ opportunities }: { opportunities: Opportunity[] }) {
   const [query, setQuery] = useState('');
-  const [type, setType] = useState(ALL);
-  const [category, setCategory] = useState(ALL);
+  const [filter, setFilter] = useState(ALL);
 
-  // Derived from the data, so a new value in the sheet needs no code change.
-  const types = useMemo(() => [ALL, ...Array.from(new Set(opportunities.map((o) => o.type)))], [opportunities]);
-  const categories = useMemo(
-    () => [ALL, ...Array.from(new Set(opportunities.map((o) => o.category)))],
-    [opportunities]
-  );
+  /**
+   * One filter, not two. Type and company-kind used to be separate rows, which meant
+   * two "All" chips and "Hackathon" appearing twice. They are folded into a single
+   * single-select list — the search box handles anything more specific.
+   * Derived from the data, so a new value in the sheet needs no code change.
+   */
+  const filters = useMemo(() => {
+    const types = Array.from(new Set(opportunities.map((o) => o.type)));
+    const kinds = Array.from(new Set(opportunities.map((o) => o.category)))
+      // "Hackathon Platform" is already reachable via the Hackathon type chip.
+      .filter((c) => !types.some((t) => c.toLowerCase().startsWith(t.toLowerCase())));
+    return [ALL, ...types, ...kinds];
+  }, [opportunities]);
 
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
     return opportunities.filter((o) => {
-      if (type !== ALL && o.type !== type) return false;
-      if (category !== ALL && o.category !== category) return false;
+      if (filter !== ALL && o.type !== filter && o.category !== filter) return false;
       if (!q) return true;
       return `${o.company} ${o.title} ${o.benefits ?? ''}`.toLowerCase().includes(q);
     });
-  }, [opportunities, query, type, category]);
+  }, [opportunities, query, filter]);
 
   const counts = useMemo(() => {
     const c: Partial<Record<Urgency, number>> = {};
@@ -314,10 +346,11 @@ export default function OpportunityBrowser({ opportunities }: { opportunities: O
           />
         </div>
 
-        {/* Two dimensions, and "Hackathon" is a value in both — label them or the
-            rows read as one confusing strip with two "All" chips. */}
-        <ChipGroup label="Looking for" options={types} value={type} onChange={setType} />
-        <ChipGroup label="Company" options={categories} value={category} onChange={setCategory} />
+        <div className="flex flex-wrap gap-2">
+          {filters.map((f) => (
+            <Chip key={f} active={filter === f} onClick={() => setFilter(f)}>{f}</Chip>
+          ))}
+        </div>
       </div>
 
       <p className="mb-4 text-xs font-data" style={{ color: 'var(--faint)' }}>
