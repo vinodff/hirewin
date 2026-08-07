@@ -8,7 +8,9 @@
 import fallback from './opportunities-fallback.json';
 
 const SHEET_ID = '1MpfNvlmcGklUf_Qykuj3MailmPLk1yVPle8L736cE60';
-const SHEET_CSV = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv`;
+
+/** Also read by scripts/build-logos.ts, so the two never drift to different sheets. */
+export const SHEET_CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv`;
 
 const REVALIDATE_SECONDS = 3600;
 
@@ -172,7 +174,7 @@ function withCountdown(rows: Opportunity[]): Opportunity[] {
 
 export async function getOpportunities(): Promise<OpportunityFeed> {
   try {
-    const res = await fetch(SHEET_CSV, { next: { revalidate: REVALIDATE_SECONDS } });
+    const res = await fetch(SHEET_CSV_URL, { next: { revalidate: REVALIDATE_SECONDS } });
     if (!res.ok) throw new Error(`sheet responded ${res.status}`);
 
     const opportunities = toOpportunities(await res.text());
