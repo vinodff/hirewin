@@ -12,6 +12,8 @@ const NOW = new Date('2026-09-06T00:00:00Z');
  */
 function fakeClient() {
   const batches: Record<string, unknown>[][] = [];
+  const updates: { patch: Record<string, unknown>; filters: string[] }[] = [];
+
   const client = {
     from() {
       return {
@@ -19,12 +21,34 @@ function fakeClient() {
           batches.push(rows);
           return { error: null };
         },
+        // PostgREST's update builder is a thenable chain, so the double has to
+        // be one too: .update().in().not().is() must resolve like a promise.
+        update(patch: Record<string, unknown>) {
+          const filters: string[] = [];
+          const chain = {
+            in: (col: string) => (filters.push(`in:${col}`), chain),
+            not: (col: string, op: string) => (filters.push(`not:${col}:${op}`), chain),
+            is: (col: string, value: unknown) => (filters.push(`is:${col}:${String(value)}`), chain),
+            then: (resolve: (v: { error: null }) => void) => {
+              updates.push({ patch, filters });
+              resolve({ error: null });
+            },
+          };
+          return chain;
+        },
       };
     },
   };
   // The real client's type is far wider than what ingest uses; the cast keeps
   // the double honest about that rather than stubbing forty unused methods.
-  return { client: client as never, batches, get written() { return batches.flat(); } };
+  return {
+    client: client as never,
+    batches,
+    updates,
+    get written() {
+      return batches.flat();
+    },
+  };
 }
 
 function candidate(overrides: Partial<OpportunityCandidate> = {}): OpportunityCandidate {
@@ -167,12 +191,30 @@ describe('ingestCandidates', () => {
     expect(db.batches).toHaveLength(0);
   });
 
-  test('a returning row clears any stale retirement', async () => {
-    // A listing that was retired and is being served again should come back,
-    // not stay invisible behind last week's retirement.
+  test('the upsert never touches retirement columns', async () => {
+    // Writing retired_at in the upsert would clear it for EVERY row, including
+    // ones an admin removed by hand. Those columns must not appear here at all.
     const db = fakeClient();
     await ingestCandidates(db.client, [candidate()], { now: NOW });
-    expect(db.written[0].retired_at).toBeNull();
-    expect(db.written[0].retired_reason).toBeNull();
+    expect(db.written[0]).not.toHaveProperty('retired_at');
+    expect(db.written[0]).not.toHaveProperty('retired_reason');
+  });
+
+  test('a returning row is un-retired only when the SWEEP retired it', async () => {
+    const db = fakeClient();
+    await ingestCandidates(db.client, [candidate()], { now: NOW });
+
+    expect(db.updates).toHaveLength(1);
+    expect(db.updates[0].patch).toMatchObject({ retired_at: null, retired_reason: null });
+    // `retired_by IS NULL` is the whole safeguard: it means the sweep retired
+    // the row, not a human. Without it, Remove would be undone twice a day.
+    expect(db.updates[0].filters).toContain('is:retired_by:null');
+    expect(db.updates[0].filters).toContain('not:retired_at:is');
+  });
+
+  test('an empty batch issues no un-retire update either', async () => {
+    const db = fakeClient();
+    await ingestCandidates(db.client, [], { now: NOW });
+    expect(db.updates).toHaveLength(0);
   });
 });

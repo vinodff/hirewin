@@ -11,6 +11,7 @@
 // pays ₹2,000 to a fake 'placement drive' loses money and trust in the portal.
 
 import { classifyHost } from './sources';
+import { inspectApplyUrl } from './apply-link';
 import { regionVerdict } from './region';
 import type { OpportunityCandidate, OpportunityStatus, SourceTier } from './types';
 
@@ -186,6 +187,14 @@ export interface VerificationResult {
   /** Human-readable reasons, stored on the row so a reviewer can audit calls. */
   signals: string[];
   canonicalUrl: string | null;
+  /**
+   * Does the apply URL point at ONE posting, rather than a careers index?
+   *
+   * Reported separately from `status` because it is the one verdict an admin
+   * routinely wants to filter and act on by itself — 'show me everything whose
+   * link is not a real application page'.
+   */
+  directApply: boolean;
 }
 
 /**
@@ -249,8 +258,11 @@ export function verifyCandidate(
       sourceTier: 'blocked',
       signals: ['apply URL is not a valid http(s) address'],
       canonicalUrl: null,
+      directApply: false,
     };
   }
+
+  const applyLink = inspectApplyUrl(candidate.applyUrl);
 
   const host = canonicalUrl.split('/')[0];
   const sourceTier = classifyHost(host);
@@ -261,6 +273,7 @@ export function verifyCandidate(
       sourceTier,
       signals: [`apply URL points at a link shortener or chat invite (${host})`],
       canonicalUrl,
+      directApply: applyLink.direct,
     };
   }
 
@@ -282,7 +295,7 @@ export function verifyCandidate(
   // Any of the above is disqualifying on its own — these are not 'score it
   // lower' signals, they are the fraud pattern itself.
   if (signals.length > 0) {
-    return { status: 'rejected', sourceTier, signals, canonicalUrl };
+    return { status: 'rejected', sourceTier, signals, canonicalUrl, directApply: applyLink.direct };
   }
 
   // Not a fraud signal — just not for this audience. Stored as rejected so the
@@ -293,6 +306,7 @@ export function verifyCandidate(
       sourceTier,
       signals: ['requires professional experience — not a student-level opportunity'],
       canonicalUrl,
+      directApply: applyLink.direct,
     };
   }
 
@@ -306,6 +320,7 @@ export function verifyCandidate(
       sourceTier,
       signals: [region.signal ?? 'outside India'],
       canonicalUrl,
+      directApply: applyLink.direct,
     };
   }
   if (region.signal) signals.push(region.signal);
@@ -316,6 +331,7 @@ export function verifyCandidate(
       sourceTier,
       signals: [`deadline ${candidate.deadline} is in the past or implausible`],
       canonicalUrl,
+      directApply: applyLink.direct,
     };
   }
 
@@ -325,6 +341,7 @@ export function verifyCandidate(
       sourceTier,
       signals: ['missing title or organisation'],
       canonicalUrl,
+      directApply: applyLink.direct,
     };
   }
 
@@ -336,12 +353,13 @@ export function verifyCandidate(
       sourceTier,
       signals: ['apply URL is dead or returned a server error'],
       canonicalUrl,
+      directApply: applyLink.direct,
     };
   }
 
   if (reachability === 'unchecked') {
     signals.push('reachability not yet checked');
-    return { status: 'pending', sourceTier, signals, canonicalUrl };
+    return { status: 'pending', sourceTier, signals, canonicalUrl, directApply: applyLink.direct };
   }
 
   if (reachability === 'blocked') {
@@ -352,7 +370,7 @@ export function verifyCandidate(
 
   if (sourceTier === 'unknown') {
     signals.push('source domain is not a known employer, ATS or job board');
-    return { status: 'pending', sourceTier, signals, canonicalUrl };
+    return { status: 'pending', sourceTier, signals, canonicalUrl, directApply: applyLink.direct };
   }
 
   // An aggregator repost is real often enough to publish, but we say so on the
@@ -360,7 +378,7 @@ export function verifyCandidate(
   if (sourceTier === 'aggregator') {
     signals.push('second-hand listing — confirm on the employer site');
     if ((options.corroborations ?? 1) < 1) {
-      return { status: 'pending', sourceTier, signals, canonicalUrl };
+      return { status: 'pending', sourceTier, signals, canonicalUrl, directApply: applyLink.direct };
     }
   }
 
@@ -368,8 +386,25 @@ export function verifyCandidate(
   // is probably fine — but 'probably' is not good enough to put in front of a
   // student as an Indian opportunity. A human decides.
   if (region.needsReview) {
-    return { status: 'pending', sourceTier, signals, canonicalUrl };
+    return { status: 'pending', sourceTier, signals, canonicalUrl, directApply: applyLink.direct };
   }
 
-  return { status: 'verified', sourceTier, signals, canonicalUrl };
+  /*
+   * Last gate: does the link actually go to the posting?
+   *
+   * Held at `pending`, not rejected. A listing-page URL is usually a real
+   * opportunity that was extracted with a lazy link rather than a fake one, so
+   * dropping it would lose genuine finds — but publishing it puts an "Apply
+   * now" button in front of a reader that lands them on a search box. A human
+   * decides, and the admin console filters on exactly this.
+   *
+   * Placed last so the signal a reviewer reads is the ONLY thing wrong with the
+   * row: everything above has already passed.
+   */
+  if (!applyLink.direct) {
+    signals.push(`not a direct application link — ${applyLink.reason}`);
+    return { status: 'pending', sourceTier, signals, canonicalUrl, directApply: false };
+  }
+
+  return { status: 'verified', sourceTier, signals, canonicalUrl, directApply: true };
 }

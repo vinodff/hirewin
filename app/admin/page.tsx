@@ -28,6 +28,12 @@ export default async function AdminPage() {
             </span>
           </Link>
           <div className="flex items-center gap-4">
+            <Link
+              href="/admin/opportunities"
+              className="text-sm text-slate-400 hover:text-white transition-colors"
+            >
+              Opportunities Agent
+            </Link>
             <Link href="/history" className="text-sm text-slate-400 hover:text-white transition-colors">
               History
             </Link>

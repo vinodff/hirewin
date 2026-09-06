@@ -1,9 +1,14 @@
 /**
  * The Opportunities Agent — runs twice a day.
  *
- * vercel.json schedules two invocations:
- *   { "path": "/api/cron/opportunities", "schedule": "30 0 * * *" }   06:00 IST
- *   { "path": "/api/cron/opportunities", "schedule": "30 12 * * *" }  18:00 IST
+ * vercel.json registers 24 entries, one per hour. That is *permission* to run
+ * at any hour; `opportunity_settings.run_hours_ist` decides which hours
+ * actually do work, so an admin changes the schedule by editing a row rather
+ * than by shipping a deploy. Every other invocation reads that row, finds
+ * itself unscheduled, and returns in a few milliseconds.
+ *
+ * The 24 entries exist because Vercel's Hobby plan fires a given cron entry at
+ * most once a day — "run four times daily" is not expressible as one entry.
  *
  * Three stages, in this order and for these reasons:
  *
@@ -32,6 +37,7 @@ import { ingestCandidates } from '@/lib/opportunities/ingest';
 import { runDiscovery } from '@/lib/opportunities/discover';
 import { runRefresh, DEFAULT_SWEEP_LIMIT } from '@/lib/opportunities/refresh';
 import { startRun, finishRun, istSlot, type RunSource } from '@/lib/opportunities/runs';
+import { readSettings, isDue } from '@/lib/opportunities/settings';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -83,18 +89,44 @@ async function handleRun(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const force = new URL(req.url).searchParams.get('force') === '1';
+  const url = new URL(req.url);
+  const force = url.searchParams.get('force') === '1';
+  // Set by the admin console's "Run now". A manual run ignores the schedule and
+  // the pause switch — that is the point of it — but still records itself in the
+  // ledger under the `manual` trigger so the two are never confused.
+  const manual = url.searchParams.get('manual') === '1';
+
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
     { auth: { persistSession: false, autoRefreshToken: false } }
   );
 
+  const settings = await readSettings(supabase);
+
+  /*
+   * The schedule gate.
+   *
+   * Returns 200, not an error: an unscheduled hour is the expected outcome for
+   * 22 of the 24 daily invocations, and a 4xx would fill the Vercel dashboard
+   * with red for a system working exactly as designed.
+   */
+  if (!manual) {
+    const due = isDue(settings);
+    if (!due.due) {
+      return NextResponse.json({ ok: true, ran: false, reason: due.reason });
+    }
+  }
+
   const slot = istSlot();
 
   let run;
   try {
-    const started = await startRun(supabase, { trigger: 'cron', slot, force });
+    const started = await startRun(supabase, {
+      trigger: manual ? 'manual' : 'cron',
+      slot,
+      force: force || manual,
+    });
     // This slot already ran and nobody asked for a repeat: report the existing
     // run rather than sweeping the same rows twice.
     if (started.reused) {
@@ -125,6 +157,8 @@ async function handleRun(req: NextRequest) {
       // The employer's own live board is still serving this requisition, which
       // is stronger evidence the role is open than a 200 on a careers page.
       reachability: 'ok',
+      autoPublish: settings.autoPublish,
+      maxPublish: settings.maxPublishPerRun,
       // A harvest returns several thousand postings, of which the few hundred
       // that are Indian and student-level are the ones anyone can act on.
       // Storing the remainder buys nothing here — the next run gets the whole
@@ -175,7 +209,10 @@ async function handleRun(req: NextRequest) {
   let retirements: { title: string; url: string; evidence: string[] }[] = [];
 
   try {
-    const summary = await runRefresh(supabase, { runId: run.id, limit: DEFAULT_SWEEP_LIMIT });
+    const summary = await runRefresh(supabase, {
+      runId: run.id,
+      limit: settings.sweepLimit ?? DEFAULT_SWEEP_LIMIT,
+    });
     rechecked = summary.rechecked;
     retired = summary.retired;
     // Only rows that actually changed state — a full dump of 40 "still fine"
@@ -217,9 +254,11 @@ async function handleRun(req: NextRequest) {
 
   return NextResponse.json({
     ok: true,
+    ran: true,
     reused: false,
     runId: run.id,
     slot,
+    trigger: manual ? 'manual' : 'cron',
     ats: {
       boardsPolled,
       considered: atsConsidered,

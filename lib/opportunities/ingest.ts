@@ -61,6 +61,17 @@ export interface IngestOptions {
    * bookkeeping habit inherited from a channel with different economics.
    */
   dropRejected?: boolean;
+  /**
+   * When false, rows that passed verification are stored as `pending` instead
+   * of `verified`, so nothing reaches the public page until an admin approves
+   * it. Driven by `opportunity_settings.auto_publish`.
+   *
+   * The verifier's own verdict is preserved in `signals` either way, so turning
+   * this back on does not lose the reasoning behind a held row.
+   */
+  autoPublish?: boolean;
+  /** Stop publishing after this many verified rows in one batch. */
+  maxPublish?: number;
 }
 
 function hostOf(url: string): string {
@@ -82,13 +93,16 @@ const EMPTY_SUMMARY = (): IngestSummary => ({
 });
 
 /**
- * Verify every candidate, drop what fails, and upsert the rest.
+ * Verify every candidate and upsert the results.
  *
- * Rejected rows ARE stored. That is deliberate and inherited from BVCITS: the
- * unique index on url_fingerprint means a scam URL seen once is recognised on
- * every later run without re-running the checks, and a human can audit what the
- * filter threw away. A rejected row can never be visible — the RLS policy in
- * 013 only admits `verified`.
+ * By default rejected rows ARE stored, inherited from BVCITS: the unique index
+ * on url_fingerprint means a scam URL seen once is recognised on every later
+ * run without re-running the checks, and a human can audit what the filter
+ * threw away. `dropRejected` turns that off for the ATS channel, where it buys
+ * nothing — see the option's own comment.
+ *
+ * A stored rejection can never be visible either way: the RLS policy in 013
+ * admits only `verified`.
  */
 export async function ingestCandidates(
   supabase: SupabaseClient,
@@ -133,20 +147,36 @@ export async function ingestCandidates(
       corroborations: seenBefore + 1,
     });
 
-    if (verdict.status === 'verified') summary.verified += 1;
-    else if (verdict.status === 'pending') summary.pending += 1;
+    /*
+     * Two admin controls can demote a verified row to pending, and neither may
+     * silently change what the VERIFIER concluded — only what is published.
+     * `signals` keeps the reasoning, so an admin approving the row later is
+     * approving something whose provenance is still legible.
+     */
+    let status = verdict.status;
+    if (status === 'verified' && options.autoPublish === false) {
+      status = 'pending';
+      verdict.signals.push('held for admin approval — auto-publish is off');
+    }
+    if (status === 'verified' && options.maxPublish !== undefined && summary.verified >= options.maxPublish) {
+      status = 'pending';
+      verdict.signals.push('held — this run reached its publish cap');
+    }
+
+    if (status === 'verified') summary.verified += 1;
+    else if (status === 'pending') summary.pending += 1;
     else summary.rejected += 1;
 
     const host = hostOf(candidate.applyUrl);
-    if (verdict.status === 'verified') {
+    if (status === 'verified') {
       summary.keptByHost.set(host, (summary.keptByHost.get(host) ?? 0) + 1);
     }
-    if (verdict.status !== 'rejected') {
+    if (status !== 'rejected') {
       summary.added.push({
         title: candidate.title,
         organization: candidate.organization,
         host,
-        status: verdict.status,
+        status,
       });
     }
 
@@ -167,21 +197,18 @@ export async function ingestCandidates(
       compensation: candidate.compensation ?? null,
       deadline: candidate.deadline ?? null,
       posted_at: candidate.postedAt ?? null,
-      status: verdict.status,
+      status,
       source_tier: verdict.sourceTier,
       signals: verdict.signals,
-      verified_at: verdict.status === 'verified' ? now.toISOString() : null,
+      is_direct_apply: verdict.directApply,
+      verified_at: status === 'verified' ? now.toISOString() : null,
       last_checked_at: now.toISOString(),
       last_check_result: 'ok',
       check_failures: 0,
-      // A row that was retired and is being seen live again should come back,
-      // not sit invisible forever behind a stale retirement.
-      retired_at: null,
-      retired_reason: null,
       ...(options.runId ? { last_seen_run: options.runId } : {}),
     };
 
-    if (verdict.status === 'rejected' && options.dropRejected) continue;
+    if (status === 'rejected' && options.dropRejected) continue;
     rows.push(row);
   }
 
@@ -201,6 +228,42 @@ export async function ingestCandidates(
         ignoreDuplicates: false,
       });
     if (error) throw new Error(`Could not save discovered opportunities: ${error.message}`);
+  }
+
+  /*
+   * Un-retire rows the crawler has just seen alive again — but ONLY the ones the
+   * sweep retired.
+   *
+   * This cannot be folded into the upsert above. An upsert writes the same
+   * columns to every row, so clearing `retired_at` there would also reverse
+   * every removal an admin made by hand: they press Remove, the posting is
+   * still live on the employer's board, and twelve hours later it is back on
+   * the site. `retired_by IS NULL` is what separates the two — a sweep sets it
+   * to null, a human sets it to their id — so the condition belongs in a
+   * targeted UPDATE that can express it.
+   *
+   * Runs after the upsert so it sees this run's rows, and is chunked for the
+   * same reason the upsert is.
+   */
+  const seenFingerprints = rows
+    .map((row) => row.url_fingerprint)
+    .filter((value): value is string => typeof value === 'string');
+
+  for (let i = 0; i < seenFingerprints.length; i += UPSERT_CHUNK) {
+    const { error } = await supabase
+      .from('opportunities')
+      .update({ retired_at: null, retired_reason: null, check_failures: 0 })
+      .in('url_fingerprint', seenFingerprints.slice(i, i + UPSERT_CHUNK))
+      .not('retired_at', 'is', null)
+      .is('retired_by', null);
+
+    if (error) {
+      // Not fatal: the rows are saved, they just stay retired for now and the
+      // next run tries again. Failing the whole ingest here would throw away
+      // a completed harvest over a bookkeeping update.
+      console.error('[opportunity-ingest] could not un-retire returning rows:', error.message);
+      break;
+    }
   }
 
   return summary;
