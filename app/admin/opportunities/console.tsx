@@ -74,6 +74,8 @@ type Run = {
 };
 
 type Payload = {
+  /** True until supabase/migrations/013 + 014 have been applied. */
+  setupRequired?: boolean;
   settings: Settings;
   today: { date: string; discovered: number; published: number; pending: number; retired: number; removed: number };
   totals: { live: number; pending: number; directApply: number; indirect: number };
@@ -203,6 +205,10 @@ export default function OpportunitiesConsole() {
       </div>
     );
   }
+
+  // The schema is not applied yet. Say what to run rather than showing eight
+  // zeroes, which would read as "the agent ran and found nothing".
+  if (data.setupRequired) return <SetupNeeded />;
 
   const { settings, today, totals } = data;
 
@@ -494,6 +500,41 @@ export default function OpportunitiesConsole() {
           </ul>
         )}
       </section>
+    </div>
+  );
+}
+
+function SetupNeeded() {
+  return (
+    <div className="max-w-3xl mx-auto px-4 py-16">
+      <h1 className="font-display text-2xl font-bold" style={{ color: 'var(--fg)' }}>
+        One step left
+      </h1>
+      <p className="text-sm mt-2" style={{ color: 'var(--dim)' }}>
+        The agent&rsquo;s tables have not been created yet, so there is nothing to show.
+        Apply the two migrations and this page fills in.
+      </p>
+
+      <pre
+        className="font-data text-xs rounded-xl p-4 mt-5 overflow-x-auto"
+        style={{ background: 'var(--surface-2)', border: '1px solid var(--edge)', color: 'var(--accent-soft)' }}
+      >
+{`supabase db push
+
+# or paste these into the Supabase SQL editor, in order:
+#   supabase/migrations/013_opportunities_agent.sql
+#   supabase/migrations/014_opportunity_admin.sql`}
+      </pre>
+
+      <p className="text-xs mt-4" style={{ color: 'var(--faint)' }}>
+        Then reload this page and press <span style={{ color: 'var(--accent-soft)' }}>Run now</span>.
+        The first run takes a couple of minutes and reads about 7,000 postings.
+      </p>
+
+      <p className="text-xs mt-4" style={{ color: 'var(--faint)' }}>
+        Nothing on the public board changes until then &mdash; /opportunities keeps serving
+        the Google Sheet exactly as it does today.
+      </p>
     </div>
   );
 }

@@ -10,11 +10,29 @@ import {
   Clock,
   RefreshCw,
   Loader2,
+  Briefcase,
+  ArrowRight,
 } from 'lucide-react';
+import Link from 'next/link';
 
 const cardStyle = { background: 'var(--surface)', border: '1px solid rgba(255,255,255,0.07)' };
 
 type Overview = {
+  /** Null until supabase/migrations/013 + 014 are applied. */
+  opportunities: {
+    live: number;
+    needsReview: number;
+    foundToday: number;
+    publishedToday: number;
+    retiredToday: number;
+    lastRun: {
+      startedAt: string;
+      status: string;
+      trigger: string;
+      verified: number;
+      retired: number;
+    } | null;
+  } | null;
   revenue: {
     totalPaise: number;
     last30dPaise: number;
@@ -143,6 +161,51 @@ export default function AdminDashboard() {
           Refresh
         </button>
       </header>
+
+      {/* Opportunities Agent — surfaced here because this is the page an admin
+          opens. A board that has stopped publishing should be visible without
+          a deliberate click. */}
+      <section className="rounded-xl p-4" style={cardStyle}>
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+          <div className="flex items-center gap-2">
+            <Briefcase className="w-4 h-4" style={{ color: 'var(--accent-soft)' }} />
+            <h2 className="text-sm font-semibold text-white">Opportunities Agent</h2>
+            {data.opportunities?.lastRun && (
+              <span className="text-xs text-slate-500">
+                last run {new Date(data.opportunities.lastRun.startedAt).toLocaleString('en-IN', {
+                  dateStyle: 'short',
+                  timeStyle: 'short',
+                })}{' '}
+                · {data.opportunities.lastRun.status}
+              </span>
+            )}
+          </div>
+          <Link
+            href="/admin/opportunities"
+            className="flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
+            style={{ background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.3)', color: 'var(--accent-soft)' }}
+          >
+            Open console
+            <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
+        </div>
+
+        {data.opportunities === null ? (
+          <p className="text-xs text-slate-500">
+            Not set up yet — run{' '}
+            <code className="font-data" style={{ color: 'var(--accent-soft)' }}>supabase db push</code>{' '}
+            to create the agent&rsquo;s tables. The public board keeps serving the Google Sheet until then.
+          </p>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+            <MiniStat label="Live on site" value={data.opportunities.live} accent="var(--accent)" />
+            <MiniStat label="Found today" value={data.opportunities.foundToday} accent="var(--accent-soft)" />
+            <MiniStat label="Published today" value={data.opportunities.publishedToday} accent="var(--accent-soft)" />
+            <MiniStat label="Needs review" value={data.opportunities.needsReview} accent="#fbbf24" />
+            <MiniStat label="Retired today" value={data.opportunities.retiredToday} accent="#f87171" />
+          </div>
+        )}
+      </section>
 
       {/* KPI grid */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -364,6 +427,17 @@ export default function AdminDashboard() {
             </div>
           )}
         </div>
+      </div>
+    </div>
+  );
+}
+
+function MiniStat({ label, value, accent }: { label: string; value: number; accent: string }) {
+  return (
+    <div className="rounded-lg p-2.5" style={{ background: 'rgba(255,255,255,0.03)' }}>
+      <div className="text-[11px] text-slate-500">{label}</div>
+      <div className="font-data text-xl mt-0.5" style={{ color: accent }}>
+        {value.toLocaleString('en-IN')}
       </div>
     </div>
   );

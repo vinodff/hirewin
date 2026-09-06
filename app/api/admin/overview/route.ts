@@ -12,6 +12,62 @@ function isoDaysAgo(n: number): string {
   return new Date(Date.now() - n * DAY_MS).toISOString();
 }
 
+/**
+ * Counts for the agent, or null when its schema is not installed.
+ *
+ * `head: true` with `count: 'exact'` asks Postgres for the count and no rows,
+ * which is what keeps four of these cheap enough to run on every 15s poll.
+ */
+async function readOpportunitySummary(sb: Awaited<ReturnType<typeof createServiceClient>>) {
+  try {
+    const since = istMidnight();
+
+    const [live, pendingReview, foundToday, publishedToday, retiredToday, lastRun] = await Promise.all([
+      sb.from('opportunities').select('id', { count: 'exact', head: true })
+        .eq('status', 'verified').is('retired_at', null),
+      sb.from('opportunities').select('id', { count: 'exact', head: true })
+        .eq('status', 'pending').is('retired_at', null),
+      sb.from('opportunities').select('id', { count: 'exact', head: true })
+        .gte('discovered_at', since),
+      sb.from('opportunities').select('id', { count: 'exact', head: true })
+        .gte('discovered_at', since).eq('status', 'verified'),
+      sb.from('opportunities').select('id', { count: 'exact', head: true })
+        .gte('retired_at', since),
+      sb.from('opportunity_runs').select('started_at, status, verified, retired, trigger')
+        .order('started_at', { ascending: false }).limit(1).maybeSingle(),
+    ]);
+
+    // Any of these erroring the same way means the tables are not there yet.
+    if (live.error) return null;
+
+    return {
+      live: live.count ?? 0,
+      needsReview: pendingReview.count ?? 0,
+      foundToday: foundToday.count ?? 0,
+      publishedToday: publishedToday.count ?? 0,
+      retiredToday: retiredToday.count ?? 0,
+      lastRun: lastRun.data
+        ? {
+            startedAt: String(lastRun.data.started_at),
+            status: String(lastRun.data.status),
+            trigger: String(lastRun.data.trigger),
+            verified: Number(lastRun.data.verified ?? 0),
+            retired: Number(lastRun.data.retired ?? 0),
+          }
+        : null,
+    };
+  } catch {
+    return null;
+  }
+}
+
+/** Midnight IST today. The agent's day, which is not the server's day. */
+function istMidnight(now = new Date()): string {
+  const ist = new Date(now.getTime() + 5.5 * 60 * 60 * 1000);
+  const midnight = Date.UTC(ist.getUTCFullYear(), ist.getUTCMonth(), ist.getUTCDate());
+  return new Date(midnight - 5.5 * 60 * 60 * 1000).toISOString();
+}
+
 export async function GET() {
   const admin = await requireAdmin();
   if (!admin) return NextResponse.json({ error: 'forbidden' }, { status: 403 });
@@ -145,7 +201,21 @@ export async function GET() {
     tokens: Number(r.tokens),
   }));
 
+  /*
+   * --- Opportunities Agent ---
+   *
+   * Summarised here as well as on its own console, because this is the page an
+   * admin actually opens. A board that has silently stopped publishing is worth
+   * seeing next to revenue and users, not only after a deliberate click.
+   *
+   * Degrades to null rather than failing the whole overview: until migrations
+   * 013/014 are applied these tables do not exist, and the revenue and user
+   * panels above must keep working regardless.
+   */
+  const opportunities = await readOpportunitySummary(sb);
+
   return NextResponse.json({
+    opportunities,
     revenue: {
       totalPaise: Number(rev.total_paise),
       last30dPaise: Number(rev.last30d_paise),
