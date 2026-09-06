@@ -9,7 +9,9 @@
     "lint": "next lint",
     "test": "vitest run",
     "test:watch": "vitest",
-    "logos": "vite-node scripts/build-logos.ts"
+    "logos": "vite-node scripts/build-logos.ts",
+    "ats:check": "vite-node scripts/check-ats-boards.ts",
+    "opportunities:dry-run": "vite-node scripts/opportunities-dry-run.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.90.0",

@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import AppNav from '@/components/app-nav';
 import Footer from '@/components/footer';
 import OpportunityBrowser from '@/components/opportunity-browser';
-import { getOpportunities } from '@/lib/opportunities';
+import { getMergedFeed } from '@/lib/opportunities';
 
 export const metadata: Metadata = {
   title: 'Opportunities — HireWin',
@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 };
 
 export default async function OpportunitiesPage() {
-  const { opportunities, isStale } = await getOpportunities();
+  const { opportunities, isStale, agentCount } = await getMergedFeed();
   const companies = new Set(opportunities.map((o) => o.company)).size;
 
   return (
@@ -28,6 +28,12 @@ export default async function OpportunitiesPage() {
             <span className="font-data" style={{ color: 'var(--fg)' }}>{companies}</span> companies. Comp shown where it
             is published. Tailor your resume to any of them in one click.
           </p>
+          {agentCount > 0 && (
+            <p className="mt-1.5 text-xs" style={{ color: 'var(--faint)' }}>
+              <span className="font-data">{agentCount}</span> sourced automatically this
+              morning and evening, each link re-checked daily.
+            </p>
+          )}
         </header>
 
         {isStale && (

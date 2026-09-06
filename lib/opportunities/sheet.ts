@@ -5,7 +5,7 @@
  * the hour. A committed snapshot backs it so an un-share, a Google outage, or a
  * throttle degrades to yesterday's list instead of an empty page.
  */
-import fallback from './opportunities-fallback.json';
+import fallback from './fallback.json';
 
 const SHEET_ID = '1MpfNvlmcGklUf_Qykuj3MailmPLk1yVPle8L736cE60';
 
