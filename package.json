@@ -11,7 +11,8 @@
     "test:watch": "vitest",
     "logos": "vite-node scripts/build-logos.ts",
     "ats:check": "vite-node scripts/check-ats-boards.ts",
-    "opportunities:dry-run": "vite-node scripts/opportunities-dry-run.ts"
+    "opportunities:dry-run": "vite-node scripts/opportunities-dry-run.ts",
+    "opportunities:run": "vite-node scripts/opportunities-run.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.90.0",

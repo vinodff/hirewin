@@ -245,24 +245,34 @@ export async function ingestCandidates(
    * Runs after the upsert so it sees this run's rows, and is chunked for the
    * same reason the upsert is.
    */
-  const seenFingerprints = rows
-    .map((row) => row.url_fingerprint)
-    .filter((value): value is string => typeof value === 'string');
-
-  for (let i = 0; i < seenFingerprints.length; i += UPSERT_CHUNK) {
+  /*
+   * Keyed on the RUN, not on a list of URLs.
+   *
+   * The obvious form — `.in('url_fingerprint', [...500 fingerprints])` — fails
+   * with a bare 400. PostgREST puts filters in the query string, and 500
+   * fingerprints averaging 60 characters is a 30KB URL, well past what the
+   * server will accept. The failure is silent in the sense that matters: the
+   * harvest succeeds, this logs, and admin-removed rows quietly never come
+   * back even when they should.
+   *
+   * Every row upserted above carries `last_seen_run`, so one equality filter
+   * identifies exactly the same set in a URL of constant length.
+   */
+  if (options.runId && rows.length > 0) {
     const { error } = await supabase
       .from('opportunities')
       .update({ retired_at: null, retired_reason: null, check_failures: 0 })
-      .in('url_fingerprint', seenFingerprints.slice(i, i + UPSERT_CHUNK))
+      .eq('last_seen_run', options.runId)
       .not('retired_at', 'is', null)
+      // The safeguard: only rows the SWEEP retired. A human removal sets
+      // retired_by, and must survive the crawler seeing the posting alive.
       .is('retired_by', null);
 
     if (error) {
-      // Not fatal: the rows are saved, they just stay retired for now and the
-      // next run tries again. Failing the whole ingest here would throw away
-      // a completed harvest over a bookkeeping update.
+      // Not fatal: the rows are saved, they just stay retired until the next
+      // run tries again. Failing here would throw away a completed harvest
+      // over a bookkeeping update.
       console.error('[opportunity-ingest] could not un-retire returning rows:', error.message);
-      break;
     }
   }
 

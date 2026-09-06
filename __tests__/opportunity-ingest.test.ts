@@ -27,6 +27,7 @@ function fakeClient() {
           const filters: string[] = [];
           const chain = {
             in: (col: string) => (filters.push(`in:${col}`), chain),
+            eq: (col: string, value: unknown) => (filters.push(`eq:${col}:${String(value)}`), chain),
             not: (col: string, op: string) => (filters.push(`not:${col}:${op}`), chain),
             is: (col: string, value: unknown) => (filters.push(`is:${col}:${String(value)}`), chain),
             then: (resolve: (v: { error: null }) => void) => {
@@ -202,7 +203,7 @@ describe('ingestCandidates', () => {
 
   test('a returning row is un-retired only when the SWEEP retired it', async () => {
     const db = fakeClient();
-    await ingestCandidates(db.client, [candidate()], { now: NOW });
+    await ingestCandidates(db.client, [candidate()], { now: NOW, runId: 'run-1' });
 
     expect(db.updates).toHaveLength(1);
     expect(db.updates[0].patch).toMatchObject({ retired_at: null, retired_reason: null });
@@ -210,6 +211,28 @@ describe('ingestCandidates', () => {
     // the row, not a human. Without it, Remove would be undone twice a day.
     expect(db.updates[0].filters).toContain('is:retired_by:null');
     expect(db.updates[0].filters).toContain('not:retired_at:is');
+  });
+
+  test('the un-retire is keyed on the run, never on a list of URLs', async () => {
+    // `.in('url_fingerprint', [...500 fingerprints])` builds a ~30KB query
+    // string and PostgREST answers 400. One equality filter on last_seen_run
+    // identifies the same rows in a URL of constant length. Caught in a live run.
+    const db = fakeClient();
+    const many = Array.from({ length: 600 }, (_, i) =>
+      candidate({ applyUrl: `https://boards.greenhouse.io/razorpay/jobs/${i}` })
+    );
+
+    await ingestCandidates(db.client, many, { now: NOW, runId: 'run-1' });
+
+    expect(db.updates).toHaveLength(1);
+    expect(db.updates[0].filters).toContain('eq:last_seen_run:run-1');
+    expect(db.updates[0].filters.some((f) => f.startsWith('in:'))).toBe(false);
+  });
+
+  test('no run id means no un-retire pass at all', async () => {
+    const db = fakeClient();
+    await ingestCandidates(db.client, [candidate()], { now: NOW });
+    expect(db.updates).toHaveLength(0);
   });
 
   test('an empty batch issues no un-retire update either', async () => {
