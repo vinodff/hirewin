@@ -8,9 +8,11 @@
  * would cost prompt caching, which is what makes the paid path affordable when
  * it is reached.
  *
- * Every rate limit below was read off the providers' own documentation in
- * September 2026, not guessed. They are the input to limiter.ts, and the reason
- * the router exists at all.
+ * The rate limits below are MEASURED where a burst test could reach them, and
+ * documented-but-unverified otherwise; each one says which it is. They feed
+ * limiter.ts, so an over-strict guess there refuses requests the provider would
+ * have served — which is why an unconfirmed ceiling is left null rather than
+ * encoded optimistically.
  */
 
 import type { AiAttempt, AiRequest, AiUsage } from './types';
@@ -37,10 +39,24 @@ export const PROVIDERS: Record<ProviderName, ProviderSpec> = {
     name: 'openrouter',
     envKey: 'OPENROUTER_API_KEY',
     paid: false,
-    // 20/min for every free user. The daily figure is 50 until $10 of credit
-    // has ever been purchased, then 1000 — permanently, without spending it.
-    limits: { requestsPerMinute: 20, requestsPerDay: 50, tokensPerMinute: null },
-    caveat: 'Daily cap rises 50 → 1000 once $10 of credit has ever been bought.',
+    /*
+     * 20/min is MEASURED, not quoted. A 25-request burst produced 19 successes
+     * and 6 refusals reading `Rate limit exceeded: free-models-per-min`, with
+     * `x-ratelimit-limit: 20` on the response. That is the wall.
+     *
+     * The daily figure is left NULL on purpose. OpenRouter documents 50/day
+     * (1000 after $10 of credit has ever been bought), but ~70 successful free
+     * requests in one day never tripped it — every refusal named the per-minute
+     * source. Encoding an unverified 50 here would make the limiter refuse
+     * requests the provider would have served, so the day window is simply not
+     * enforced locally until someone observes a real per-day refusal.
+     *
+     * Note also that the dashboard's "Key limit: unlimited" is a SPEND cap in
+     * dollars, not a request cap — `/api/v1/key` returns `limit: null` next to
+     * `is_free_tier: true`. The two are unrelated and easy to confuse.
+     */
+    limits: { requestsPerMinute: 20, requestsPerDay: null, tokensPerMinute: null },
+    caveat: '20/min is server-enforced. Daily cap documented as 50 (1000 after $10 credit) but not observed in testing.',
   },
   groq: {
     name: 'groq',
