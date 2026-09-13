@@ -33,7 +33,7 @@ const TIERS: Tier[] = [
     cta: 'Start free',
     href: '/analyze',
     features: [
-      '2 resume rewrites a month',
+      'Unlimited resume rewrites',
       'ATS score + missing keywords',
       'Full preview on screen',
       'Downloads not included',
@@ -80,8 +80,8 @@ const TIERS: Tier[] = [
     cta: 'Get Pro',
     features: [
       'Unlimited downloads',
-      '20 resume rewrites a month',
       '10 job scans a month',
+      '3-month history + 10 deep evaluations',
       'AI resume builder + import',
       'Cancel anytime',
     ],
@@ -212,7 +212,7 @@ export default function PricingPage() {
             <div className="flex-1">
               <div className="text-sm font-bold text-white mb-1">Power — ₹{PRICING.power.price}/mo</div>
               <p className="text-xs text-slate-500">
-                80 rewrites, 25 job scans, edit before download, 6-month history.
+                25 job scans, edit before download, 6-month history, 40 deep evaluations.
               </p>
             </div>
             <button

@@ -101,8 +101,20 @@ describe('the bypass does not leak to normal users', () => {
     expect(canDownload('free', 0, null)).toBe(false);
   });
 
-  it('a non-admin free user is still blocked after their 2 rewrites', () => {
-    expect(canImprove('free', 2, 'someone@else.com')).toBe(false);
+  it('rewrites are unlimited for everyone, admin or not', () => {
+    // The free tier used to stop at 2 while an anonymous visitor got ~150 a
+    // month, so signing up was a downgrade. Rewriting is the hook now; the
+    // gate that matters moved to downloads, asserted directly below.
+    expect(canImprove('free', 2, 'someone@else.com')).toBe(true);
+    expect(canImprove('free', 9999, 'someone@else.com')).toBe(true);
+  });
+
+  it('a non-admin free user still cannot download — that is the real gate', () => {
+    // This is what the previous test was really protecting: that a normal user
+    // gets no paid capability. Downloads are where the product is sold, so the
+    // assertion belongs on downloads rather than on a cap that no longer exists.
+    expect(canDownload('free', 0, 'someone@else.com')).toBe(false);
+    expect(canDownload('free', 99, 'someone@else.com')).toBe(false);
   });
 
   it('scan caps still hold for paying plans', () => {

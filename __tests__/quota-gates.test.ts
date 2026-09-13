@@ -33,12 +33,15 @@ describe('atomic RPC p_limit translation', () => {
     return raw === Infinity ? -1 : raw;
   }
 
+  // Rewrites are unlimited on every plan, so they all translate to the -1
+  // sentinel. Kept in the table rather than deleted: the mapping still has to
+  // hold, and a future tier that reintroduces a cap should land here.
   const cases: Array<[Plan, 'improvements' | 'deepEvals' | 'scansPerMonth', number]> = [
-    ['free',    'improvements',   2],
-    ['starter', 'improvements',   2],
-    ['pro',     'improvements',   20],
-    ['power',   'improvements',   80],
-    ['team',    'improvements',   400],
+    ['free',    'improvements',  -1],
+    ['starter', 'improvements',  -1],
+    ['pro',     'improvements',  -1],
+    ['power',   'improvements',  -1],
+    ['team',    'improvements',  -1],
     ['free',    'deepEvals',      0],
     ['pro',     'deepEvals',      10],
     ['power',   'deepEvals',      40],

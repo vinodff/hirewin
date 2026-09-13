@@ -14,12 +14,21 @@ function getRedis() {
   return redis;
 }
 
-/** Named limiters. `anon` is deliberately tight: anonymous callers have no DB
- *  quota row, so this is the only thing standing between a stranger and our
- *  Anthropic bill. */
+/**
+ * Named limiters.
+ *
+ * `anon` is deliberately tight: anonymous callers have no DB quota row, so this
+ * is the only thing standing between a stranger and our AI bill.
+ *
+ * Three a day, not five. Signed-in users now get unlimited rewrites
+ * (PLAN_LIMITS), so the anonymous allowance has to be a taste of the product
+ * rather than a way to avoid ever creating an account. At five a day it was
+ * roughly 150 a month against a free tier's 2 — signing up made things worse,
+ * which is the opposite of what a signup should do.
+ */
 const TIERS = {
   default: { tokens: 100, window: '1 h' as const },
-  anon: { tokens: 5, window: '24 h' as const },
+  anon: { tokens: 3, window: '24 h' as const },
 } satisfies Record<string, { tokens: number; window: `${number} ${'h' | 'm'}` }>;
 
 export type RateTier = keyof typeof TIERS;

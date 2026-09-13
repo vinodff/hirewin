@@ -3,20 +3,29 @@ import { canImprove, canDownload, canDeepEvaluate, canScan } from '../lib/usage'
 import { PLAN_LIMITS } from '../types';
 
 describe('canImprove', () => {
-  it('free: allows up to 2', () => {
+  // Rewriting is now unmetered on every plan. The product's pitch is "free
+  // unlimited optimizations — pay only to download", and the cap contradicted
+  // it: free allowed 2 a month while an anonymous visitor got roughly 150, so
+  // creating an account made the product worse. Metering moved entirely to
+  // downloads, which is what canDownload below still asserts.
+  it('free: never blocked, however many rewrites', () => {
     expect(canImprove('free', 0)).toBe(true);
-    expect(canImprove('free', 1)).toBe(true);
-    expect(canImprove('free', 2)).toBe(false);
+    expect(canImprove('free', 2)).toBe(true);
+    expect(canImprove('free', 10_000)).toBe(true);
   });
 
-  it('pro: allows up to 20', () => {
-    expect(canImprove('pro', 19)).toBe(true);
-    expect(canImprove('pro', 20)).toBe(false);
+  it('paid plans are not metered on rewrites either', () => {
+    // A paid tier capped below free would recreate the same inversion.
+    expect(canImprove('pro', 10_000)).toBe(true);
+    expect(canImprove('team', 10_000)).toBe(true);
   });
 
-  it('team: metered, not unlimited', () => {
-    expect(canImprove('team', PLAN_LIMITS.team.improvements - 1)).toBe(true);
-    expect(canImprove('team', PLAN_LIMITS.team.improvements)).toBe(false);
+  it('every plan declares rewrites unlimited', () => {
+    // Guards the invariant at the table rather than one plan at a time: a new
+    // tier with a finite cap fails here instead of in production.
+    for (const plan of Object.keys(PLAN_LIMITS) as (keyof typeof PLAN_LIMITS)[]) {
+      expect(PLAN_LIMITS[plan].improvements).toBe(Infinity);
+    }
   });
 });
 

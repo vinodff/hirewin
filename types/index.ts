@@ -323,12 +323,24 @@ export const ADMIN_LIMITS: PlanLimits = {
 // Scan caps are cost-driven: a single job-scan is the most expensive call we make.
 // Team is metered, not unlimited — Infinity here is an unbounded liability.
 export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
-  free: { improvements: 2, roadmaps: 1, downloads: 0, historyMonths: 1, deepEvals: 0, scansPerMonth: 0 },
-  starter: { improvements: 2, roadmaps: 1, downloads: 1, historyMonths: 1, deepEvals: 0, scansPerMonth: 0 },
-  pack3: { improvements: 4, roadmaps: 2, downloads: 3, historyMonths: 1, deepEvals: 0, scansPerMonth: 0 },
-  pro: { improvements: 20, roadmaps: 15, downloads: Infinity, historyMonths: 3, deepEvals: 10, scansPerMonth: 10 },
-  power: { improvements: 80, roadmaps: 60, downloads: Infinity, historyMonths: 6, deepEvals: 40, scansPerMonth: 25 },
-  team: { improvements: 400, roadmaps: 200, downloads: Infinity, historyMonths: 12, deepEvals: 100, scansPerMonth: 60 },
+  // `improvements` is Infinity on EVERY plan, deliberately.
+  //
+  // The product's pitch is "free unlimited optimizations — pay only to
+  // download", and for a long time the code disagreed: free allowed 2 a month
+  // while an anonymous visitor got roughly 150. Signing up was a 75x DOWNGRADE,
+  // and the person who hit that wall was the one who liked it enough to
+  // register. Capping a tier below the anonymous allowance cannot be right at
+  // any number, so the cap is gone rather than retuned.
+  //
+  // Differentiation lives in `downloads` (0 / 1 / 3 / unlimited), which is what
+  // the pricing page actually sells. Rewriting is the hook; downloading is the
+  // product. Everything else here stays tiered.
+  free: { improvements: Infinity, roadmaps: 1, downloads: 0, historyMonths: 1, deepEvals: 0, scansPerMonth: 0 },
+  starter: { improvements: Infinity, roadmaps: 1, downloads: 1, historyMonths: 1, deepEvals: 0, scansPerMonth: 0 },
+  pack3: { improvements: Infinity, roadmaps: 2, downloads: 3, historyMonths: 1, deepEvals: 0, scansPerMonth: 0 },
+  pro: { improvements: Infinity, roadmaps: 15, downloads: Infinity, historyMonths: 3, deepEvals: 10, scansPerMonth: 10 },
+  power: { improvements: Infinity, roadmaps: 60, downloads: Infinity, historyMonths: 6, deepEvals: 40, scansPerMonth: 25 },
+  team: { improvements: Infinity, roadmaps: 200, downloads: Infinity, historyMonths: 12, deepEvals: 100, scansPerMonth: 60 },
 };
 
 // SSE event types from /api/analyze
