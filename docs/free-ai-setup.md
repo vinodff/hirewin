@@ -32,6 +32,63 @@ or self-hosting on your own GPU.
 
 ---
 
+## Ranked: how many resumes each provider can generate, free, per day
+
+One HireWin resume is one `/analyze` call, and its token cost is knowable from
+the code rather than guessed:
+
+| Part | Tokens |
+|---|---|
+| System prompt (`SYSTEM_PROMPT` in lib/anthropic.ts) | ~3,400 |
+| Resume text | ~800 |
+| Job description | ~500 |
+| Output (rewrite + analysis JSON) | ~2,300 |
+| **Total per resume** | **~7,000** |
+
+That number is what turns a rate limit into an answer. A provider's daily
+resume capacity is whichever of its three ceilings binds first.
+
+| # | Resumes/day | Provider | Confidence | The catch |
+|---|---|---|---|---|
+| 1 | **10,285** | SiliconFlow | unverified | Identity verification. Chinese jurisdiction — consider before sending resumes. |
+| 2 | 2,880 | OVHcloud | unverified | 2 RPM per IP, anonymous, no signup. Unreliable by design. |
+| 3 | 1,500 | Google Gemini | documented | **Trains on your data. Human reviewers can read it.** |
+| 4 | **1,000** | **OpenRouter + $10** | **measured** | One-time $10, permanent. The most trustworthy number here. |
+| 5 | **0** | Groq | documented | **Cannot generate even one.** See below. |
+| 6 | 326 | Cloudflare Workers AI | documented | 10,000 neurons/day, no card. |
+| 7 | 238 | Mistral | documented | $10/mo credit is the real bound. Trains on data unless you opt out. |
+| 8 | 50 | OpenRouter free | measured | Both ceilings confirmed by testing. |
+| 9 | 2 | Aion Labs | documented | 20,000 tokens/**day** total. Not a typo. |
+| — | unlimited | Anthropic Sonnet | paid | **~$0.049 per resume.** |
+
+### Groq cannot generate a resume at all
+
+Its free tier allows **6,000 tokens per minute**. One resume is ~7,000. A single
+request exceeds the entire per-minute budget, so it fails regardless of how long
+you wait between calls. Groq is excellent for short prompts — interview
+questions, summary tweaks — and structurally unable to do the main job. This is
+why it appears only on short tasks in `models.ts`.
+
+### What the totals actually mean
+
+- **All nine stacked:** ~16,300 resumes/day — but that leans on two unverified
+  providers and two that train on your data.
+- **Verified AND privacy-acceptable:** OpenRouter + $10 (1,000) plus Cloudflare
+  (326) = **~1,300 resumes/day.**
+
+1,300 free resumes a day is a real business at this stage. It is also 1.3% of
+100,000. The gap is not closed by finding another provider.
+
+### One paid resume costs 4.9 cents
+
+At ~$0.049, 1,000 resumes on Claude Sonnet is **$49**. Prompt caching on the
+3,400-token system prompt — already implemented — cuts roughly 20% off that.
+
+Worth holding next to the free-tier hunt: the entire free stack saves you
+about $50 a day at a volume you are 40× away from reaching.
+
+---
+
 ## Step 1 — Get the keys (15 minutes, all free, no card)
 
 Do them in this order. The first two carry most of the load.
