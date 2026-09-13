@@ -153,18 +153,18 @@ const LIGHTNING_PROSE: Candidate = {
  * tier alone.
  */
 
-/** Cerebras: the largest free token budget (~30k TPM). Leads the long tasks. */
-const CEREBRAS_70B: Candidate = {
-  provider: 'cerebras',
-  model: 'llama-3.3-70b',
-  note: 'Cerebras 70B — best free token budget, unverified id',
-};
-
-const CEREBRAS_8B: Candidate = {
-  provider: 'cerebras',
-  model: 'llama3.1-8b',
-  note: 'Cerebras 8B — fast, unverified id',
-};
+/*
+ * Cerebras is deliberately ABSENT from every list below.
+ *
+ * It was added as the largest free token budget, on the strength of a
+ * published comparison. A real key disproved that immediately: inference
+ * returns 402 Payment Required. Its ids were also wrong — it serves
+ * gpt-oss-120b / qwen-3.8-27b now, not the Llama models that were guessed.
+ *
+ * Leaving it in a candidate list would spend a failed attempt on every single
+ * call before moving on. It stays defined in providers.ts (marked paid) so it
+ * can be reinstated the moment billing is confirmed working.
+ */
 
 /** Google AI Studio via its OpenAI-compatible endpoint. ~1,500 req/day. */
 const GEMINI_FLASH: Candidate = {
@@ -220,7 +220,7 @@ export const TASK_SPECS: Record<TaskName, TaskSpec> = {
     maxTokens: 8192,
     json: true,
     timeoutMs: 120_000,
-    candidates: [CEREBRAS_70B, NEX_PRO, GEMINI_FLASH, LING_FLASH, CLAUDE_SONNET],
+    candidates: [NEX_PRO, GEMINI_FLASH, LING_FLASH, CLAUDE_SONNET],
   },
 
   /** Mechanical shortening, read by a human. Speed wins; prose models allowed. */
@@ -229,7 +229,7 @@ export const TASK_SPECS: Record<TaskName, TaskSpec> = {
     maxTokens: 4096,
     json: false,
     timeoutMs: 60_000,
-    candidates: [CEREBRAS_8B, NANO_OMNI, GEMINI_FLASH_LITE, LIGHTNING_PROSE, CLAUDE_HAIKU],
+    candidates: [NANO_OMNI, GEMINI_FLASH_LITE, LIGHTNING_PROSE, CLAUDE_HAIKU],
   },
 
   /** Parsed output — clean responders only. */
@@ -238,7 +238,7 @@ export const TASK_SPECS: Record<TaskName, TaskSpec> = {
     maxTokens: 4000,
     json: true,
     timeoutMs: 60_000,
-    candidates: [GEMINI_FLASH, NEX_MINI, CEREBRAS_70B, MISTRAL_SMALL, CLAUDE_HAIKU],
+    candidates: [GEMINI_FLASH, NEX_MINI, MISTRAL_SMALL, CLAUDE_HAIKU],
   },
 
   /** A human is waiting mid-interview, so the fastest measured model leads. */
@@ -247,7 +247,7 @@ export const TASK_SPECS: Record<TaskName, TaskSpec> = {
     maxTokens: 256,
     json: false,
     timeoutMs: 20_000,
-    candidates: [GROQ_20B, NANO_OMNI, CEREBRAS_8B, GEMINI_FLASH_LITE, CLAUDE_HAIKU],
+    candidates: [GROQ_20B, NANO_OMNI, GEMINI_FLASH_LITE, CLAUDE_HAIKU],
   },
 
   /** Parsed, and reads a whole transcript. Clean responders only. */
@@ -256,7 +256,7 @@ export const TASK_SPECS: Record<TaskName, TaskSpec> = {
     maxTokens: 3000,
     json: true,
     timeoutMs: 90_000,
-    candidates: [CEREBRAS_70B, NEX_PRO, GEMINI_FLASH, LING_FLASH, CLAUDE_SONNET],
+    candidates: [NEX_PRO, GEMINI_FLASH, LING_FLASH, CLAUDE_SONNET],
   },
 
   outreach: {
@@ -264,7 +264,7 @@ export const TASK_SPECS: Record<TaskName, TaskSpec> = {
     maxTokens: 512,
     json: false,
     timeoutMs: 30_000,
-    candidates: [GROQ_20B, NEX_MINI, CEREBRAS_8B, MISTRAL_SMALL, CLAUDE_HAIKU],
+    candidates: [GROQ_20B, NEX_MINI, MISTRAL_SMALL, CLAUDE_HAIKU],
   },
 
   'self-description': {
@@ -272,7 +272,7 @@ export const TASK_SPECS: Record<TaskName, TaskSpec> = {
     maxTokens: 2048,
     json: false,
     timeoutMs: 45_000,
-    candidates: [GEMINI_FLASH, NEX_PRO, CEREBRAS_70B, LING_FLASH, CLAUDE_HAIKU],
+    candidates: [GEMINI_FLASH, NEX_PRO, LING_FLASH, CLAUDE_HAIKU],
   },
 
   'improve-summary': {
@@ -280,7 +280,7 @@ export const TASK_SPECS: Record<TaskName, TaskSpec> = {
     maxTokens: 300,
     json: false,
     timeoutMs: 20_000,
-    candidates: [GROQ_20B, NANO_OMNI, CEREBRAS_8B, GEMINI_FLASH_LITE, CLAUDE_HAIKU],
+    candidates: [GROQ_20B, NANO_OMNI, GEMINI_FLASH_LITE, CLAUDE_HAIKU],
   },
 };
 

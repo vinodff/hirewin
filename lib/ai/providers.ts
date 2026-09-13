@@ -76,19 +76,31 @@ export const PROVIDERS: Record<ProviderName, ProviderSpec> = {
     caveat: '6,000 TPM is the real ceiling (~1,200 req/day), not the advertised 14,400. Short tasks only.',
   },
   /*
-   * Cerebras — the largest free token budget of any provider found.
+   * Cerebras — REQUIRES PAYMENT. Not a free tier, whatever third-party
+   * comparison articles say.
    *
-   * ~30,000 TPM is roughly 43M tokens a day, several times what Groq or
-   * OpenRouter allow, which is why it leads the long tasks once configured.
-   * The catalogue is volatile (it dropped from ~12 models to 2 between public
-   * audits), so `npm run ai:verify` matters more here than anywhere else.
+   * Tested with a real key: `/v1/models` returns 200 and lists three models,
+   * so the key is valid and the account exists. Every inference call is then
+   * refused with 402 "Payment required to access this resource. Visit your
+   * billing tab." — gpt-oss-120b and qwen-3.8-27b both, while the third listed
+   * model (gemma-4-31b) 404s as inaccessible.
+   *
+   * Listing models a key cannot call is a trap worth naming: the models
+   * endpoint is not an entitlement check. This was written in as the single
+   * largest free token budget on the strength of a published comparison, and
+   * the first real call disproved it.
+   *
+   * Marked `paid: true` so the router treats it like Anthropic — never reached
+   * while a genuinely free option remains, and excluded entirely under
+   * `freeOnly`. It is absent from every task list in models.ts until someone
+   * confirms a working billing setup.
    */
   cerebras: {
     name: 'cerebras',
     envKey: 'CEREBRAS_API_KEY',
-    paid: false,
+    paid: true,
     limits: { requestsPerMinute: 30, requestsPerDay: null, tokensPerMinute: 30_000 },
-    caveat: '~30k TPM is the best free token budget available. Model catalogue changes often — re-verify.',
+    caveat: 'NOT FREE — inference returns 402 Payment Required. Needs billing set up before it is worth anything.',
   },
 
   /*

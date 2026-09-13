@@ -11,15 +11,22 @@ page. Where a figure could not be verified it says so.
 |---|---|---|
 | OpenRouter only, no credit | 50 | **~5** |
 | OpenRouter + $10 credit | 1,000 | ~100 |
-| All five free providers | ~9,000 | **~900** |
-| All five + $10 OpenRouter credit | ~10,000 | **~1,000** |
+| Groq + Google + OpenRouter | ~2,800 | **~280** |
+| The above + $10 OpenRouter credit | ~3,750 | **~375** |
+
+> **Corrected 2026-09-13.** An earlier version of this table claimed ~10,000
+> requests/day, on the basis that Cerebras offered the largest free token
+> budget. Testing with a real key disproved it — Cerebras returns
+> **402 Payment Required** on every inference call. It contributed more than
+> half the original estimate, so the honest figure is roughly a third of what
+> was first written. See the Cerebras section below.
 
 \* A full HireWin session — one resume analysis plus a short interview — is
 roughly **10 AI calls**. Divide accordingly; a user who only runs one rewrite
 costs 1 call, not 10.
 
 **100,000 users free is not achievable.** At 1 call each that is 100,000
-requests a day; the entire free stack is ~10,000. Free tiers are rate-limited
+requests a day; the entire free stack is under 4,000. Free tiers are rate-limited
 precisely to prevent this. Past roughly 1,000 users/day you are paying someone,
 or self-hosting on your own GPU.
 
@@ -29,18 +36,28 @@ or self-hosting on your own GPU.
 
 Do them in this order. The first two carry most of the load.
 
-### 1. Cerebras — biggest free token budget
+### ~~1. Cerebras~~ — NOT FREE, skip it
 
-**https://cloud.cerebras.ai/** → sign up → *API Keys* → create
+**https://cloud.cerebras.ai/**
 
-```bash
-CEREBRAS_API_KEY=csk-...
+Widely listed as the most generous free tier. It is not one. Tested with a real
+key:
+
+```
+GET  /v1/models        200   lists gpt-oss-120b, qwen-3.8-27b, gemma-4-31b
+POST /v1/chat/...      402   "Payment required to access this resource."
 ```
 
-~30,000 tokens/minute — roughly 43M tokens/day, several times any other free
-tier. This is why it leads the long tasks. Its model catalogue changes often
-(it dropped from ~12 models to 2 between public audits), so re-run the verifier
-periodically.
+The key authenticates and the account exists — the models endpoint answers
+fine. Every actual inference call is refused. The third listed model 404s as
+inaccessible on top of that.
+
+Worth naming the trap: **a models endpoint is not an entitlement check.** It
+will happily list things your key cannot call.
+
+If you set up billing it becomes usable, but then it is a paid provider and
+Anthropic is already the paid fallback. It stays defined in `providers.ts`
+marked `paid: true`, and is absent from every task list.
 
 ### 2. Google AI Studio — best context, and unblocks the Opportunities Agent
 
@@ -102,7 +119,6 @@ router simply moves on when refused.
 ## Step 2 — Add them to `.env.local`
 
 ```bash
-CEREBRAS_API_KEY=csk-...
 GEMINI_API_KEY=AIza...
 GROQ_API_KEY=gsk_...
 OPENROUTER_API_KEY=sk-or-v1-...
@@ -152,7 +168,7 @@ returned `ResourceExhausted`.
 Each task's candidate list steps across **providers**, not models:
 
 ```
-resume-analysis:  Cerebras → OpenRouter → Google → OpenRouter → Anthropic
+resume-analysis:  OpenRouter → Google → OpenRouter → Anthropic
 ```
 
 Four models on one account still share that account's per-minute ceiling, so a
@@ -169,7 +185,7 @@ the stack serves more than any single tier. A test in
 |---|---|---|---|---|
 | OpenRouter | **20** | **50** | — | Both measured. 1,000/day after $10 credit. |
 | Groq | 30 | 14,400 | **6,000** | TPM is the real ceiling (~1,200 req/day). |
-| Cerebras | ~30 | — | **~30,000** | Documented; not yet probed. |
+| Cerebras | — | — | — | **Unusable — 402 Payment Required.** Measured. |
 | Google | ~15 | ~1,500 | — | Not published; check your AI Studio page. |
 | Mistral | ~10 | ~500 | — | Unpublished; conservative guess. |
 | Anthropic | paid | paid | paid | The fallback. Never rate-limited locally. |
@@ -198,11 +214,12 @@ keep the full free-first-then-Claude path.
 
 ---
 
-## Past ~1,000 users/day
+## Past ~400 users/day
 
 No free tier goes further. The real options:
 
-1. **Self-host** — the only genuinely unlimited answer. An 8B model on a rented
+1. **Self-host** — the only genuinely unlimited answer, and the only thing in
+   this document that no provider can revoke. An 8B model on a rented
    L4/A10 is ~$200–400/month with no per-request cap. Lower quality, real ops.
 2. **Pay** — at 100,000 users, ~$100/day on a cheap provider is about **$0.03
    per user per month**. You charge ₹19 for one download. At that scale AI is a
