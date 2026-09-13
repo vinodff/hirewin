@@ -30,6 +30,8 @@ vi.mock('@/lib/ai/limiter', () => ({
 }));
 
 const { route, routeJson, extractJson } = await import('@/lib/ai/router');
+const { TASK_SPECS } = await import('@/lib/ai/models');
+const { PROVIDERS } = await import('@/lib/ai/providers');
 const { AllProvidersFailedError } = await import('@/lib/ai/types');
 
 const ok = (text: string) => ({
@@ -107,17 +109,36 @@ describe('failover', () => {
   });
 
   test('falls through to paid only after every free option failed', async () => {
-    callProvider
-      .mockResolvedValueOnce(fail(429, 'rate limited'))
-      .mockResolvedValueOnce(fail(429, 'rate limited'))
-      .mockResolvedValueOnce(fail(503, 'unavailable'))
-      .mockResolvedValueOnce(ok('rescued'));
+    // Derived from the registry, not hardcoded: the candidate list grows every
+    // time a provider is added, and a fixed count of mocked failures would make
+    // this test fail for a reason that has nothing to do with the behaviour.
+    const freeCount = TASK_SPECS['improve-summary'].candidates.filter(
+      (c) => !PROVIDERS[c.provider].paid
+    ).length;
+
+    for (let i = 0; i < freeCount; i += 1) {
+      callProvider.mockResolvedValueOnce(fail(429, 'rate limited'));
+    }
+    callProvider.mockResolvedValueOnce(ok('rescued'));
 
     const result = await route('improve-summary', REQ);
 
     expect(result.text).toBe('rescued');
     expect(result.provider).toBe('anthropic');
     expect(result.usedPaidFallback).toBe(true);
+    // Every free option really was tried before the paid one.
+    expect(callProvider).toHaveBeenCalledTimes(freeCount + 1);
+  });
+
+  test('each task steps across PROVIDERS, not just models', async () => {
+    // The capacity argument depends on this. Four models on one account share
+    // that account's per-minute ceiling, so a same-provider list buys nothing
+    // under load; independent accounts are what multiply the ceiling.
+    for (const task of Object.keys(TASK_SPECS) as (keyof typeof TASK_SPECS)[]) {
+      const free = TASK_SPECS[task].candidates.filter((c) => !PROVIDERS[c.provider].paid);
+      const distinctProviders = new Set(free.map((c) => c.provider));
+      expect(distinctProviders.size).toBeGreaterThanOrEqual(2);
+    }
   });
 
   test('freeOnly refuses to reach the paid fallback', async () => {

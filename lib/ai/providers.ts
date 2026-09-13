@@ -17,7 +17,7 @@
 
 import type { AiAttempt, AiRequest, AiUsage } from './types';
 
-export type ProviderName = 'openrouter' | 'groq' | 'anthropic';
+export type ProviderName = 'openrouter' | 'groq' | 'cerebras' | 'google' | 'mistral' | 'anthropic';
 
 export interface ProviderSpec {
   name: ProviderName;
@@ -69,9 +69,57 @@ export const PROVIDERS: Record<ProviderName, ProviderSpec> = {
     // The TPM is the binding constraint here, not the RPM: 8,000 tokens/min
     // is less than one full resume analysis, so Groq is deliberately NOT a
     // candidate for the long tasks. See models.ts.
-    limits: { requestsPerMinute: 30, requestsPerDay: 1000, tokensPerMinute: 8000 },
-    caveat: '8,000 TPM — too small for resume analysis; used for short tasks only.',
+    // The headline is 14,400 requests/day, but 6,000 TPM stops you long before
+    // that — roughly 1,200 real requests. The advertised number is never the
+    // binding one on a free tier, and this is the clearest example of it.
+    limits: { requestsPerMinute: 30, requestsPerDay: 14_400, tokensPerMinute: 6_000 },
+    caveat: '6,000 TPM is the real ceiling (~1,200 req/day), not the advertised 14,400. Short tasks only.',
   },
+  /*
+   * Cerebras — the largest free token budget of any provider found.
+   *
+   * ~30,000 TPM is roughly 43M tokens a day, several times what Groq or
+   * OpenRouter allow, which is why it leads the long tasks once configured.
+   * The catalogue is volatile (it dropped from ~12 models to 2 between public
+   * audits), so `npm run ai:verify` matters more here than anywhere else.
+   */
+  cerebras: {
+    name: 'cerebras',
+    envKey: 'CEREBRAS_API_KEY',
+    paid: false,
+    limits: { requestsPerMinute: 30, requestsPerDay: null, tokensPerMinute: 30_000 },
+    caveat: '~30k TPM is the best free token budget available. Model catalogue changes often — re-verify.',
+  },
+
+  /*
+   * Google AI Studio, through its OpenAI-compatible endpoint.
+   *
+   * Google stopped publishing free-tier limits; they are visible only inside
+   * AI Studio once signed in. ~1,500 requests/day on Flash is the widely
+   * reported figure, encoded conservatively because an over-generous guess
+   * here makes the limiter wave through requests that will 429.
+   */
+  google: {
+    name: 'google',
+    envKey: 'GEMINI_API_KEY',
+    paid: false,
+    limits: { requestsPerMinute: 15, requestsPerDay: 1500, tokensPerMinute: null },
+    caveat: 'Limits are not published — check aistudio.google.com/rate-limit for your account. Also unlocks the Opportunities Agent search channel.',
+  },
+
+  /*
+   * Mistral. Endpoint confirmed live; the free tier's exact ceilings are
+   * per-model and undocumented publicly, so the numbers below are placeholders
+   * deliberately set LOW. The router simply moves on when it is refused.
+   */
+  mistral: {
+    name: 'mistral',
+    envKey: 'MISTRAL_API_KEY',
+    paid: false,
+    limits: { requestsPerMinute: 10, requestsPerDay: 500, tokensPerMinute: null },
+    caveat: 'Free-tier limits are per-model and unpublished — these are conservative guesses.',
+  },
+
   anthropic: {
     name: 'anthropic',
     envKey: 'ANTHROPIC_API_KEY',
@@ -94,9 +142,18 @@ export function availableProviders(): ProviderSpec[] {
     .sort((a, b) => Number(a.paid) - Number(b.paid));
 }
 
+/*
+ * Every provider here speaks the OpenAI `/chat/completions` shape, which is the
+ * whole reason adding one is three lines rather than an adapter. Each URL was
+ * probed: a 401 proves it is live and wants a key, where a 404 would mean the
+ * path is wrong.
+ */
 const OPENAI_COMPATIBLE: Partial<Record<ProviderName, string>> = {
   openrouter: 'https://openrouter.ai/api/v1/chat/completions',
   groq: 'https://api.groq.com/openai/v1/chat/completions',
+  cerebras: 'https://api.cerebras.ai/v1/chat/completions',
+  google: 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',
+  mistral: 'https://api.mistral.ai/v1/chat/completions',
 };
 
 export interface CallOutcome {
