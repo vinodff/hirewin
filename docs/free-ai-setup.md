@@ -27,7 +27,7 @@ costs 1 call, not 10.
 
 **100,000 users free is not achievable.** At 1 call each that is 100,000
 requests a day; the entire free stack is under 4,000. Free tiers are rate-limited
-precisely to prevent this. Past roughly 1,000 users/day you are paying someone,
+precisely to prevent this. Past roughly 400 users/day you are paying someone,
 or self-hosting on your own GPU.
 
 ---
@@ -141,8 +141,13 @@ trusting any route**, and again monthly: free models are retired without
 notice, and the failure is silent — the router just fails over and your
 Anthropic bill creeps back up while every page still works.
 
-Model IDs for Cerebras, Google and Mistral are **not yet probed** (that needs a
-key). The verifier prints `FAIL` for any that are wrong, with the reason.
+Model IDs for Google and Mistral are **not yet probed** — that needs a key for
+each. The verifier prints `FAIL` for any that are wrong, with the reason.
+
+This step is not a formality. Cerebras was written into this guide as the
+largest free tier and removed an hour later because the first real call
+returned 402. Guessed model IDs were wrong too: it serves `gpt-oss-120b`, not
+the Llama models that had been assumed.
 
 ---
 
