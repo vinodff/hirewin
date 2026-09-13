@@ -40,23 +40,27 @@ export const PROVIDERS: Record<ProviderName, ProviderSpec> = {
     envKey: 'OPENROUTER_API_KEY',
     paid: false,
     /*
-     * 20/min is MEASURED, not quoted. A 25-request burst produced 19 successes
-     * and 6 refusals reading `Rate limit exceeded: free-models-per-min`, with
-     * `x-ratelimit-limit: 20` on the response. That is the wall.
+     * BOTH ceilings are measured, not quoted, and both are server-enforced.
      *
-     * The daily figure is left NULL on purpose. OpenRouter documents 50/day
-     * (1000 after $10 of credit has ever been bought), but ~70 successful free
-     * requests in one day never tripped it — every refusal named the per-minute
-     * source. Encoding an unverified 50 here would make the limiter refuse
-     * requests the provider would have served, so the day window is simply not
-     * enforced locally until someone observes a real per-day refusal.
+     *   20/min  A 25-request burst gave 19 successes and 6 refusals reading
+     *           `free-models-per-min`, with `x-ratelimit-limit: 20`.
+     *   50/day  Refusal reads `free-models-per-day`, `limit_source:
+     *           openrouter_free_tier_daily`, `X-RateLimit-Limit: 50`, and the
+     *           message "Add 10 credits to unlock 1000 free model requests per
+     *           day". Resets at midnight UTC (05:30 IST).
      *
-     * Note also that the dashboard's "Key limit: unlimited" is a SPEND cap in
-     * dollars, not a request cap — `/api/v1/key` returns `limit: null` next to
-     * `is_free_tier: true`. The two are unrelated and easy to confuse.
+     * The daily one is the brutal one and it is easy to under-rate, because it
+     * does not announce itself until it is already spent — an afternoon of
+     * testing passes without a single per-day refusal, and then everything
+     * stops at once. It was briefly set to null here on exactly that mistaken
+     * reading. 50 a day is roughly five users of this product.
+     *
+     * Separately: the dashboard's "Key limit: unlimited" is a SPEND cap in
+     * dollars — `/api/v1/key` returns `limit: null` beside `is_free_tier: true`.
+     * It has nothing to do with request rate.
      */
-    limits: { requestsPerMinute: 20, requestsPerDay: null, tokensPerMinute: null },
-    caveat: '20/min is server-enforced. Daily cap documented as 50 (1000 after $10 credit) but not observed in testing.',
+    limits: { requestsPerMinute: 20, requestsPerDay: 50, tokensPerMinute: null },
+    caveat: '50 requests/DAY is the binding limit — about 5 users. $10 of credit raises it to 1000/day, permanently.',
   },
   groq: {
     name: 'groq',
