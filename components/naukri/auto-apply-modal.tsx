@@ -44,6 +44,22 @@ interface ApplyResultItem {
   durationMs: number;
 }
 
+/**
+ * "0-1 Yrs" -> [0, 1], "5+ Yrs" -> [5, 5]. Unparseable -> [0, 0].
+ *
+ * The modal used to set every job's experienceMin/Max to the CANDIDATE'S
+ * years (expYears, expYears + 1), overwriting the job's real requirement
+ * with the applicant's own number before sending it to the server.
+ */
+function parseExperienceRange(text?: string): [number, number] {
+  if (!text) return [0, 0];
+  const range = text.match(/(\d+)\s*-\s*(\d+)/);
+  if (range) return [Number(range[1]), Number(range[2])];
+  const plus = text.match(/(\d+)\s*\+/);
+  if (plus) return [Number(plus[1]), Number(plus[1])];
+  return [0, 0];
+}
+
 export default function AutoApplyModal({
   isOpen,
   onClose,
@@ -56,10 +72,14 @@ export default function AutoApplyModal({
   const [fullName, setFullName] = useState(defaultProfile?.name || initialContact.name || '');
   const [email, setEmail] = useState(defaultProfile?.email || initialContact.email || '');
   const [phone, setPhone] = useState(defaultProfile?.phone || initialContact.phone || '');
-  const [location, setLocation] = useState(defaultProfile?.preferredLocations?.[0] || 'Bengaluru');
+  // Blank until known. 'Bengaluru' was pre-filled for everyone and submitted
+  // as the applicant's current location on real applications.
+  const [location, setLocation] = useState<string>(defaultProfile?.preferredLocations?.[0] ?? '');
   const [noticePeriod, setNoticePeriod] = useState<'Immediate' | '15 Days' | '30 Days'>('Immediate');
   const [currentCtc, setCurrentCtc] = useState<number>(0);
-  const [expectedCtc, setExpectedCtc] = useState<number>(defaultProfile?.expectedCtcLpa || 6.0);
+  // 0 until the candidate enters it. `|| 6.0` submitted an invented 6 LPA
+  // salary expectation for anyone whose resume did not state one.
+  const [expectedCtc, setExpectedCtc] = useState<number>(defaultProfile?.expectedCtcLpa ?? 0);
   const [expYears, setExpYears] = useState<number>(defaultProfile?.totalYearsExperience ?? 0);
   const [dryRun, setDryRun] = useState(false);
   const [jobLimit, setJobLimit] = useState(Math.min(5, jobs.length));
@@ -108,6 +128,17 @@ export default function AutoApplyModal({
   if (!isOpen) return null;
 
   async function handleStartAutoApply() {
+    // Refuse to start with fields the candidate has not actually supplied,
+    // rather than letting a default stand in for them on a real application.
+    if (!location.trim()) {
+      setErrorMsg('Enter your current location before starting.');
+      return;
+    }
+    if (!(expectedCtc > 0)) {
+      setErrorMsg('Enter your expected CTC before starting — it is sent to employers as your own figure.');
+      return;
+    }
+
     setIsRunning(true);
     setActiveTab('running');
     setProgressMsg(`Initializing headless background runner for ${jobLimit} jobs...`);
@@ -123,31 +154,55 @@ export default function AutoApplyModal({
       noticePeriod,
       currentCtcLpa: currentCtc,
       expectedCtcLpa: expectedCtc,
-      highestDegree: defaultProfile?.degree || 'B.Tech',
-      specialization: defaultProfile?.fieldOfStudy || 'Computer Science',
-      collegeName: 'Engineering Institute',
-      graduationYear: defaultProfile?.graduationYear || 2026,
-      skills: defaultProfile?.coreSkills || ['React', 'TypeScript', 'Node.js'],
+      /*
+       * Only what the resume analysis actually found. These were 'B.Tech',
+       * 'Computer Science', 'Engineering Institute', 2026 and
+       * ['React', 'TypeScript', 'Node.js'] for anyone missing them — a college,
+       * a degree and a skill set invented and attached to a real applicant.
+       * 0 for graduationYear means unknown; nothing downstream fills it in.
+       */
+      highestDegree: defaultProfile?.degree ?? '',
+      specialization: defaultProfile?.fieldOfStudy ?? '',
+      collegeName: '',
+      graduationYear: defaultProfile?.graduationYear ?? 0,
+      skills: defaultProfile?.coreSkills ?? [],
       resumeText,
     };
 
     try {
-      const selectedJobs = jobs.slice(0, jobLimit).map((j) => ({
-        id: j.id || (j as any).id || `job-${Math.random().toString(36).substring(7)}`,
-        title: j.title,
-        company: j.company,
-        location: j.location,
-        jobUrl: j.jobUrl,
-        experienceText: j.experienceText || '0-1 Yrs',
-        experienceMin: expYears,
-        experienceMax: expYears + 1,
-        salaryText: j.salaryText || 'Competitive',
-        workMode: (j.workMode as any) || 'onsite',
-        skills: j.matchingSkills,
-        descriptionSnippet: j.fitReason,
-        postedDateText: 'Recently',
-        applyType: j.applyType || 'naukri_easy_apply',
-      }));
+      const selectedJobs = jobs.slice(0, jobLimit).map((j, i) => {
+        const [experienceMin, experienceMax] = parseExperienceRange(j.experienceText);
+        return {
+          // Stable and deterministic; Math.random() gave each render a new id.
+          id: j.id || `job-${i}`,
+          title: j.title,
+          company: j.company,
+          location: j.location,
+          jobUrl: j.jobUrl,
+          experienceText: j.experienceText ?? '',
+          // The JOB's range, parsed from its own text — not the candidate's years.
+          experienceMin,
+          experienceMax,
+          salaryText: j.salaryText ?? '',
+          workMode: (j.workMode === 'remote' || j.workMode === 'hybrid' ? j.workMode : 'onsite') as
+            | 'onsite'
+            | 'remote'
+            | 'hybrid',
+          // All of the job's skills, not only the ones that matched this candidate.
+          skills: [...j.matchingSkills, ...j.missingSkills],
+          descriptionSnippet: '',
+          postedDateText: '',
+          /*
+           * The job-scan page types this 'external_redirect', but the applier
+           * checks the NaukriJobListing union's 'external_site'. Passed through
+           * unmapped, external jobs never hit the applier's fast-path and
+           * launched a browser against an employer portal instead.
+           */
+          applyType: (j.applyType === 'external_redirect' ? 'external_site' : 'naukri_easy_apply') as
+            | 'naukri_easy_apply'
+            | 'external_site',
+        };
+      });
 
       setProgressMsg('Connecting to Naukri in background & filling forms with real data...');
 
