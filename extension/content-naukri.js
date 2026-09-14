@@ -237,49 +237,91 @@
     el.dispatchEvent(new Event('blur', { bubbles: true }));
   }
 
-  async function executeAutofill() {
-    showToast('Scanning form inputs...');
+  /*
+   * The application form, not the whole page.
+   *
+   * Autofill used to run document.querySelectorAll('input, select, textarea')
+   * across the entire page — search boxes, filters, any widget — and match by
+   * loose substrings. CTC, notice period and location could be typed into
+   * fields that were never part of an application, where the page's own
+   * scripts and analytics see them on the dispatched input/change events.
+   */
+  function findApplicationContainer() {
+    return document.querySelector(
+      '[role="dialog"], .drawerWrapper, [class*="chatbot"], [class*="Drawer"], form[action*="apply"]'
+    );
+  }
 
-    // 1. Target form elements
-    const inputs = document.querySelectorAll('input, select, textarea');
+  /** Text that labels THIS field — never its parent's whole text content. */
+  function fieldLabel(input) {
+    const own = input.labels && input.labels[0] ? input.labels[0].textContent : '';
+    const aria = input.getAttribute('aria-label') || '';
+    return `${own} ${aria}`.toLowerCase();
+  }
+
+  async function executeAutofill() {
+    /*
+     * No invented profile. When nothing was saved, this used to fall back to
+     * { fullName: 'Candidate', expectedCtcLpa: 5.5, currentLocation:
+     * 'Bengaluru', noticePeriod: 'Immediate' } and type those into a real
+     * application as the user's own answers.
+     */
+    if (!cachedProfile) {
+      showToast('Save your profile in the HireWin popup first — nothing was filled.');
+      return;
+    }
+
+    const container = findApplicationContainer();
+    if (!container) {
+      showToast('Open the job\'s application form first, then click Autofill.');
+      return;
+    }
+
+    showToast('Scanning form inputs...');
+    const profile = cachedProfile;
     let filledCount = 0;
 
-    const profile = cachedProfile || {
-      fullName: 'Candidate',
-      experienceYears: 0,
-      noticePeriod: 'Immediate',
-      currentCtcLpa: 0,
-      expectedCtcLpa: 5.5,
-      currentLocation: 'Bengaluru',
-    };
+    const SKIP_TYPES = ['hidden', 'password', 'file', 'checkbox', 'radio', 'submit', 'button'];
+    const inputs = container.querySelectorAll('input, select, textarea');
 
     inputs.forEach(input => {
-      const name = (input.name || '').toLowerCase();
-      const id = (input.id || '').toLowerCase();
-      const placeholder = (input.placeholder || '').toLowerCase();
-      const label = (input.closest('label')?.textContent || input.parentElement?.textContent || '').toLowerCase();
+      if (input.disabled || input.readOnly || SKIP_TYPES.includes((input.type || '').toLowerCase())) return;
+
+      /*
+       * One haystack per field, and the most specific checks FIRST.
+       *
+       * The old chain tested experience first with name.includes('exp'),
+       * which also matches "expctc" and "expected" — so the Expected CTC field
+       * received the candidate's years of experience. And the label came from
+       * parentElement.textContent, which on most forms includes every sibling
+       * field's label, so one input could match all five branches' keywords.
+       */
+      const key = `${input.name || ''} ${input.id || ''} ${input.placeholder || ''} ${fieldLabel(input)}`.toLowerCase();
       const tag = input.tagName.toLowerCase();
 
-      // Total Experience
-      if (name.includes('exp') || id.includes('exp') || label.includes('total experience') || placeholder.includes('years')) {
-        dispatchInputEvents(input, String(profile.experienceYears || 0));
-        filledCount++;
-      }
-      // Current CTC
-      else if (name.includes('curctc') || id.includes('curctc') || label.includes('current ctc') || label.includes('current salary')) {
-        dispatchInputEvents(input, String(profile.currentCtcLpa || 0));
-        filledCount++;
-      }
-      // Expected CTC
-      else if (name.includes('expctc') || id.includes('expctc') || label.includes('expected ctc') || label.includes('expected salary')) {
-        dispatchInputEvents(input, String(profile.expectedCtcLpa || 5));
-        filledCount++;
-      }
-      // Notice Period
-      else if (name.includes('notice') || id.includes('notice') || label.includes('notice period')) {
+      if (/expctc|expected\s*(ctc|salary)/.test(key)) {
+        // Only a figure the candidate actually saved. `|| 5` used to supply one.
+        if (typeof profile.expectedCtcLpa === 'number' && profile.expectedCtcLpa > 0) {
+          dispatchInputEvents(input, String(profile.expectedCtcLpa));
+          filledCount++;
+        }
+      } else if (/curctc|current\s*(ctc|salary)/.test(key)) {
+        if (typeof profile.currentCtcLpa === 'number' && profile.currentCtcLpa >= 0) {
+          dispatchInputEvents(input, String(profile.currentCtcLpa));
+          filledCount++;
+        }
+      } else if (/notice/.test(key)) {
+        if (!profile.noticePeriod) return;
         if (tag === 'select') {
-          for (let opt of input.options) {
-            if (/immediate|15 days|0/i.test(opt.text)) {
+          /*
+           * Match the saved notice period. The old test was
+           * /immediate|15 days|0/ — and "0" is in "30 Days", "60 Days" and
+           * "90 Days", so whichever of those came first was selected
+           * regardless of what the candidate had saved.
+           */
+          const want = String(profile.noticePeriod).toLowerCase();
+          for (const opt of input.options) {
+            if (opt.text.trim().toLowerCase() === want) {
               input.value = opt.value;
               input.dispatchEvent(new Event('change', { bubbles: true }));
               filledCount++;
@@ -287,63 +329,89 @@
             }
           }
         } else {
-          dispatchInputEvents(input, profile.noticePeriod || 'Immediate');
+          dispatchInputEvents(input, profile.noticePeriod);
+          filledCount++;
+        }
+      } else if (/\bexp\b|experience/.test(key)) {
+        if (typeof profile.experienceYears === 'number' && profile.experienceYears >= 0) {
+          dispatchInputEvents(input, String(profile.experienceYears));
+          filledCount++;
+        }
+      } else if (/city|current\s*location/.test(key)) {
+        if (profile.currentLocation) {
+          dispatchInputEvents(input, profile.currentLocation);
           filledCount++;
         }
       }
-      // Location / City
-      else if (name.includes('city') || id.includes('city') || placeholder.includes('city') || label.includes('current location')) {
-        dispatchInputEvents(input, profile.currentLocation || 'Bengaluru');
-        filledCount++;
-      }
     });
 
-    // Handle Custom Recruiter Questions (Textareas)
-    const textareas = document.querySelectorAll('textarea');
+    // Recruiter questions — scoped to the form, with a bounded question text.
+    const textareas = container.querySelectorAll('textarea');
     for (const ta of textareas) {
       if (ta.value && ta.value.trim().length > 10) continue;
-      const questionText = ta.closest('.question-item, .form-group, div')?.querySelector('label, .label, p')?.textContent?.trim();
-      if (questionText && questionText.length > 5) {
-        showToast('Drafting AI answer for recruiter question...');
-        try {
-          const res = await sendBackgroundMessage({
-            type: 'HIREWIN_NAUKRI_AUTO_ANSWER',
-            payload: {
-              resumeText: cachedResume,
-              question: questionText,
-              jobTitle: document.querySelector('.title, h1')?.textContent?.trim() || 'Role',
-            },
-          });
-          if (res && res.data && res.data.suggestedAnswer) {
-            dispatchInputEvents(ta, res.data.suggestedAnswer);
-            filledCount++;
-          }
-        } catch (e) {
-          console.warn('[HireWin] Auto-answer failed:', e);
+
+      /*
+       * The question is this field's own label. The old lookup fell back to
+       * ta.closest('div'), the nearest div of any kind, so arbitrary page text
+       * could be sent to the backend model as a "recruiter question" — a
+       * prompt-injection channel from any hostile listing. Capped as well.
+       */
+      const group = ta.closest('.question-item, .form-group');
+      const raw =
+        fieldLabel(ta).trim() ||
+        (group && group.querySelector('label, .label') ? group.querySelector('label, .label').textContent : '');
+      const questionText = (raw || '').trim().slice(0, 300);
+      if (questionText.length <= 5) continue;
+
+      showToast('Drafting AI answer for recruiter question...');
+      try {
+        const res = await sendBackgroundMessage({
+          type: 'HIREWIN_NAUKRI_AUTO_ANSWER',
+          payload: {
+            resumeText: cachedResume,
+            question: questionText,
+            jobTitle: (document.querySelector('.title, h1')?.textContent || '').trim().slice(0, 200),
+          },
+        });
+        if (res && res.ok && res.data && res.data.suggestedAnswer) {
+          dispatchInputEvents(ta, res.data.suggestedAnswer);
+          filledCount++;
         }
+      } catch (e) {
+        console.warn('[HireWin] Auto-answer failed:', e);
       }
     }
 
-    // Attach tracking listener on submit button
-    const submitBtn = document.querySelector('button[type="submit"], .apply-button, .submit-btn, button.apply');
+    const submitBtn = container.querySelector('button[type="submit"], .apply-button, .submit-btn, button.apply');
     if (submitBtn) {
       submitBtn.addEventListener('click', () => {
-        chrome.runtime.sendMessage({
-          type: 'HIREWIN_RECORD_APPLICATION',
-          payload: {
-            company: document.querySelector('.comp-name, .company')?.textContent?.trim() || 'Naukri Company',
-            role: document.querySelector('.title, h1')?.textContent?.trim() || 'Software Engineer',
-            jobUrl: window.location.href,
-            status: 'applied',
-          },
-        });
+        const company = (document.querySelector('.comp-name, .company')?.textContent || '').trim();
+        const role = (document.querySelector('.title, h1')?.textContent || '').trim();
+
+        /*
+         * Recorded only after evidence the submission took.
+         *
+         * This used to fire on the click itself, so a submission blocked by
+         * validation or a network error was still saved as `status: 'applied'`
+         * — and when the page had no company or title, it was saved as
+         * "Naukri Company" / "Software Engineer". Now: wait, then require the
+         * submit control to be gone, and require a real company and role.
+         */
+        setTimeout(() => {
+          const stillThere = document.contains(submitBtn) && submitBtn.offsetParent !== null;
+          if (stillThere || !company || !role) return;
+          chrome.runtime.sendMessage({
+            type: 'HIREWIN_RECORD_APPLICATION',
+            payload: { company, role, jobUrl: window.location.href, status: 'applied' },
+          });
+        }, 4000);
       }, { once: true });
     }
 
     if (filledCount > 0) {
-      showToast(`✨ Successfully autofilled ${filledCount} fields! Review & submit.`);
+      showToast(`Autofilled ${filledCount} fields. Review every answer before you submit.`);
     } else {
-      showToast('No open application fields detected. Click "Apply" on a job first.');
+      showToast('No fields were filled. Check your saved profile, then review the form yourself.');
     }
   }
 
@@ -381,10 +449,13 @@
   loadStoredData();
 
   // Observe URL changes and infinite scrolling
+  // Debounced. Every DOM mutation re-scanned the whole page, and a page that
+  // churns its DOM forced repeated full rescans.
+  let annotateTimer = null;
   const observer = new MutationObserver(() => {
-    if (cachedResume) {
-      annotatePageJobs();
-    }
+    if (!cachedResume) return;
+    clearTimeout(annotateTimer);
+    annotateTimer = setTimeout(annotatePageJobs, 400);
   });
   observer.observe(document.body, { childList: true, subtree: true });
 

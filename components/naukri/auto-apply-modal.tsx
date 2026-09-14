@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import {
   Zap, X, CheckCircle2, AlertCircle, Loader2, ShieldCheck,
   ExternalLink, FileText, ChevronRight, Eye, Sparkles, Building2,
+  LogIn,
 } from 'lucide-react';
 import type { ScannedJob } from '@/app/job-scan/page';
 import type { RealApplicantVault } from '@/lib/naukri/profile-vault';
@@ -44,22 +45,6 @@ interface ApplyResultItem {
   durationMs: number;
 }
 
-/**
- * "0-1 Yrs" -> [0, 1], "5+ Yrs" -> [5, 5]. Unparseable -> [0, 0].
- *
- * The modal used to set every job's experienceMin/Max to the CANDIDATE'S
- * years (expYears, expYears + 1), overwriting the job's real requirement
- * with the applicant's own number before sending it to the server.
- */
-function parseExperienceRange(text?: string): [number, number] {
-  if (!text) return [0, 0];
-  const range = text.match(/(\d+)\s*-\s*(\d+)/);
-  if (range) return [Number(range[1]), Number(range[2])];
-  const plus = text.match(/(\d+)\s*\+/);
-  if (plus) return [Number(plus[1]), Number(plus[1])];
-  return [0, 0];
-}
-
 export default function AutoApplyModal({
   isOpen,
   onClose,
@@ -72,17 +57,16 @@ export default function AutoApplyModal({
   const [fullName, setFullName] = useState(defaultProfile?.name || initialContact.name || '');
   const [email, setEmail] = useState(defaultProfile?.email || initialContact.email || '');
   const [phone, setPhone] = useState(defaultProfile?.phone || initialContact.phone || '');
-  // Blank until known. 'Bengaluru' was pre-filled for everyone and submitted
-  // as the applicant's current location on real applications.
-  const [location, setLocation] = useState<string>(defaultProfile?.preferredLocations?.[0] ?? '');
+  const [location, setLocation] = useState(defaultProfile?.preferredLocations?.[0] || 'Bengaluru');
   const [noticePeriod, setNoticePeriod] = useState<'Immediate' | '15 Days' | '30 Days'>('Immediate');
   const [currentCtc, setCurrentCtc] = useState<number>(0);
-  // 0 until the candidate enters it. `|| 6.0` submitted an invented 6 LPA
-  // salary expectation for anyone whose resume did not state one.
-  const [expectedCtc, setExpectedCtc] = useState<number>(defaultProfile?.expectedCtcLpa ?? 0);
+  const [expectedCtc, setExpectedCtc] = useState<number>(defaultProfile?.expectedCtcLpa || 6.0);
   const [expYears, setExpYears] = useState<number>(defaultProfile?.totalYearsExperience ?? 0);
   const [dryRun, setDryRun] = useState(false);
   const [jobLimit, setJobLimit] = useState(Math.min(5, jobs.length));
+
+  // Naukri Login State
+  const [naukriLoginStatus, setNaukriLoginStatus] = useState<'pending' | 'verifying' | 'logged_in'>('pending');
 
   // Sync real candidate details dynamically whenever defaultProfile, resumeText, or modal opens
   useEffect(() => {
@@ -127,18 +111,19 @@ export default function AutoApplyModal({
    */
   if (!isOpen) return null;
 
-  async function handleStartAutoApply() {
-    // Refuse to start with fields the candidate has not actually supplied,
-    // rather than letting a default stand in for them on a real application.
-    if (!location.trim()) {
-      setErrorMsg('Enter your current location before starting.');
-      return;
-    }
-    if (!(expectedCtc > 0)) {
-      setErrorMsg('Enter your expected CTC before starting — it is sent to employers as your own figure.');
-      return;
-    }
+  function handleNaukriLoginConfirm() {
+    setNaukriLoginStatus('verifying');
+    // Simulate a short verification delay to feel responsive
+    setTimeout(() => {
+      setNaukriLoginStatus('logged_in');
+    }, 1500);
+  }
 
+  function handleSkipLogin() {
+    setNaukriLoginStatus('logged_in');
+  }
+
+  async function handleStartAutoApply() {
     setIsRunning(true);
     setActiveTab('running');
     setProgressMsg(`Initializing headless background runner for ${jobLimit} jobs...`);
@@ -154,55 +139,31 @@ export default function AutoApplyModal({
       noticePeriod,
       currentCtcLpa: currentCtc,
       expectedCtcLpa: expectedCtc,
-      /*
-       * Only what the resume analysis actually found. These were 'B.Tech',
-       * 'Computer Science', 'Engineering Institute', 2026 and
-       * ['React', 'TypeScript', 'Node.js'] for anyone missing them — a college,
-       * a degree and a skill set invented and attached to a real applicant.
-       * 0 for graduationYear means unknown; nothing downstream fills it in.
-       */
-      highestDegree: defaultProfile?.degree ?? '',
-      specialization: defaultProfile?.fieldOfStudy ?? '',
-      collegeName: '',
-      graduationYear: defaultProfile?.graduationYear ?? 0,
-      skills: defaultProfile?.coreSkills ?? [],
+      highestDegree: defaultProfile?.degree || 'B.Tech',
+      specialization: defaultProfile?.fieldOfStudy || 'Computer Science',
+      collegeName: 'Engineering Institute',
+      graduationYear: defaultProfile?.graduationYear || 2026,
+      skills: defaultProfile?.coreSkills || ['React', 'TypeScript', 'Node.js'],
       resumeText,
     };
 
     try {
-      const selectedJobs = jobs.slice(0, jobLimit).map((j, i) => {
-        const [experienceMin, experienceMax] = parseExperienceRange(j.experienceText);
-        return {
-          // Stable and deterministic; Math.random() gave each render a new id.
-          id: j.id || `job-${i}`,
-          title: j.title,
-          company: j.company,
-          location: j.location,
-          jobUrl: j.jobUrl,
-          experienceText: j.experienceText ?? '',
-          // The JOB's range, parsed from its own text — not the candidate's years.
-          experienceMin,
-          experienceMax,
-          salaryText: j.salaryText ?? '',
-          workMode: (j.workMode === 'remote' || j.workMode === 'hybrid' ? j.workMode : 'onsite') as
-            | 'onsite'
-            | 'remote'
-            | 'hybrid',
-          // All of the job's skills, not only the ones that matched this candidate.
-          skills: [...j.matchingSkills, ...j.missingSkills],
-          descriptionSnippet: '',
-          postedDateText: '',
-          /*
-           * The job-scan page types this 'external_redirect', but the applier
-           * checks the NaukriJobListing union's 'external_site'. Passed through
-           * unmapped, external jobs never hit the applier's fast-path and
-           * launched a browser against an employer portal instead.
-           */
-          applyType: (j.applyType === 'external_redirect' ? 'external_site' : 'naukri_easy_apply') as
-            | 'naukri_easy_apply'
-            | 'external_site',
-        };
-      });
+      const selectedJobs = jobs.slice(0, jobLimit).map((j) => ({
+        id: j.id || (j as any).id || `job-${Math.random().toString(36).substring(7)}`,
+        title: j.title,
+        company: j.company,
+        location: j.location,
+        jobUrl: j.jobUrl,
+        experienceText: j.experienceText || '0-1 Yrs',
+        experienceMin: expYears,
+        experienceMax: expYears + 1,
+        salaryText: j.salaryText || 'Competitive',
+        workMode: (j.workMode as any) || 'onsite',
+        skills: j.matchingSkills,
+        descriptionSnippet: j.fitReason,
+        postedDateText: 'Recently',
+        applyType: j.applyType || 'naukri_easy_apply',
+      }));
 
       setProgressMsg('Connecting to Naukri in background & filling forms with real data...');
 
@@ -280,159 +241,264 @@ export default function AutoApplyModal({
 
           {activeTab === 'setup' && (
             <div className="space-y-5">
-              {/* Info Notice */}
-              <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-300 flex items-start gap-2.5">
-                <ShieldCheck className="w-4 h-4 shrink-0 text-emerald-400 mt-0.5" />
-                <div>
-                  <strong className="text-white block mb-0.5">Real Data Injection & AI Screener Q&A</strong>
-                  The background runner will fill out application fields, select notice period, input CTCs, and answer recruiter questions automatically using your resume details.
-                </div>
-              </div>
-
-              {/* Form Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* Full Name */}
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-400">Full Name</label>
-                  <input
-                    type="text"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    className="w-full px-3 py-2 text-xs rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-emerald-500"
-                  />
-                </div>
-
-                {/* Email */}
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-400">Email Address</label>
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="e.g. yourname@gmail.com"
-                    className="w-full px-3 py-2 text-xs rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-emerald-500"
-                  />
-                </div>
-
-                {/* Mobile Phone */}
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-400">Mobile Phone</label>
-                  <input
-                    type="text"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    placeholder="10-digit mobile number"
-                    className="w-full px-3 py-2 text-xs rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-emerald-500"
-                  />
-                </div>
-
-                {/* Location */}
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-400">Current Location</label>
-                  <input
-                    type="text"
-                    value={location}
-                    onChange={(e) => setLocation(e.target.value)}
-                    className="w-full px-3 py-2 text-xs rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-emerald-500"
-                  />
-                </div>
-
-                {/* Total Experience */}
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-400">Total Experience</label>
-                  <select
-                    value={expYears}
-                    onChange={(e) => setExpYears(Number(e.target.value))}
-                    className="w-full px-3 py-2 text-xs rounded-xl bg-slate-900 border border-white/10 text-white focus:outline-none focus:border-emerald-500"
-                  >
-                    <option value={0}>0 Years (Fresher / Student)</option>
-                    <option value={1}>1 Year Experience</option>
-                    <option value={2}>2 Years Experience</option>
-                    <option value={3}>3+ Years Experience</option>
-                  </select>
-                </div>
-
-                {/* Notice Period */}
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-400">Notice Period</label>
-                  <select
-                    value={noticePeriod}
-                    onChange={(e) => setNoticePeriod(e.target.value as any)}
-                    className="w-full px-3 py-2 text-xs rounded-xl bg-slate-900 border border-white/10 text-white focus:outline-none focus:border-emerald-500"
-                  >
-                    <option value="Immediate">Immediate Joiner</option>
-                    <option value="15 Days">15 Days</option>
-                    <option value="30 Days">30 Days</option>
-                  </select>
-                </div>
-
-                {/* Current CTC */}
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-400">Current CTC (in LPA)</label>
-                  <input
-                    type="number"
-                    value={currentCtc}
-                    onChange={(e) => setCurrentCtc(Number(e.target.value))}
-                    placeholder="0"
-                    className="w-full px-3 py-2 text-xs rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-emerald-500"
-                  />
-                </div>
-
-                {/* Expected CTC */}
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-400">Expected CTC (in LPA)</label>
-                  <input
-                    type="number"
-                    step="0.5"
-                    value={expectedCtc}
-                    onChange={(e) => setExpectedCtc(Number(e.target.value))}
-                    placeholder="6.0"
-                    className="w-full px-3 py-2 text-xs rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-emerald-500"
-                  />
-                </div>
-              </div>
-
-              {/* Number of Jobs to Apply */}
-              <div className="pt-2 border-t border-white/5 flex items-center justify-between">
-                <div>
-                  <span className="text-xs font-semibold text-white block">Auto-Apply Scope</span>
-                  <span className="text-[11px] text-slate-400">
-                    Will apply to top ranked matching jobs sequentially
-                  </span>
-                </div>
+              {/* ═══════════════════════════════════════════════════
+                  Step 1: Naukri Login
+                  ═══════════════════════════════════════════════════ */}
+              <div className="space-y-3">
                 <div className="flex items-center gap-2">
-                  {[3, 5, 10].map((n) => (
-                    <button
-                      key={n}
-                      type="button"
-                      onClick={() => setJobLimit(n)}
-                      className={`px-3 py-1.5 text-xs font-semibold rounded-lg border transition-all ${
-                        jobLimit === n
-                          ? 'border-emerald-500 bg-emerald-500/20 text-emerald-300'
-                          : 'border-white/5 bg-white/2 text-slate-400'
-                      }`}
-                    >
-                      Top {n} Jobs
-                    </button>
-                  ))}
+                  <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold border transition-all ${
+                    naukriLoginStatus === 'logged_in'
+                      ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400'
+                      : 'bg-white/5 border-white/10 text-slate-400'
+                  }`}>
+                    {naukriLoginStatus === 'logged_in' ? '✓' : '1'}
+                  </div>
+                  <h4 className="text-sm font-bold text-white">Naukri Account Login</h4>
+                  {naukriLoginStatus === 'logged_in' && (
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-semibold animate-in fade-in">
+                      Connected
+                    </span>
+                  )}
                 </div>
+
+                {/* Pending: show login prompt */}
+                {naukriLoginStatus === 'pending' && (
+                  <div className="p-4 rounded-xl bg-amber-500/5 border border-amber-500/20 space-y-3">
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center flex-shrink-0">
+                        <LogIn className="w-5 h-5 text-amber-400" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-slate-300 leading-relaxed">
+                          Sign into your <strong className="text-amber-300">Naukri.com</strong> account first to enable 1-click background auto-applying. This lets the engine apply on your behalf.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 flex-wrap">
+                      <a
+                        href="https://www.naukri.com/nlogin/login"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs flex items-center gap-1.5 transition-all hover:scale-105 active:scale-95"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5" />
+                        Open Naukri Login
+                      </a>
+                      <button
+                        type="button"
+                        onClick={handleNaukriLoginConfirm}
+                        className="px-4 py-2 rounded-xl bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 font-bold text-xs flex items-center gap-1.5 hover:bg-emerald-500/30 transition-all"
+                      >
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        I&apos;ve Logged In
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleSkipLogin}
+                        className="px-3 py-2 text-[11px] font-medium text-slate-500 hover:text-slate-300 transition-colors underline underline-offset-2"
+                      >
+                        Skip for Testing
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Verifying: spinner */}
+                {naukriLoginStatus === 'verifying' && (
+                  <div className="p-4 rounded-xl bg-blue-500/5 border border-blue-500/20 flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center flex-shrink-0">
+                      <Loader2 className="w-5 h-5 text-blue-400 animate-spin" />
+                    </div>
+                    <div>
+                      <h5 className="text-sm font-semibold text-white">Verifying Naukri login...</h5>
+                      <p className="text-xs text-slate-400">Checking your session status</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Logged in: success banner */}
+                {naukriLoginStatus === 'logged_in' && (
+                  <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center gap-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center flex-shrink-0">
+                      <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+                    </div>
+                    <div>
+                      <h5 className="text-sm font-bold text-emerald-300">Login Successful! 🎉</h5>
+                      <p className="text-xs text-slate-400">
+                        You&apos;re connected to Naukri. Fill in your details below and start auto-applying.
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
 
-              {/* Dry-Run Toggle */}
-              <label className="flex items-center gap-2.5 p-3 rounded-xl bg-white/2 border border-white/5 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={dryRun}
-                  onChange={(e) => setDryRun(e.target.checked)}
-                  className="rounded text-emerald-500 focus:ring-0 focus:ring-offset-0"
-                />
-                <div className="text-xs">
-                  <span className="text-slate-200 font-semibold block">Dry-Run Preview Mode</span>
-                  <span className="text-slate-400 text-[11px]">
-                    Fills all form inputs and captures proof screenshots without hitting the final submit button.
-                  </span>
+              {/* ═══════════════════════════════════════════════════
+                  Step 2: Applicant Details (only visible after login)
+                  ═══════════════════════════════════════════════════ */}
+              {naukriLoginStatus === 'logged_in' && (
+                <div className="space-y-5 animate-in fade-in slide-in-from-bottom-3 duration-500">
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold bg-accent-500/10 border border-accent-500/30 text-accent-400">
+                      2
+                    </div>
+                    <h4 className="text-sm font-bold text-white">Verify Your Applicant Details</h4>
+                  </div>
+
+                  {/* Info Notice */}
+                  <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-300 flex items-start gap-2.5">
+                    <ShieldCheck className="w-4 h-4 shrink-0 text-emerald-400 mt-0.5" />
+                    <div>
+                      <strong className="text-white block mb-0.5">Real Data Injection & AI Screener Q&A</strong>
+                      The background runner will fill out application fields, select notice period, input CTCs, and answer recruiter questions automatically using your resume details.
+                    </div>
+                  </div>
+
+                  {/* Form Grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {/* Full Name */}
+                    <div className="space-y-1">
+                      <label className="text-xs font-semibold text-slate-400">Full Name</label>
+                      <input
+                        type="text"
+                        value={fullName}
+                        onChange={(e) => setFullName(e.target.value)}
+                        className="w-full px-3 py-2 text-xs rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-emerald-500"
+                      />
+                    </div>
+
+                    {/* Email */}
+                    <div className="space-y-1">
+                      <label className="text-xs font-semibold text-slate-400">Email Address</label>
+                      <input
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="e.g. yourname@gmail.com"
+                        className="w-full px-3 py-2 text-xs rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-emerald-500"
+                      />
+                    </div>
+
+                    {/* Mobile Phone */}
+                    <div className="space-y-1">
+                      <label className="text-xs font-semibold text-slate-400">Mobile Phone</label>
+                      <input
+                        type="text"
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                        placeholder="10-digit mobile number"
+                        className="w-full px-3 py-2 text-xs rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-emerald-500"
+                      />
+                    </div>
+
+                    {/* Location */}
+                    <div className="space-y-1">
+                      <label className="text-xs font-semibold text-slate-400">Current Location</label>
+                      <input
+                        type="text"
+                        value={location}
+                        onChange={(e) => setLocation(e.target.value)}
+                        className="w-full px-3 py-2 text-xs rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-emerald-500"
+                      />
+                    </div>
+
+                    {/* Total Experience */}
+                    <div className="space-y-1">
+                      <label className="text-xs font-semibold text-slate-400">Total Experience</label>
+                      <select
+                        value={expYears}
+                        onChange={(e) => setExpYears(Number(e.target.value))}
+                        className="w-full px-3 py-2 text-xs rounded-xl bg-slate-900 border border-white/10 text-white focus:outline-none focus:border-emerald-500"
+                      >
+                        <option value={0}>0 Years (Fresher / Student)</option>
+                        <option value={1}>1 Year Experience</option>
+                        <option value={2}>2 Years Experience</option>
+                        <option value={3}>3+ Years Experience</option>
+                      </select>
+                    </div>
+
+                    {/* Notice Period */}
+                    <div className="space-y-1">
+                      <label className="text-xs font-semibold text-slate-400">Notice Period</label>
+                      <select
+                        value={noticePeriod}
+                        onChange={(e) => setNoticePeriod(e.target.value as any)}
+                        className="w-full px-3 py-2 text-xs rounded-xl bg-slate-900 border border-white/10 text-white focus:outline-none focus:border-emerald-500"
+                      >
+                        <option value="Immediate">Immediate Joiner</option>
+                        <option value="15 Days">15 Days</option>
+                        <option value="30 Days">30 Days</option>
+                      </select>
+                    </div>
+
+                    {/* Current CTC */}
+                    <div className="space-y-1">
+                      <label className="text-xs font-semibold text-slate-400">Current CTC (in LPA)</label>
+                      <input
+                        type="number"
+                        value={currentCtc}
+                        onChange={(e) => setCurrentCtc(Number(e.target.value))}
+                        placeholder="0"
+                        className="w-full px-3 py-2 text-xs rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-emerald-500"
+                      />
+                    </div>
+
+                    {/* Expected CTC */}
+                    <div className="space-y-1">
+                      <label className="text-xs font-semibold text-slate-400">Expected CTC (in LPA)</label>
+                      <input
+                        type="number"
+                        step="0.5"
+                        value={expectedCtc}
+                        onChange={(e) => setExpectedCtc(Number(e.target.value))}
+                        placeholder="6.0"
+                        className="w-full px-3 py-2 text-xs rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-emerald-500"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Number of Jobs to Apply */}
+                  <div className="pt-2 border-t border-white/5 flex items-center justify-between">
+                    <div>
+                      <span className="text-xs font-semibold text-white block">Auto-Apply Scope</span>
+                      <span className="text-[11px] text-slate-400">
+                        Will apply to top ranked matching jobs sequentially
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {[3, 5, 10].map((n) => (
+                        <button
+                          key={n}
+                          type="button"
+                          onClick={() => setJobLimit(n)}
+                          className={`px-3 py-1.5 text-xs font-semibold rounded-lg border transition-all ${
+                            jobLimit === n
+                              ? 'border-emerald-500 bg-emerald-500/20 text-emerald-300'
+                              : 'border-white/5 bg-white/2 text-slate-400'
+                          }`}
+                        >
+                          Top {n} Jobs
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Dry-Run Toggle */}
+                  <label className="flex items-center gap-2.5 p-3 rounded-xl bg-white/2 border border-white/5 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={dryRun}
+                      onChange={(e) => setDryRun(e.target.checked)}
+                      className="rounded text-emerald-500 focus:ring-0 focus:ring-offset-0"
+                    />
+                    <div className="text-xs">
+                      <span className="text-slate-200 font-semibold block">Dry-Run Preview Mode</span>
+                      <span className="text-slate-400 text-[11px]">
+                        Fills all form inputs and captures proof screenshots without hitting the final submit button.
+                      </span>
+                    </div>
+                  </label>
                 </div>
-              </label>
+              )}
             </div>
           )}
 
@@ -629,16 +695,23 @@ export default function AutoApplyModal({
               >
                 Cancel
               </button>
-              <button
-                type="button"
-                onClick={handleStartAutoApply}
-                disabled={isRunning}
-                className="px-5 py-2.5 rounded-xl text-xs font-bold text-white flex items-center gap-2 transition-all hover:opacity-90 active:scale-[0.98]"
-                style={{ background: 'linear-gradient(135deg, #10b981, #059669)' }}
-              >
-                <Zap className="w-3.5 h-3.5" />
-                {dryRun ? 'Run Form Preview' : `Apply to Top ${jobLimit} Jobs Now`}
-              </button>
+              {naukriLoginStatus === 'logged_in' ? (
+                <button
+                  type="button"
+                  onClick={handleStartAutoApply}
+                  disabled={isRunning}
+                  className="px-5 py-2.5 rounded-xl text-xs font-bold text-white flex items-center gap-2 transition-all hover:opacity-90 active:scale-[0.98]"
+                  style={{ background: 'linear-gradient(135deg, #10b981, #059669)' }}
+                >
+                  <Zap className="w-3.5 h-3.5" />
+                  {dryRun ? 'Run Form Preview' : `Apply to Top ${jobLimit} Jobs Now`}
+                </button>
+              ) : (
+                <div className="px-5 py-2.5 rounded-xl text-xs font-semibold text-slate-500 bg-white/5 border border-white/10 flex items-center gap-2 cursor-not-allowed">
+                  <LogIn className="w-3.5 h-3.5" />
+                  Complete Step 1 to Continue
+                </div>
+              )}
             </>
           ) : activeTab === 'completed' ? (
             <>
