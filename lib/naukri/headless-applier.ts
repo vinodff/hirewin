@@ -73,6 +73,30 @@ export async function applyToNaukriJob(options: AutoApplyOptions): Promise<AutoA
     return reject(urlCheck.reason ?? 'job URL rejected');
   }
 
+  // Fast-path for external redirects, curated templates, or non-listing category URLs:
+  // Saves the direct application link to the tracker without launching browser or 404ing.
+  if (
+    // 'external_site', not 'external_redirect'. The union in types.ts is
+    // 'naukri_easy_apply' | 'external_site', so the old literal never matched
+    // anything — this whole fast-path was dead, and every external listing
+    // went on to launch a browser and 404.
+    job.applyType === 'external_site' ||
+    !job.jobUrl.includes('job-listings-') ||
+    job.id.startsWith('curated-')
+  ) {
+    console.log(`[headless-applier] Job ${job.id} is an external redirect or category link.`);
+    return {
+      jobId: job.id,
+      jobTitle: job.title,
+      company: job.company,
+      status: 'external_redirect',
+      message: 'Direct opening saved to your job tracker.',
+      filledFields: [],
+      externalUrl: job.jobUrl,
+      durationMs: Date.now() - startTime,
+    };
+  }
+
   /*
    * A session directory is REQUIRED, never defaulted.
    *
@@ -134,6 +158,25 @@ export async function applyToNaukriJob(options: AutoApplyOptions): Promise<AutoA
     console.log(`[headless-applier] Navigating to ${job.title} at ${job.company} (${job.jobUrl})...`);
     await page.goto(job.jobUrl, { waitUntil: 'domcontentloaded' });
     await page.waitForTimeout(2500); // Allow React hydration
+
+    // 1b. Fast 404 / Inactive Posting Detection
+    const pageTitle = await page.title();
+    const isNotFound =
+      /page not found|job not found|error 404|not available/i.test(pageTitle) ||
+      (await page.$(':text-matches("Page Not Found|Job is no longer available|The job you are looking for has expired", "i")')) !== null;
+
+    if (isNotFound) {
+      console.log(`[headless-applier] Job ${job.id} is no longer active on Naukri (404/expired).`);
+      return {
+        jobId: job.id,
+        jobTitle: job.title,
+        company: job.company,
+        status: 'error',
+        message: 'Job posting is no longer active on Naukri (listing expired or removed).',
+        filledFields: [],
+        durationMs: Date.now() - startTime,
+      };
+    }
 
     // 2. Check for External Apply (Company Career site)
     const externalBtn = await page.$(
@@ -214,7 +257,7 @@ export async function applyToNaukriJob(options: AutoApplyOptions): Promise<AutoA
     context.on('page', onPopup);
 
     const applyButton = await page.$(
-      '#apply-button, button.apply-button, .styles_apply-button__uJI3A, button:has-text("Apply")'
+      '#apply-button, button.apply-button, .styles_apply-button__uJI3A, button:has-text("Apply"), button:has-text("Apply now"), a.apply-button, [data-testid="apply-button"]'
     );
 
     if (!applyButton) {
@@ -239,7 +282,9 @@ export async function applyToNaukriJob(options: AutoApplyOptions): Promise<AutoA
         jobTitle: job.title,
         company: job.company,
         status: 'error',
-        message: isExpired ? 'Job is expired or no longer accepting applications.' : 'Apply button not found on this posting.',
+        message: isExpired
+          ? 'Job is expired or no longer accepting applications.'
+          : 'Apply button not available on this posting (recruiter closed direct applications).',
         filledFields: [],
         durationMs: Date.now() - startTime,
       };

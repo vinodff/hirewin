@@ -46,8 +46,34 @@ function fmt(ds: string) {
 }
 
 /* ─── ATS ring ─── */
-function Ring({ score }: { score: number }) {
+function Ring({ score }: { score: number | null | undefined }) {
   const S = 44, r = (S - 6) / 2, C = 2 * Math.PI * r;
+
+  /*
+   * "Not scored" is not zero.
+   *
+   * Auto-apply rows have no ATS score — nothing was analysed — and since 016
+   * the column is nullable rather than carrying a fabricated 85. Rendered
+   * through the old numeric path, null took the `score >= 70` branch to false
+   * and drew a full-width RED ring with no number in it: a row that was never
+   * measured looked like a row that scored badly.
+   *
+   * DESIGN.md rule 1: absent is absent. Draw the empty track and a dash.
+   */
+  if (typeof score !== 'number' || Number.isNaN(score)) {
+    return (
+      <div className="relative shrink-0" style={{ width: S, height: S }} title="Not scored">
+        <svg width={S} height={S} style={{ position: 'absolute', inset: 0 }}>
+          <circle cx={S / 2} cy={S / 2} r={r} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth={3} />
+        </svg>
+        <div className="absolute inset-0 flex flex-col items-center justify-center">
+          <span className="text-xs font-bold leading-none" style={{ color: 'var(--faint)' }}>—</span>
+          <span className="text-[8px] text-slate-600 leading-none mt-0.5">ATS</span>
+        </div>
+      </div>
+    );
+  }
+
   const col = score >= 70 ? '#10b981' : score >= 50 ? '#f59e0b' : '#ef4444';
   return (
     <div className="relative shrink-0" style={{ width: S, height: S }}>

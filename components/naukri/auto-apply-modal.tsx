@@ -1,0 +1,610 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import {
+  Zap, X, CheckCircle2, AlertCircle, Loader2, ShieldCheck,
+  ExternalLink, FileText, ChevronRight, Eye, Sparkles, Building2,
+} from 'lucide-react';
+import type { ScannedJob } from '@/app/job-scan/page';
+import type { RealApplicantVault } from '@/lib/naukri/profile-vault';
+import { extractContactInfo } from '@/lib/naukri/resume-analyzer';
+
+interface AutoApplyModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  jobs: ScannedJob[];
+  defaultProfile?: any;
+  resumeText: string;
+}
+
+interface ApplyResultItem {
+  jobId: string;
+  jobTitle: string;
+  company: string;
+  /*
+   * Mirrors AutoApplyResult['status'] in lib/naukri/headless-applier.ts.
+   *
+   * `needs_review` was missing here after the server gained it, and the gap
+   * was invisible: the badge lookup fell through to a gray pill showing the
+   * raw enum, and the summary below counted only `applied`, so a run that
+   * submitted nothing could still render "Applications Complete!".
+   *
+   * `needs_review` means THE APPLICATION WAS NOT SUBMITTED.
+   */
+  status:
+    | 'applied'
+    | 'needs_review'
+    | 'form_filled'
+    | 'external_redirect'
+    | 'requires_login'
+    | 'error';
+  message: string;
+  filledFields: string[];
+  proofScreenshotPath?: string;
+  durationMs: number;
+}
+
+export default function AutoApplyModal({
+  isOpen,
+  onClose,
+  jobs,
+  defaultProfile,
+  resumeText,
+}: AutoApplyModalProps) {
+  // Real Data Form State: extracted dynamically from candidate resume
+  const initialContact = typeof resumeText === 'string' ? extractContactInfo(resumeText) : {};
+  const [fullName, setFullName] = useState(defaultProfile?.name || initialContact.name || '');
+  const [email, setEmail] = useState(defaultProfile?.email || initialContact.email || '');
+  const [phone, setPhone] = useState(defaultProfile?.phone || initialContact.phone || '');
+  const [location, setLocation] = useState(defaultProfile?.preferredLocations?.[0] || 'Bengaluru');
+  const [noticePeriod, setNoticePeriod] = useState<'Immediate' | '15 Days' | '30 Days'>('Immediate');
+  const [currentCtc, setCurrentCtc] = useState<number>(0);
+  const [expectedCtc, setExpectedCtc] = useState<number>(defaultProfile?.expectedCtcLpa || 6.0);
+  const [expYears, setExpYears] = useState<number>(defaultProfile?.totalYearsExperience ?? 0);
+  const [dryRun, setDryRun] = useState(false);
+  const [jobLimit, setJobLimit] = useState(Math.min(5, jobs.length));
+
+  // Sync real candidate details dynamically whenever defaultProfile, resumeText, or modal opens
+  useEffect(() => {
+    const contact = typeof resumeText === 'string' ? extractContactInfo(resumeText) : {};
+    const resolvedName = defaultProfile?.name || contact.name;
+    const resolvedEmail = defaultProfile?.email || contact.email;
+    const resolvedPhone = defaultProfile?.phone || contact.phone;
+
+    if (resolvedName) setFullName(resolvedName);
+    if (resolvedEmail) setEmail(resolvedEmail);
+    if (resolvedPhone) setPhone(resolvedPhone);
+    if (defaultProfile?.preferredLocations?.[0]) {
+      setLocation(defaultProfile.preferredLocations[0]);
+    }
+    if (defaultProfile?.expectedCtcLpa) {
+      setExpectedCtc(defaultProfile.expectedCtcLpa);
+    }
+    if (defaultProfile?.totalYearsExperience !== undefined) {
+      setExpYears(defaultProfile.totalYearsExperience);
+    }
+  }, [defaultProfile, resumeText, isOpen]);
+
+  // Execution State
+  const [isRunning, setIsRunning] = useState(false);
+  const [progressMsg, setProgressMsg] = useState('');
+  const [results, setResults] = useState<ApplyResultItem[]>([]);
+  const [errorMsg, setErrorMsg] = useState('');
+  const [activeTab, setActiveTab] = useState<'setup' | 'running' | 'completed'>('setup');
+
+  /*
+   * The early return lives HERE, below every hook, and must stay below them.
+   *
+   * It used to sit at the top of the component. The parent mounts this
+   * unconditionally (app/job-scan/page.tsx:905) with isOpen starting false, so
+   * the first render returned before calling a single hook and the render that
+   * opened the modal called fourteen. React counts hooks per fiber and throws
+   * "Rendered more hooks than during the previous render" on the mismatch — the
+   * modal could never open at all.
+   *
+   * Hooks must run in the same order on every render. A conditional return
+   * above them is the one place that rule is easy to break by accident.
+   */
+  if (!isOpen) return null;
+
+  async function handleStartAutoApply() {
+    setIsRunning(true);
+    setActiveTab('running');
+    setProgressMsg(`Initializing headless background runner for ${jobLimit} jobs...`);
+    setErrorMsg('');
+    setResults([]);
+
+    const vault: RealApplicantVault = {
+      fullName,
+      email,
+      phone,
+      currentLocation: location,
+      totalExperienceYears: expYears,
+      noticePeriod,
+      currentCtcLpa: currentCtc,
+      expectedCtcLpa: expectedCtc,
+      highestDegree: defaultProfile?.degree || 'B.Tech',
+      specialization: defaultProfile?.fieldOfStudy || 'Computer Science',
+      collegeName: 'Engineering Institute',
+      graduationYear: defaultProfile?.graduationYear || 2026,
+      skills: defaultProfile?.coreSkills || ['React', 'TypeScript', 'Node.js'],
+      resumeText,
+    };
+
+    try {
+      const selectedJobs = jobs.slice(0, jobLimit).map((j) => ({
+        id: j.id || (j as any).id || `job-${Math.random().toString(36).substring(7)}`,
+        title: j.title,
+        company: j.company,
+        location: j.location,
+        jobUrl: j.jobUrl,
+        experienceText: j.experienceText || '0-1 Yrs',
+        experienceMin: expYears,
+        experienceMax: expYears + 1,
+        salaryText: j.salaryText || 'Competitive',
+        workMode: (j.workMode as any) || 'onsite',
+        skills: j.matchingSkills,
+        descriptionSnippet: j.fitReason,
+        postedDateText: 'Recently',
+        applyType: j.applyType || 'naukri_easy_apply',
+      }));
+
+      setProgressMsg('Connecting to Naukri in background & filling forms with real data...');
+
+      const res = await fetch('/api/naukri/auto-apply', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          jobs: selectedJobs,
+          vault,
+          dryRun,
+          maxJobs: jobLimit,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Auto-apply execution failed');
+      }
+
+      setResults(data.results || []);
+      setActiveTab('completed');
+    } catch (err) {
+      console.error('Auto-apply error:', err);
+      setErrorMsg(err instanceof Error ? err.message : 'Unknown error during background apply');
+      setActiveTab('setup');
+    } finally {
+      setIsRunning(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
+      <div
+        className="w-full max-w-2xl rounded-2xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]"
+        style={{
+          background: '#0c1220',
+          border: '1px solid rgba(255, 255, 255, 0.1)',
+        }}
+      >
+        {/* Modal Header */}
+        <div className="p-5 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+              <Zap className="w-4 h-4" />
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-white flex items-center gap-2">
+                Background Auto-Apply Engine
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-semibold">
+                  Zero Extension Required
+                </span>
+              </h3>
+              <p className="text-xs text-slate-400">
+                Runs headlessly in the background using your verified applicant data
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            disabled={isRunning}
+            className="p-1 rounded-lg text-slate-400 hover:text-white transition-colors disabled:opacity-50"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Modal Body */}
+        <div className="p-6 overflow-y-auto flex-1 space-y-6">
+          {errorMsg && (
+            <div className="p-3.5 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center gap-2.5 text-xs text-red-300">
+              <AlertCircle className="w-4 h-4 shrink-0 text-red-400" />
+              <span>{errorMsg}</span>
+            </div>
+          )}
+
+          {activeTab === 'setup' && (
+            <div className="space-y-5">
+              {/* Info Notice */}
+              <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-300 flex items-start gap-2.5">
+                <ShieldCheck className="w-4 h-4 shrink-0 text-emerald-400 mt-0.5" />
+                <div>
+                  <strong className="text-white block mb-0.5">Real Data Injection & AI Screener Q&A</strong>
+                  The background runner will fill out application fields, select notice period, input CTCs, and answer recruiter questions automatically using your resume details.
+                </div>
+              </div>
+
+              {/* Form Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Full Name */}
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-slate-400">Full Name</label>
+                  <input
+                    type="text"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    className="w-full px-3 py-2 text-xs rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+
+                {/* Email */}
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-slate-400">Email Address</label>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="e.g. yourname@gmail.com"
+                    className="w-full px-3 py-2 text-xs rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+
+                {/* Mobile Phone */}
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-slate-400">Mobile Phone</label>
+                  <input
+                    type="text"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    placeholder="10-digit mobile number"
+                    className="w-full px-3 py-2 text-xs rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+
+                {/* Location */}
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-slate-400">Current Location</label>
+                  <input
+                    type="text"
+                    value={location}
+                    onChange={(e) => setLocation(e.target.value)}
+                    className="w-full px-3 py-2 text-xs rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+
+                {/* Total Experience */}
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-slate-400">Total Experience</label>
+                  <select
+                    value={expYears}
+                    onChange={(e) => setExpYears(Number(e.target.value))}
+                    className="w-full px-3 py-2 text-xs rounded-xl bg-slate-900 border border-white/10 text-white focus:outline-none focus:border-emerald-500"
+                  >
+                    <option value={0}>0 Years (Fresher / Student)</option>
+                    <option value={1}>1 Year Experience</option>
+                    <option value={2}>2 Years Experience</option>
+                    <option value={3}>3+ Years Experience</option>
+                  </select>
+                </div>
+
+                {/* Notice Period */}
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-slate-400">Notice Period</label>
+                  <select
+                    value={noticePeriod}
+                    onChange={(e) => setNoticePeriod(e.target.value as any)}
+                    className="w-full px-3 py-2 text-xs rounded-xl bg-slate-900 border border-white/10 text-white focus:outline-none focus:border-emerald-500"
+                  >
+                    <option value="Immediate">Immediate Joiner</option>
+                    <option value="15 Days">15 Days</option>
+                    <option value="30 Days">30 Days</option>
+                  </select>
+                </div>
+
+                {/* Current CTC */}
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-slate-400">Current CTC (in LPA)</label>
+                  <input
+                    type="number"
+                    value={currentCtc}
+                    onChange={(e) => setCurrentCtc(Number(e.target.value))}
+                    placeholder="0"
+                    className="w-full px-3 py-2 text-xs rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+
+                {/* Expected CTC */}
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-slate-400">Expected CTC (in LPA)</label>
+                  <input
+                    type="number"
+                    step="0.5"
+                    value={expectedCtc}
+                    onChange={(e) => setExpectedCtc(Number(e.target.value))}
+                    placeholder="6.0"
+                    className="w-full px-3 py-2 text-xs rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+              </div>
+
+              {/* Number of Jobs to Apply */}
+              <div className="pt-2 border-t border-white/5 flex items-center justify-between">
+                <div>
+                  <span className="text-xs font-semibold text-white block">Auto-Apply Scope</span>
+                  <span className="text-[11px] text-slate-400">
+                    Will apply to top ranked matching jobs sequentially
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  {[3, 5, 10].map((n) => (
+                    <button
+                      key={n}
+                      type="button"
+                      onClick={() => setJobLimit(n)}
+                      className={`px-3 py-1.5 text-xs font-semibold rounded-lg border transition-all ${
+                        jobLimit === n
+                          ? 'border-emerald-500 bg-emerald-500/20 text-emerald-300'
+                          : 'border-white/5 bg-white/2 text-slate-400'
+                      }`}
+                    >
+                      Top {n} Jobs
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Dry-Run Toggle */}
+              <label className="flex items-center gap-2.5 p-3 rounded-xl bg-white/2 border border-white/5 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={dryRun}
+                  onChange={(e) => setDryRun(e.target.checked)}
+                  className="rounded text-emerald-500 focus:ring-0 focus:ring-offset-0"
+                />
+                <div className="text-xs">
+                  <span className="text-slate-200 font-semibold block">Dry-Run Preview Mode</span>
+                  <span className="text-slate-400 text-[11px]">
+                    Fills all form inputs and captures proof screenshots without hitting the final submit button.
+                  </span>
+                </div>
+              </label>
+            </div>
+          )}
+
+          {activeTab === 'running' && (
+            <div className="py-12 flex flex-col items-center justify-center text-center space-y-4">
+              <div className="relative w-20 h-20 flex items-center justify-center">
+                <div className="absolute inset-0 rounded-full border-2 border-emerald-500/20 animate-ping" />
+                <div className="w-16 h-16 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center">
+                  <Loader2 className="w-8 h-8 text-emerald-400 animate-spin" />
+                </div>
+              </div>
+              <h4 className="text-lg font-bold text-white">Applying in Background</h4>
+              <p className="text-xs text-slate-400 max-w-md">{progressMsg}</p>
+              <div className="w-full max-w-xs h-1.5 rounded-full bg-white/5 overflow-hidden">
+                <div className="h-full bg-emerald-500 animate-pulse w-3/4 rounded-full" />
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'completed' && (() => {
+            const appliedCount = results.filter((r) => r.status === 'applied').length;
+            // Not submitted. Counted separately and surfaced even when some
+            // jobs did succeed — a mixed run previously showed only the good half.
+            const needsReviewCount = results.filter((r) => r.status === 'needs_review').length;
+            const requiresLoginCount = results.filter((r) => r.status === 'requires_login').length;
+            const externalCount = results.filter((r) => r.status === 'external_redirect').length;
+            const errorCount = results.filter((r) => r.status === 'error').length;
+
+            return (
+              <div className="space-y-4">
+                {/* Dynamic Summary Card */}
+                {appliedCount > 0 ? (
+                  <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <CheckCircle2 className="w-6 h-6 text-emerald-400" />
+                      <div>
+                        <h4 className="font-bold text-white text-sm">
+                          {needsReviewCount > 0 ? 'Partly complete' : 'Applications Complete!'}
+                        </h4>
+                        <p className="text-xs text-slate-400">
+                          Submitted {appliedCount} job{appliedCount > 1 ? 's' : ''}.
+                          {needsReviewCount > 0
+                            ? ` ${needsReviewCount} could NOT be submitted and need you to finish them.`
+                            : ''}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ) : requiresLoginCount > 0 ? (
+                  <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <AlertCircle className="w-6 h-6 text-amber-400 flex-shrink-0" />
+                      <div>
+                        <h4 className="font-bold text-white text-sm">Naukri Login Required</h4>
+                        <p className="text-xs text-slate-400">
+                          Sign into your Naukri account once in your browser to enable 1-click background auto-applying.
+                        </p>
+                      </div>
+                    </div>
+                    <a
+                      href="https://www.naukri.com/nlogin/login"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs flex items-center gap-1.5 flex-shrink-0"
+                    >
+                      Sign In <ExternalLink className="w-3.5 h-3.5" />
+                    </a>
+                  </div>
+                ) : externalCount > 0 && errorCount === 0 ? (
+                  <div className="p-4 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <CheckCircle2 className="w-6 h-6 text-cyan-400" />
+                      <div>
+                        <h4 className="font-bold text-white text-sm">Openings Saved to Tracker</h4>
+                        <p className="text-xs text-slate-400">
+                          Saved {externalCount} direct application link{externalCount > 1 ? 's' : ''} to your job tracker.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-4 rounded-xl bg-slate-800/60 border border-white/10 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <AlertCircle className="w-6 h-6 text-slate-300" />
+                      <div>
+                        <h4 className="font-bold text-white text-sm">Run Complete ({results.length} processed)</h4>
+                        <p className="text-xs text-slate-400">
+                          Review individual application statuses below.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Results List */}
+                <div className="space-y-3">
+                  {results.map((r) => {
+                    const badge = {
+                      applied: { text: '✓ Applied', style: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' },
+                      form_filled: { text: 'Form Filled', style: 'bg-blue-500/10 text-blue-400 border-blue-500/20' },
+                      requires_login: { text: 'Login Required', style: 'bg-amber-500/10 text-amber-400 border-amber-500/20' },
+                      external_redirect: { text: 'Saved to Tracker', style: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20' },
+                      // Amber, and says plainly that nothing was sent. It used
+                      // to fall through to a gray pill reading "needs_review",
+                      // which looked like an unremarkable unknown state.
+                      needs_review: { text: '⚠ Not submitted — needs you', style: 'bg-amber-500/10 text-amber-400 border-amber-500/20' },
+                      error: { text: 'Attention', style: 'bg-rose-500/10 text-rose-400 border-rose-500/20' },
+                    }[r.status] || { text: r.status, style: 'bg-slate-500/10 text-slate-400 border-slate-500/20' };
+
+                    return (
+                      <div
+                        key={r.jobId}
+                        className="p-4 rounded-xl bg-white/2 border border-white/5 space-y-2"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h5 className="font-bold text-white text-sm">{r.jobTitle}</h5>
+                            <p className="text-xs text-slate-400">{r.company}</p>
+                          </div>
+                          <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold capitalize border ${badge.style}`}>
+                            {badge.text}
+                          </span>
+                        </div>
+
+                        <p className="text-xs text-slate-400">{r.message}</p>
+
+                        {r.filledFields && r.filledFields.length > 0 && (
+                          <div className="flex flex-wrap gap-1.5 pt-1">
+                            {r.filledFields.map((f, i) => (
+                              <span
+                                key={i}
+                                className="px-2 py-0.5 rounded bg-white/5 border border-white/10 text-[10px] text-slate-300"
+                              >
+                                ✓ {f}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+
+                        <div className="flex items-center gap-3 pt-2">
+                          {r.status === 'requires_login' && (
+                            <a
+                              href="https://www.naukri.com/nlogin/login"
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1.5 text-xs text-amber-400 hover:text-amber-300 font-semibold"
+                            >
+                              <ExternalLink className="w-3.5 h-3.5" />
+                              Log In to Naukri
+                            </a>
+                          )}
+
+                          {(r.status === 'external_redirect' || (r as any).externalUrl) && (
+                            <a
+                              href={(r as any).externalUrl || '#'}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1.5 text-xs text-cyan-400 hover:text-cyan-300 font-semibold"
+                            >
+                              <ExternalLink className="w-3.5 h-3.5" />
+                              Open Job Portal
+                            </a>
+                          )}
+
+                          {r.proofScreenshotPath && (
+                            <a
+                              href={r.proofScreenshotPath}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1.5 text-xs text-emerald-400 hover:text-emerald-300 font-semibold"
+                            >
+                              <Eye className="w-3.5 h-3.5" />
+                              View Proof Screenshot
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })()}
+        </div>
+
+        {/* Modal Footer */}
+        <div className="p-4 border-t border-white/5 flex items-center justify-between bg-white/[0.02]">
+          {activeTab === 'setup' ? (
+            <>
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 text-xs font-semibold text-slate-400 hover:text-white"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleStartAutoApply}
+                disabled={isRunning}
+                className="px-5 py-2.5 rounded-xl text-xs font-bold text-white flex items-center gap-2 transition-all hover:opacity-90 active:scale-[0.98]"
+                style={{ background: 'linear-gradient(135deg, #10b981, #059669)' }}
+              >
+                <Zap className="w-3.5 h-3.5" />
+                {dryRun ? 'Run Form Preview' : `Apply to Top ${jobLimit} Jobs Now`}
+              </button>
+            </>
+          ) : activeTab === 'completed' ? (
+            <>
+              <a
+                href="/history"
+                className="px-4 py-2 text-xs font-semibold text-emerald-400 hover:text-emerald-300 flex items-center gap-1.5"
+              >
+                View in Job Tracker
+                <ChevronRight className="w-3.5 h-3.5" />
+              </a>
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-5 py-2 rounded-xl text-xs font-bold text-white bg-white/10 hover:bg-white/15"
+              >
+                Done
+              </button>
+            </>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  );
+}
