@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { createClient } from '@/lib/supabase/server';
 import { checkRateLimit } from '@/lib/rate-limit';
-import { streamAnalysis, AnalysisResultSchema } from '@/lib/anthropic';
+import { streamAnalysis, AnalysisResultSchema, isAnthropicConfigured } from '@/lib/anthropic';
 import { logUsage } from '@/lib/usage-log';
 import { fetchJobDescription, isKnownAtsDomain } from '@/lib/jina';
 import { parsePdf } from '@/lib/pdf-parser';
@@ -109,6 +109,16 @@ export async function POST(req: NextRequest) {
           });
         }
 
+        // --- Fail fast on a missing/malformed key, before rate-limit,
+        // usage, or streaming work — so the user gets a config error,
+        // not a generic analysis failure. A 401 from Anthropic itself
+        // is still handled below as "key rejected", distinct from this.
+        if (!isAnthropicConfigured()) {
+          emit({ type: 'error', message: 'Anthropic API key is not configured on this server. Set ANTHROPIC_API_KEY in the deployment environment (not in code) and redeploy/restart.' });
+          controller.close();
+          return;
+        }
+
         // --- Stream from Claude ---
         let buffer = '';
         const emittedFields = new Set<string>();
@@ -151,7 +161,7 @@ export async function POST(req: NextRequest) {
 
           // Use Anthropic SDK typed errors (more reliable than string matching)
           if (e instanceof Anthropic.AuthenticationError) {
-            emit({ type: 'error', message: 'Invalid or missing Anthropic API key. Please check your ANTHROPIC_API_KEY environment variable.' });
+            emit({ type: 'error', message: 'Anthropic rejected the API key (401). Check that ANTHROPIC_API_KEY in the deployment environment is a current, unexpired key from console.anthropic.com — pasted without quotes or spaces — then redeploy/restart.' });
             controller.close();
             return;
           }
@@ -185,7 +195,7 @@ export async function POST(req: NextRequest) {
             return;
           }
           if (rawErr.includes('401') || rawErr.includes('authentication') || rawErr.includes('API key')) {
-            emit({ type: 'error', message: 'Invalid or missing Anthropic API key. Please check your ANTHROPIC_API_KEY environment variable.' });
+            emit({ type: 'error', message: 'Anthropic rejected the API key (401). Check that ANTHROPIC_API_KEY in the deployment environment is a current, unexpired key from console.anthropic.com — pasted without quotes or spaces — then redeploy/restart.' });
             controller.close();
             return;
           }
