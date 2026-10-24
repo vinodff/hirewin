@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { Mic, User, Mail, Briefcase, FileText, BarChart2, ArrowRight, Volume2, Sparkles } from 'lucide-react';
+import { Mic, User, Mail, Briefcase, FileText, BarChart2, ArrowRight, Volume2, Sparkles, ScanSearch, Linkedin } from 'lucide-react';
 
 /* ─── Mini preview components ────────────────────────────── */
 
@@ -152,6 +152,38 @@ function TrackerPreview() {
   );
 }
 
+function JobScanPreview() {
+  return (
+    <div className="mt-3 space-y-2">
+      <p className="text-[11px] text-slate-400 leading-relaxed">
+        Paste a job link to check how well your resume fits it — and what is missing.
+      </p>
+      <div className="flex flex-wrap gap-1.5">
+        {['Skills matched', 'Gaps listed', 'Fit summary'].map((k) => (
+          <span key={k} className="text-[9px] px-2 py-0.5 rounded-full"
+            style={{ background: 'rgba(52,211,153,0.10)', color: '#6ee7b7', border: '1px solid rgba(52,211,153,0.20)' }}>
+            {k}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function LinkedInPreview() {
+  return (
+    <div className="mt-3 space-y-2">
+      <p className="text-[11px] text-slate-400 leading-relaxed">
+        Headline, About section and experience tuned to your target roles — from your own resume, not invented skills.
+      </p>
+      <div className="rounded-lg px-2.5 py-2 text-[10px] text-slate-300"
+        style={{ background: 'rgba(10,102,194,0.07)', border: '1px solid rgba(10,102,194,0.15)' }}>
+        Headline and About, rewritten for recruiters.
+      </div>
+    </div>
+  );
+}
+
 /* ─── Feature data ───────────────────────────────────────── */
 
 type Feature = {
@@ -178,25 +210,25 @@ const FEATURES: Feature[] = [
   },
   {
     id: 'interview',
-    icon: Mic, tag: 'NEW',
-    title: 'Voice Mock Interview',
-    desc: 'An AI recruiter asks adaptive questions, listens to your voice, and gives you a full performance report.',
+    icon: Mic, tag: 'Inside the optimizer',
+    title: 'Inside the optimizer: Voice Mock Interview',
+    desc: 'An AI recruiter asks adaptive questions, listens to your voice, and gives you a full performance report — inside the analyze flow.',
     color: '#60a5fa', href: '/analyze', cta: 'Start interview',
     preview: <VoicePreview />,
   },
   {
     id: 'selfintro',
-    icon: User, tag: 'Interview prep',
-    title: 'Self-Introduction',
-    desc: '3 tailored versions of your intro — brief pitch, full 2-min answer, casual — written in your voice.',
+    icon: User, tag: 'Inside the optimizer',
+    title: 'Inside the optimizer: Self-Introduction',
+    desc: '3 tailored versions of your intro — brief pitch, full 2-min answer, casual — written in your voice, inside the analyze flow.',
     color: '#c4b5fd', href: '/analyze', cta: 'Generate intro',
     preview: <SelfIntroPreview />,
   },
   {
     id: 'outreach',
-    icon: Mail, tag: 'Apply smarter',
-    title: 'Cold Outreach',
-    desc: 'Personalised cold email + LinkedIn note written from your optimised resume — send in one click.',
+    icon: Mail, tag: 'Inside the optimizer',
+    title: 'Inside the optimizer: Cold Outreach',
+    desc: 'Personalised cold email + LinkedIn note written from your optimised resume — inside the analyze flow.',
     color: '#f87171', href: '/analyze', cta: 'Write outreach',
     preview: <OutreachPreview />,
   },
@@ -207,6 +239,22 @@ const FEATURES: Feature[] = [
     desc: 'Track every application, interview stage, and offer in one clean dashboard. Never lose track again.',
     color: '#34d399', href: '/history', cta: 'Track jobs',
     preview: <TrackerPreview />,
+  },
+  {
+    id: 'jobscan',
+    icon: ScanSearch, tag: 'Check a job first',
+    title: 'Job Scan',
+    desc: 'Check a real job posting against your resume before you apply.',
+    color: '#34d399', href: '/job-scan', cta: 'Scan a job',
+    preview: <JobScanPreview />,
+  },
+  {
+    id: 'linkedin',
+    icon: Linkedin, tag: 'Profile',
+    title: 'LinkedIn Optimizer',
+    desc: 'Rewrite your LinkedIn profile from your verified resume experience.',
+    color: '#60a5fa', href: '/linkedin-optimizer', cta: 'Optimize LinkedIn',
+    preview: <LinkedInPreview />,
   },
 ];
 
@@ -296,14 +344,14 @@ export default function FeatureShowcase() {
         <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold text-purple-300 mb-5"
           style={{ background: 'rgba(124,58,237,0.1)', border: '1px solid rgba(124,58,237,0.25)', backdropFilter: 'blur(8px)' }}>
           <Sparkles className="w-3.5 h-3.5" />
-          5 tools. One complete kit.
+          One complete kit.
         </div>
-        <h2 className="text-3xl sm:text-4xl lg:text-6xl font-extrabold text-white mb-5 leading-[1.05] tracking-tight">
+        <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-5 leading-[1.05] tracking-tight">
           Everything you need<br className="hidden sm:block" />
           <span className="gradient-text"> to get hired faster.</span>
         </h2>
         <p className="text-slate-400 text-sm sm:text-base max-w-xl mx-auto leading-relaxed">
-          Resume optimization, voice interview practice, self-introduction, cold outreach, and job tracking — all AI-powered, all in one place.
+          Resume optimization, voice interview practice, self-introduction, cold outreach, job tracking, job scan and LinkedIn optimization — all in one place.
         </p>
       </div>
 
@@ -318,6 +366,7 @@ export default function FeatureShowcase() {
           </div>
         ))}
       </div>
+      <p className="text-center text-xs text-slate-500 mt-6">Card previews are examples.</p>
 
       {/* Resume Builder — full-width banner card */}
       <div className="mt-4 sm:mt-5">
