@@ -3,7 +3,7 @@ import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { optimizeLinkedIn, type LinkedInProfileInput } from '@/lib/linkedin';
 import { logUsage } from '@/lib/usage-log';
-import { verifyToken } from '@/lib/extension-token';
+import { verifyToken, isTokenRevoked } from '@/lib/extension-token';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 export const maxDuration = 60;
@@ -53,11 +53,17 @@ export async function POST(req: NextRequest) {
     const authHeader = req.headers.get('authorization');
     const bearer = authHeader?.startsWith('Bearer ') ? authHeader.slice(7).trim() : '';
     if (bearer) {
-      userId = verifyToken(bearer);
-      if (!userId) {
+      const verified = verifyToken(bearer);
+      if (!verified) {
         return withCors(NextResponse.json({ error: 'Invalid or expired connection code. Reconnect the extension.' }, { status: 401 }), origin);
       }
+      userId = verified.userId;
       db = await createServiceClient();
+      // Revocation (batch 2, migration 014): a revoked jti is rejected
+      // with the same message as an invalid/expired token.
+      if (await isTokenRevoked(db, verified.userId, verified.jti)) {
+        return withCors(NextResponse.json({ error: 'Invalid or expired connection code. Reconnect the extension.' }, { status: 401 }), origin);
+      }
     } else {
       const supabase = await createClient();
       const { data: { user } } = await supabase.auth.getUser();

@@ -39,6 +39,16 @@ export async function POST(req: NextRequest) {
     }
 
     // --- Usage Quota Verification & Increment ---
+    // Batch 2 (P1-9) decision, documented not silently changed:
+    // anonymous job-scan is intentionally left as a free tier here
+    // (rate-limited by IP below), NOT gated to sign-in, because
+    // gating it would be a product change with no user decision yet.
+    // Flagged inconsistency, still open: logged-in free/starter users
+    // get 0 scans (canScan) while anonymous callers get scans under
+    // only the shared IP rate limit. The product decision still
+    // needed is: gate anonymous scans, or grant logged-in free users
+    // the same free tier. Do not "fix" this by editing only one side
+    // without that decision.
     // Set USAGE_LIMITS_DISABLED=true in env to bypass during testing (same flag as lib/usage.ts)
     if (user && process.env.USAGE_LIMITS_DISABLED !== 'true') {
       // Reset monthly usage if it's a new month

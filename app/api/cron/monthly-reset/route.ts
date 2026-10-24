@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { sendCreditsResetEmail } from '@/lib/email';
 import { PLAN_LIMITS } from '@/types';
 
@@ -7,12 +7,82 @@ export const maxDuration = 60;
 
 // Vercel Cron: runs at 08:00 UTC on the 1st of every month
 // vercel.json: { "crons": [{ "path": "/api/cron/monthly-reset", "schedule": "0 8 1 * *" }] }
+//
+// HONESTY NOTE (batch 2, P1-7): despite the route name, this route does
+// NOT reset usage. It only sends "credits reset" notification emails.
+// The real reset is lazy: reset_monthly_usage_if_needed is called on
+// analyze, download, and job-scan reads, and only then do counters
+// zero for the new month. Renaming the URL would break the Vercel
+// cron schedule, so the route keeps its path but its comment, response
+// shape (resetPerformed: false), and this note say what it actually
+// does. If a true server-side reset is wanted later, it must be a
+// separate, explicitly-named job that updates profiles, not this email
+// sender.
+
+const PROFILES_PAGE_SIZE = 1000;
+const USERS_PAGE_SIZE = 100;
+
+type ProfileRow = {
+  id: string;
+  full_name: string | null;
+  plan: string;
+  improvements_used: number;
+  usage_month: string;
+};
+
+async function fetchAllProfiles(
+  supabase: SupabaseClient,
+  prevMonthStr: string
+): Promise<ProfileRow[]> {
+  const all: ProfileRow[] = [];
+  let offset = 0;
+  for (;;) {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('id, full_name, plan, improvements_used, usage_month')
+      .eq('usage_month', prevMonthStr)
+      .neq('plan', 'team') // team plan users don't need reset emails
+      .range(offset, offset + PROFILES_PAGE_SIZE - 1);
+    if (error) throw error;
+    if (!data || data.length === 0) break;
+    all.push(...(data as ProfileRow[]));
+    if (data.length < PROFILES_PAGE_SIZE) break;
+    offset += PROFILES_PAGE_SIZE;
+  }
+  return all;
+}
+
+async function fetchAllUserEmails(
+  supabase: SupabaseClient
+): Promise<Map<string, { email: string; name: string }>> {
+  const emailMap = new Map<string, { email: string; name: string }>();
+  let page = 1;
+  for (;;) {
+    const { data, error } = await supabase.auth.admin.listUsers({
+      page,
+      perPage: USERS_PAGE_SIZE,
+    });
+    if (error) throw error;
+    const users = data?.users ?? [];
+    for (const u of users) {
+      emailMap.set(u.id, {
+        email: u.email ?? '',
+        name: u.user_metadata?.full_name ?? u.user_metadata?.name ?? '',
+      });
+    }
+    if (users.length < USERS_PAGE_SIZE) break;
+    page += 1;
+  }
+  return emailMap;
+}
 
 export async function GET(req: NextRequest) {
-  // Verify the request comes from Vercel Cron (or our own CRON_SECRET)
+  // Fail closed (P1-7): previously, if CRON_SECRET was unset, ANY
+  // unauthenticated GET ran the whole job. Now a missing secret is
+  // itself a 401, and a mismatched secret is a 401.
   const authHeader = req.headers.get('authorization');
   const cronSecret = process.env.CRON_SECRET;
-  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -29,35 +99,50 @@ export async function GET(req: NextRequest) {
     return d.toISOString().slice(0, 7);
   })();
 
-  // Fetch users who were active last month (usage_month = last month)
-  // These users had their credits consumed and are being reset
-  const { data: profiles, error } = await supabase
-    .from('profiles')
-    .select('id, email: id, full_name, plan, improvements_used, usage_month')
-    .eq('usage_month', prevMonthStr)
-    .neq('plan', 'team'); // team plan users don't need reset emails
-
-  if (error) {
+  let profiles: ProfileRow[];
+  let emailMap: Map<string, { email: string; name: string }>;
+  try {
+    profiles = await fetchAllProfiles(supabase, prevMonthStr);
+    emailMap = await fetchAllUserEmails(supabase);
+  } catch (error) {
     console.error('[monthly-reset] fetch error:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to fetch users' }, { status: 500 });
   }
 
-  if (!profiles || profiles.length === 0) {
-    return NextResponse.json({ sent: 0, message: 'No eligible profiles' });
+  if (profiles.length === 0) {
+    return NextResponse.json({
+      sent: 0,
+      skippedAlreadySent: 0,
+      failed: 0,
+      total: 0,
+      resetPerformed: false,
+      message: 'No eligible profiles',
+    });
   }
 
-  // Fetch the actual emails from auth.users via service role
-  const userIds = profiles.map((p: { id: string }) => p.id);
-  const { data: authUsers } = await supabase.auth.admin.listUsers();
-  const emailMap = new Map(
-    (authUsers?.users ?? []).map((u) => [u.id, { email: u.email ?? '', name: u.user_metadata?.full_name ?? u.user_metadata?.name ?? '' }])
-  );
+  // Idempotency (P1-7, migration 013): a user who already has a
+  // (user_id, currentMonth) row in monthly_reset_notifications is
+  // skipped, so a repeated cron run never re-sends to them. A user
+  // whose email failed gets no row, so they are retried next run.
+  // The log row is written only AFTER a successful send, for the
+  // same reason: logging before sending would skip a user whose
+  // email actually failed.
+  const { data: alreadySentRows } = await supabase
+    .from('monthly_reset_notifications')
+    .select('user_id')
+    .eq('month', currentMonth);
+  const alreadySent = new Set((alreadySentRows ?? []).map((r: { user_id: string }) => r.user_id));
 
   let sent = 0;
+  let skippedAlreadySent = 0;
   let failed = 0;
-  const errors: string[] = [];
 
-  for (const profile of profiles as Array<{ id: string; full_name: string | null; plan: string; improvements_used: number; usage_month: string }>) {
+  for (const profile of profiles) {
+    if (alreadySent.has(profile.id)) {
+      skippedAlreadySent += 1;
+      continue;
+    }
+
     const auth = emailMap.get(profile.id);
     if (!auth?.email) continue;
 
@@ -73,11 +158,23 @@ export async function GET(req: NextRequest) {
         usedLast: profile.improvements_used,
         freeCredits: creditsDisplay,
       });
-      sent++;
+      // Log only on success (see idempotency note above). A log
+      // failure is recorded server-side and counted as failed, so
+      // the next run retries rather than silently dropping the user.
+      const { error: logError } = await supabase
+        .from('monthly_reset_notifications')
+        .insert({ user_id: profile.id, month: currentMonth });
+      if (logError) {
+        console.error('[monthly-reset] log insert failed:', profile.id, logError);
+        failed += 1;
+      } else {
+        sent += 1;
+      }
     } catch (e) {
-      failed++;
+      failed += 1;
       const msg = e instanceof Error ? e.message : String(e);
-      errors.push(`${auth.email}: ${msg}`);
+      // Email addresses are logged server-side only, never returned
+      // in the response (previously up to 10 were returned).
       console.error('[monthly-reset] email failed:', auth.email, msg);
     }
 
@@ -85,5 +182,12 @@ export async function GET(req: NextRequest) {
     await new Promise((r) => setTimeout(r, 600));
   }
 
-  return NextResponse.json({ sent, failed, total: profiles.length, errors: errors.slice(0, 10) });
+  return NextResponse.json({
+    sent,
+    skippedAlreadySent,
+    failed,
+    total: profiles.length,
+    resetPerformed: false,
+    resetPath: 'lazy reset_monthly_usage_if_needed on analyze/download/job-scan reads',
+  });
 }
