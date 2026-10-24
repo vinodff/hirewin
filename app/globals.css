@@ -576,3 +576,14 @@ input, textarea, select {
 }
 
 /* content-visibility removed — it interferes with IntersectionObserver scroll animations */
+
+/* ─── Professional homepage (restrained 3D stage) ─── */
+.resume-stage-card {
+  will-change: transform;
+}
+@media (prefers-reduced-motion: reduce) {
+  .resume-stage-card {
+    transform: none !important;
+    transition: none !important;
+  }
+}
