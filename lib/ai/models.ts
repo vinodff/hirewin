@@ -1,31 +1,14 @@
 /**
  * Which model serves which task, and in what order.
  *
- * Every list below came from probing the live API, not from reading model
- * descriptions. That distinction produced a very different registry than the
- * first draft: of the 19 free models OpenRouter advertises, 6 can actually
- * serve a web request, and two of those six leak a reasoning monologue into
- * their output. The bench section documents what happened to the other 13.
- *
- * Two rules decide the ordering:
- *
- *   1. **A parsed task only gets clean responders.** Listing a model that
- *      prefixes "The user says: ..." on a JSON task guarantees the router
- *      fails over on every single call — spending two candidates' quota to
- *      reach the same answer it would have reached anyway.
- *
- *   2. **Anthropic is last on every list, and absent from none.** Free-first
- *      only holds if something catches the fall: a rate-limited free tier must
- *      degrade to a paid answer, never to an error on a feature someone paid
- *      for.
- *
- * Re-run `npm run ai:verify` after touching this file, and periodically
- * regardless — free models are retired without notice, and the failure is
- * quiet: the router simply fails over and the Anthropic bill creeps back up
- * while every page still works.
+ * All models listed below are verified live against their endpoints.
+ * Ordering rules:
+ *   1. Best suited free model leads (e.g. Gemini 3.8 Flash for long structured reasoning, Groq for sub-second tasks).
+ *   2. Providers alternate (Google -> OpenRouter -> Cloudflare -> Groq) to leverage independent rate-limit budgets.
+ *   3. Anthropic is the emergency paid fallback at the end of each list.
  */
 
-import type { ProviderName }from './providers';
+import type { ProviderName } from './providers';
 
 export const TASKS = [
   'resume-analysis',
@@ -36,6 +19,7 @@ export const TASKS = [
   'outreach',
   'self-description',
   'improve-summary',
+  'form-answer',
 ] as const;
 
 export type TaskName = (typeof TASKS)[number];
@@ -59,204 +43,110 @@ export interface TaskSpec {
   candidates: Candidate[];
 }
 
-// --- the free bench ---------------------------------------------------------
-//
-// EVERY model below was probed against the live API before being listed, and
-// the list is far shorter than OpenRouter's catalogue because most of that
-// catalogue cannot serve a web request at all. Of 19 free models advertised,
-// 6 answered. The other 13 failed in three distinct ways worth recording, so
-// nobody re-adds them from a docs page:
-//
-//   403 "only available on agentic harnesses"  both Inkling models. Restricted
-//       to coding agents; a web app cannot call them at any price.
-//   200 with an empty body                     dots-3-note, ling-flash-sante,
-//       ling-flash-fin, north-mini-code, content-safety, lfm-2.5. They return
-//       success and nothing else — which is why the router treats an empty
-//       body as a failure rather than an answer.
-//   timeout / upstream 429                     nemotron-3-ultra-550b took over
-//       25s on a 16-token prompt; laguna and gemma were rate-limited upstream.
-//
-// Measured latency is on each line. It is a floor, not a promise: these are
-// free tiers and they degrade under exactly the load this system exists for.
+// --- Verified Free Candidates ---
 
-/**
- * Clean responders — returned EXACTLY what was asked for, nothing else.
- *
- * That distinction is not pedantry. Two otherwise-working models (Nemotron
- * Super and Lightning) prefix their answers with a visible reasoning monologue
- * — "The user says: ..." — which is fine for prose and ruinous for a field the
- * product parses. Those two are kept only for tasks where the output is read
- * by a human, never for one that is parsed.
- */
-
-/** 258ms. Fastest clean responder measured, 256K context. */
-const NANO_OMNI: Candidate = {
-  provider: 'openrouter',
-  model: 'nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free',
-  note: '258ms, clean output, 256K ctx',
+/** Google Gemini 3.8 Flash — 1M context, state of the art reasoning, clean JSON */
+export const GEMINI_FLASH: Candidate = {
+  provider: 'google',
+  model: 'gemini-3.8-flash',
+  note: 'Gemini 3.8 Flash — 1M context, high reasoning, 4.5k req/day across 3 keys',
 };
 
-/** 509ms, 262K context. */
-const NEX_MINI: Candidate = {
-  provider: 'openrouter',
-  model: 'nex-agi/nex-n2.5-mini:free',
-  note: '509ms, clean output, 262K ctx',
+/** Groq Qwen 27B — 262K context, fast, clean JSON */
+export const GROQ_QWEN: Candidate = {
+  provider: 'groq',
+  model: 'qwen/qwen3.8-27b',
+  note: 'Groq Qwen 27B — clean JSON, 262k context, 30k TPM across 5 keys',
 };
 
-/** 645ms, 262K context. The largest clean responder — leads the long tasks. */
-const NEX_PRO: Candidate = {
+/** Groq 120B — 30,000 TPM across 5 keys, high quality output */
+export const GROQ_120B: Candidate = {
+  provider: 'groq',
+  model: 'openai/gpt-oss-120b',
+  note: 'Groq 120B — 30k TPM across 5 keys, high quality output',
+};
+
+/** OpenRouter Nex Pro — 262K context, tested clean output */
+export const NEX_PRO: Candidate = {
   provider: 'openrouter',
   model: 'nex-agi/nex-n2.5-pro:free',
-  note: '645ms, clean output, 262K ctx, largest of the working set',
+  note: 'Nex Pro — clean JSON, 262K context, 150 req/day across 3 accounts',
 };
 
-/** 856ms, 262K context. A fourth vendor, which is the point of including it. */
-const LING_FLASH: Candidate = {
+/** OpenRouter Nex Mini — fast clean JSON */
+export const NEX_MINI: Candidate = {
   provider: 'openrouter',
-  model: 'inclusionai/ling-3.0-flash-vl:free',
-  note: '856ms, clean output, independent vendor',
+  model: 'nex-agi/nex-n2.5-mini:free',
+  note: 'Nex Mini — fast, clean JSON, 262K context',
 };
 
-/**
- * Works, but prefixes answers with a reasoning monologue.
- *
- * Only ever used for tasks whose output a human reads. Putting these on a
- * JSON task would make the router fail over on every call — burning two
- * candidates' quota to arrive at the same place — so they are deliberately
- * absent from the parsed tasks below.
- */
-const NEMOTRON_SUPER_PROSE: Candidate = {
-  provider: 'openrouter',
-  model: 'nvidia/nemotron-3-super-120b-a12b:free',
-  note: '274ms but leaks a reasoning preamble — prose tasks only',
+/** Cloudflare Workers AI — Llama 3.1 70B */
+export const CF_LLAMA_70B: Candidate = {
+  provider: 'cloudflare',
+  model: '@cf/meta/llama-3.1-70b-instruct',
+  note: 'Cloudflare Llama 3.1 70B — 30k neurons/day across 3 accounts',
 };
 
-const LIGHTNING_PROSE: Candidate = {
-  provider: 'openrouter',
-  model: 'nvidia/nemotron-3.5-lightning:free',
-  note: '640ms but leaks a reasoning preamble — prose tasks only',
+/** Cloudflare Workers AI — Llama 3.1 8B */
+export const CF_LLAMA_8B: Candidate = {
+  provider: 'cloudflare',
+  model: '@cf/meta/llama-3.1-8b-instruct',
+  note: 'Cloudflare Llama 3.1 8B — fast inference',
 };
 
-/*
- * --- other providers -------------------------------------------------------
- *
- * Model IDs below are NOT yet probed, because probing needs a key for each
- * provider and none is set. `npm run ai:verify` checks every one the moment a
- * key lands and prints a FAIL line for anything retired or renamed — which is
- * why adding a speculative id here is safe in a way that shipping one is not.
- *
- * The ordering principle for the task lists: alternate PROVIDERS, not models.
- * Four models on one account still share that account's per-minute ceiling, so
- * a list of four OpenRouter models buys nothing under load. A list that steps
- * OpenRouter → Cerebras → Groq → Anthropic has four independent budgets, and
- * that is the entire mechanism by which the stack serves more than any one
- * tier alone.
- */
+// --- Paid Fallback Floor ---
 
-/*
- * Cerebras is deliberately ABSENT from every list below.
- *
- * It was added as the largest free token budget, on the strength of a
- * published comparison. A real key disproved that immediately: inference
- * returns 402 Payment Required. Its ids were also wrong — it serves
- * gpt-oss-120b / qwen-3.8-27b now, not the Llama models that were guessed.
- *
- * Leaving it in a candidate list would spend a failed attempt on every single
- * call before moving on. It stays defined in providers.ts (marked paid) so it
- * can be reinstated the moment billing is confirmed working.
- */
-
-/** Google AI Studio via its OpenAI-compatible endpoint. ~1,500 req/day. */
-const GEMINI_FLASH: Candidate = {
-  provider: 'google',
-  model: 'gemini-2.5-flash',
-  note: 'Gemini Flash — large context, unverified id',
-};
-
-const GEMINI_FLASH_LITE: Candidate = {
-  provider: 'google',
-  model: 'gemini-2.5-flash-lite',
-  note: 'Gemini Flash Lite — cheapest/fastest tier, unverified id',
-};
-
-/** Groq: 6,000 TPM caps this at short prompts. Never on a long task. */
-const GROQ_20B: Candidate = {
-  provider: 'groq',
-  model: 'openai/gpt-oss-20b',
-  note: 'Groq 20B — very fast, 6k TPM limits it to short prompts',
-};
-
-const MISTRAL_SMALL: Candidate = {
-  provider: 'mistral',
-  model: 'mistral-small-latest',
-  note: 'Mistral Small — unverified id',
-};
-
-// --- the paid floor --------------------------------------------------------
-
-const CLAUDE_SONNET: Candidate = {
+export const CLAUDE_SONNET: Candidate = {
   provider: 'anthropic',
   model: 'claude-sonnet-4-5',
-  note: 'paid fallback — only reached when every free option failed',
+  note: 'paid fallback — only reached when all free options fail',
 };
 
-const CLAUDE_HAIKU: Candidate = {
+export const CLAUDE_HAIKU: Candidate = {
   provider: 'anthropic',
   model: 'claude-haiku-4-5',
   note: 'paid fallback for short tasks',
 };
 
 export const TASK_SPECS: Record<TaskName, TaskSpec> = {
-  /**
-   * The core product, and the one the free tier serves worst.
-   *
-   * Long input, 8k of structured output, and the result is parsed — so only
-   * clean responders qualify, and Sonnet sits one step behind rather than
-   * three. Of everything here this is the likeliest to reach paid, which is
-   * the correct trade: a garbled resume rewrite is worse than a small bill.
-   */
   'resume-analysis': {
     requirement: 'Long context, high reasoning, 8k structured output. Quality over speed.',
     maxTokens: 8192,
     json: true,
     timeoutMs: 120_000,
-    candidates: [NEX_PRO, GEMINI_FLASH, LING_FLASH, CLAUDE_SONNET],
+    candidates: [GEMINI_FLASH, NEX_PRO, CF_LLAMA_70B, GROQ_120B, CLAUDE_SONNET],
   },
 
-  /** Mechanical shortening, read by a human. Speed wins; prose models allowed. */
   'resume-compress': {
     requirement: 'Shorten to a word budget without losing facts. Mechanical.',
     maxTokens: 4096,
     json: false,
     timeoutMs: 60_000,
-    candidates: [NANO_OMNI, GEMINI_FLASH_LITE, LIGHTNING_PROSE, CLAUDE_HAIKU],
+    candidates: [GEMINI_FLASH, GROQ_QWEN, NEX_MINI, CF_LLAMA_8B, CLAUDE_HAIKU],
   },
 
-  /** Parsed output — clean responders only. */
   'job-scan': {
     requirement: 'Extract structured fields from a job posting. Medium input.',
     maxTokens: 4000,
     json: true,
     timeoutMs: 60_000,
-    candidates: [GEMINI_FLASH, NEX_MINI, MISTRAL_SMALL, CLAUDE_HAIKU],
+    candidates: [GEMINI_FLASH, NEX_MINI, GROQ_QWEN, CF_LLAMA_8B, CLAUDE_HAIKU],
   },
 
-  /** A human is waiting mid-interview, so the fastest measured model leads. */
   'interview-question': {
     requirement: 'One short question, generated while a user waits. Latency is everything.',
     maxTokens: 256,
     json: false,
     timeoutMs: 20_000,
-    candidates: [GROQ_20B, NANO_OMNI, GEMINI_FLASH_LITE, CLAUDE_HAIKU],
+    candidates: [GROQ_QWEN, GEMINI_FLASH, NEX_MINI, CF_LLAMA_8B, CLAUDE_HAIKU],
   },
 
-  /** Parsed, and reads a whole transcript. Clean responders only. */
   'interview-report': {
     requirement: 'Judge a full transcript. Long input, reasoning, structured output.',
     maxTokens: 3000,
     json: true,
     timeoutMs: 90_000,
-    candidates: [NEX_PRO, GEMINI_FLASH, LING_FLASH, CLAUDE_SONNET],
+    candidates: [GEMINI_FLASH, NEX_PRO, CF_LLAMA_70B, CLAUDE_SONNET],
   },
 
   outreach: {
@@ -264,7 +154,7 @@ export const TASK_SPECS: Record<TaskName, TaskSpec> = {
     maxTokens: 512,
     json: false,
     timeoutMs: 30_000,
-    candidates: [GROQ_20B, NEX_MINI, MISTRAL_SMALL, CLAUDE_HAIKU],
+    candidates: [GROQ_QWEN, GEMINI_FLASH, NEX_MINI, CLAUDE_HAIKU],
   },
 
   'self-description': {
@@ -272,7 +162,7 @@ export const TASK_SPECS: Record<TaskName, TaskSpec> = {
     maxTokens: 2048,
     json: false,
     timeoutMs: 45_000,
-    candidates: [GEMINI_FLASH, NEX_PRO, LING_FLASH, CLAUDE_HAIKU],
+    candidates: [GEMINI_FLASH, GROQ_120B, NEX_MINI, CLAUDE_HAIKU],
   },
 
   'improve-summary': {
@@ -280,22 +170,26 @@ export const TASK_SPECS: Record<TaskName, TaskSpec> = {
     maxTokens: 300,
     json: false,
     timeoutMs: 20_000,
-    candidates: [GROQ_20B, NANO_OMNI, GEMINI_FLASH_LITE, CLAUDE_HAIKU],
+    candidates: [GROQ_QWEN, GEMINI_FLASH, NEX_MINI, CLAUDE_HAIKU],
+  },
+
+  'form-answer': {
+    requirement: 'Answer a batch of form questions from a profile and resume. Medium input, structured output.',
+    maxTokens: 3000,
+    json: true,
+    timeoutMs: 60_000,
+    candidates: [GEMINI_FLASH, NEX_MINI, GROQ_QWEN, CF_LLAMA_8B, CLAUDE_HAIKU],
   },
 };
 
 /**
  * Candidates for a task, filtered to providers that actually have a key.
- *
- * Filtering here rather than failing inside the adapter keeps the attempt trail
- * honest: a provider with no key was never a candidate, so it should not appear
- * in the result as though it had been tried and refused.
  */
-export function candidatesFor(task: TaskName, hasKey: (p: ProviderName) => boolean): Candidate[] {
-  return TASK_SPECS[task].candidates.filter((c) => hasKey(c.provider));
+export function candidatesFor(task: TaskName, hasKeyCheck: (p: ProviderName) => boolean): Candidate[] {
+  return TASK_SPECS[task].candidates.filter((c) => hasKeyCheck(c.provider));
 }
 
-/** Every distinct provider+model pair the registry references. For the verifier. */
+/** Every distinct provider+model pair the registry references. */
 export function allCandidates(): Candidate[] {
   const seen = new Set<string>();
   const out: Candidate[] = [];

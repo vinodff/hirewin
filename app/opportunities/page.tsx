@@ -21,17 +21,18 @@ export default async function OpportunitiesPage() {
       <main className="flex-1 w-full max-w-6xl mx-auto px-4 py-10">
         <header className="mb-8">
           <h1 className="font-display font-bold text-3xl sm:text-4xl tracking-tight" style={{ color: 'var(--fg)' }}>
-            Opportunities
+            Verified Opportunities
           </h1>
-          <p className="mt-2 text-sm max-w-xl" style={{ color: 'var(--dim)' }}>
-            <span className="font-data" style={{ color: 'var(--fg)' }}>{opportunities.length}</span> openings across{' '}
-            <span className="font-data" style={{ color: 'var(--fg)' }}>{companies}</span> companies. Comp shown where it
-            is published. Tailor your resume to any of them in one click.
+          <p className="mt-2 text-sm max-w-2xl" style={{ color: 'var(--dim)' }}>
+            <span className="font-data font-bold" style={{ color: 'var(--fg)' }}>{opportunities.length}</span> verified openings across{' '}
+            <span className="font-data font-bold" style={{ color: 'var(--fg)' }}>{companies}</span> companies & Unstop challenges. 100% direct application links, verified stipends/CTC, and 1-click ATS resume tailoring.
           </p>
           {agentCount > 0 && (
-            <p className="mt-1.5 text-xs" style={{ color: 'var(--faint)' }}>
-              <span className="font-data">{agentCount}</span> sourced automatically this
-              morning and evening, each link re-checked daily.
+            <p className="mt-2 text-xs flex items-center gap-1.5" style={{ color: 'var(--accent-soft)' }}>
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span>
+                <span className="font-data font-bold">{agentCount}</span> dynamically refreshed opportunities from Unstop, Greenhouse, Lever & direct career portals.
+              </span>
             </p>
           )}
         </header>

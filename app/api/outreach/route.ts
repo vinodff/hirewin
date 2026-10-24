@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAnthropicClient, CHEAP_MODEL_NAME } from '@/lib/anthropic';
+import { route, extractJson } from '@/lib/ai/router';
 import { createClient } from '@/lib/supabase/server';
 import { checkRateLimit } from '@/lib/rate-limit';
+import { isPaidUserPlan } from '@/lib/usage';
+import type { Plan } from '@/types';
 
 export const maxDuration = 30;
 
@@ -14,6 +16,21 @@ export async function POST(req: NextRequest) {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: 'Sign in required' }, { status: 401 });
+
+    // --- Paid plan gate ---
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('plan')
+      .eq('id', user.id)
+      .maybeSingle();
+
+    const plan = (profile?.plan ?? 'free') as Plan;
+    if (!isPaidUserPlan(plan, user.email)) {
+      return NextResponse.json(
+        { error: 'Pro feature. Please upgrade your plan to unlock cold email and LinkedIn outreach generation.' },
+        { status: 402 }
+      );
+    }
 
     // --- Rate limit ---
     const { success } = await checkRateLimit(`outreach:${user.id}`);
@@ -49,21 +66,12 @@ Return ONLY a JSON object with exactly these two fields:
 
 Return ONLY the JSON. No markdown, no explanation.`;
 
-    const message = await getAnthropicClient().messages.create({
-      model: CHEAP_MODEL_NAME,
-      max_tokens: 512,
+    const result = await route('outreach', {
       messages: [{ role: 'user', content: prompt }],
     });
 
-    const firstBlock = message.content?.[0];
-    const raw = firstBlock?.type === 'text' ? firstBlock.text.trim() : '';
-    if (!raw) return NextResponse.json({ error: 'Empty response from AI' }, { status: 500 });
-
-    const jsonStr = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
-    let parsed: { email?: string; linkedin?: string };
-    try {
-      parsed = JSON.parse(jsonStr);
-    } catch {
+    const parsed = extractJson(result.text) as { email?: string; linkedin?: string } | null;
+    if (!parsed || typeof parsed !== 'object') {
       return NextResponse.json({ error: 'AI returned malformed response' }, { status: 500 });
     }
 

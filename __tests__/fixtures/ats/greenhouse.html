@@ -1,0 +1,204 @@
+<!--
+  Greenhouse job-board application fixture. APPROXIMATION of real markup.
+  Source consulted: https://job-boards.greenhouse.io/gitlab/jobs/8556658002 (rendered DOM, read only, 2026-09-14).
+  Kept from the live page: form#application-form, label[for] + aria-required text inputs with an
+  aria-hidden "*", the role=group resume upload with a visually-hidden label reading "Attach",
+  react-select comboboxes (input.select__input role=combobox, menu .select__menu > [role=listbox] > [role=option],
+  committed value in .select__single-value, aria-hidden required shadow input), EEOC selects, and the
+  "Submit application" type=submit button. The react-select behaviour is a small vanilla re-implementation.
+  The confirmation page (URL /confirmation, "Thank you for applying.") was NOT seen live; it is a guess.
+  ?mode=success|validation|captcha|silent decides what happens after the POST.
+-->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Job Application for Software Engineer at Acme</title>
+<style>
+  .visually-hidden { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
+  .select__control { border:1px solid #999; min-height:32px; display:flex; }
+  .select__value-container { flex:1; display:flex; }
+  .select__menu { border:1px solid #333; background:#fff; }
+  .select__option { padding:4px; }
+  .helper-text--error:empty { display:none; }
+</style>
+</head>
+<body>
+<main>
+<div class="job__header"><h1 class="section-header">Software Engineer</h1></div>
+<form method="get" action="/acme/jobs/4001" id="application-form" class="application--form">
+  <div class="application--questions">
+    <div class="field-wrapper"><div class="text-input-wrapper"><div class="input-wrapper">
+      <label id="first_name-label" for="first_name" class="label label">First Name<span aria-hidden="true">*</span></label>
+      <input id="first_name" class="input input__single-line" aria-label="First Name" aria-errormessage="first_name-error" aria-required="true" type="text" maxlength="255" autocomplete="given-name" value="">
+      <p id="first_name-error" class="helper-text helper-text--error"></p>
+    </div></div></div>
+    <div class="field-wrapper"><div class="text-input-wrapper"><div class="input-wrapper">
+      <label id="last_name-label" for="last_name" class="label label">Last Name<span aria-hidden="true">*</span></label>
+      <input id="last_name" class="input input__single-line" aria-label="Last Name" aria-errormessage="last_name-error" aria-required="true" type="text" maxlength="255" autocomplete="family-name" value="">
+      <p id="last_name-error" class="helper-text helper-text--error"></p>
+    </div></div></div>
+    <div class="field-wrapper"><div class="text-input-wrapper"><div class="input-wrapper">
+      <label id="email-label" for="email" class="label label">Email<span aria-hidden="true">*</span></label>
+      <input id="email" class="input input__single-line" aria-label="Email" aria-errormessage="email-error" aria-required="true" type="text" maxlength="255" autocomplete="email" value="">
+      <p id="email-error" class="helper-text helper-text--error"></p>
+    </div></div></div>
+    <div class="field-wrapper"><div class="text-input-wrapper"><div class="input-wrapper">
+      <label id="phone-label" for="phone" class="label label">Phone</label>
+      <input id="phone" class="input input__single-line" type="tel" value="">
+    </div></div></div>
+    <div class="field-wrapper">
+      <div role="group" aria-labelledby="upload-label-resume" aria-required="true" class="file-upload">
+        <div id="upload-label-resume" class="label upload-label">Resume/CV<span class="required">*</span></div>
+        <div class="file-upload__wrapper"><div class="button-container"><div class="secondary-button"><div>
+          <button type="button" class="btn btn--pill" onclick="document.getElementById('resume').click()">Attach</button>
+          <label class="visually-hidden" for="resume">Attach</label>
+          <input id="resume" class="visually-hidden" type="file" accept=".pdf,.doc,.docx,.txt,.rtf">
+        </div></div></div></div>
+      </div>
+    </div>
+    <!-- honeypot and non-questions the scan must ignore -->
+    <input type="text" name="hp_field" tabindex="-1" autocomplete="off" style="position:absolute;left:-10000px;top:-10000px">
+    <input type="hidden" name="token" value="abc">
+    <input type="text" id="disabled_field" disabled value="">
+  </div>
+  <div class="application--questions">
+    <hr>
+    <div class="field-wrapper"><div class="text-input-wrapper"><div class="input-wrapper">
+      <label id="question_1-label" for="question_1" class="label label">LinkedIn Profile</label>
+      <input id="question_1" class="input input__single-line" aria-label="LinkedIn Profile" aria-required="false" type="text" maxlength="255" value="">
+    </div></div></div>
+    <div class="field-wrapper"><div class="select"><div class="select__container">
+      <label id="question_2-label" for="question_2" class="label select__label">Are you currently located in Bangalore? <span aria-hidden="true">*</span></label>
+      <div class="select-shell" data-rs="question_2" data-required="true" data-options="Yes|No"></div>
+    </div></div></div>
+    <div class="field-wrapper"><div class="select"><div class="select__container">
+      <label id="question_3-label" for="question_3" class="label select__label">Will you now or in the future require sponsorship for a visa to remain in your current location?<span aria-hidden="true">*</span></label>
+      <div class="select-shell" data-rs="question_3" data-required="true" data-options="Yes|No"></div>
+    </div></div></div>
+  </div>
+  <div class="eeoc__container body">
+    <h2 class="section-header font-primary">Voluntary Self-Identification</h2>
+    <div class="eeoc__question__wrapper"><div class="select"><div class="select__container">
+      <label id="gender-label" for="gender" class="label select__label">Gender</label>
+      <div class="select-shell" data-rs="gender" data-required="false" data-options="Male|Female|Decline To Self Identify"></div>
+    </div></div></div>
+  </div>
+  <div class="application--submit">
+    <button type="submit" class="btn btn--pill" aria-disabled="false">Submit application</button>
+  </div>
+</form>
+</main>
+<script>
+(function () {
+  var MODE = new URLSearchParams(location.search).get('mode') || 'success';
+
+  function buildSelect(shell) {
+    var id = shell.getAttribute('data-rs');
+    var opts = shell.getAttribute('data-options').split('|');
+    var required = shell.getAttribute('data-required') === 'true';
+    shell.innerHTML =
+      '<div><div class="select__control"><div class="select__value-container">' +
+      '<div class="select__placeholder" id="react-select-' + id + '-placeholder">Select...</div>' +
+      '<div class="select__input-container"><input class="select__input" autocomplete="off" id="' + id + '" type="text" ' +
+      'aria-autocomplete="list" aria-expanded="false" aria-haspopup="true" aria-labelledby="' + id + '-label" ' +
+      'aria-required="' + required + '" role="combobox" value=""></div></div>' +
+      '<div class="select__indicators"><button type="button" class="icon-button icon-button--sm" aria-label="Toggle flyout" tabindex="-1">v</button></div>' +
+      '</div></div>' +
+      (required ? '<input required tabindex="-1" aria-hidden="true" class="requiredInput" value="">' : '');
+    var input = shell.querySelector('input.select__input');
+    var control = shell.querySelector('.select__control');
+    var valueContainer = shell.querySelector('.select__value-container');
+    var menu = null;
+    function close() {
+      if (menu) { menu.remove(); menu = null; }
+      input.setAttribute('aria-expanded', 'false');
+      input.removeAttribute('aria-controls');
+    }
+    function render(filter) {
+      close();
+      var list = opts.filter(function (o) { return o.toLowerCase().indexOf(filter.toLowerCase()) >= 0; });
+      menu = document.createElement('div');
+      menu.className = 'select__menu';
+      var ml = document.createElement('div');
+      ml.className = 'select__menu-list';
+      ml.setAttribute('role', 'listbox');
+      ml.id = 'react-select-' + id + '-listbox';
+      list.forEach(function (o, i) {
+        var d = document.createElement('div');
+        d.className = 'select__option';
+        d.setAttribute('role', 'option');
+        d.id = 'react-select-' + id + '-option-' + i;
+        d.textContent = o;
+        d.addEventListener('mousedown', function (e) { e.preventDefault(); });
+        d.addEventListener('click', function () { choose(o); });
+        ml.appendChild(d);
+      });
+      if (!list.length) ml.innerHTML = '<div class="select__menu-notice--no-options">No options</div>';
+      menu.appendChild(ml);
+      control.parentElement.appendChild(menu);
+      input.setAttribute('aria-expanded', 'true');
+      input.setAttribute('aria-controls', ml.id);
+    }
+    function choose(o) {
+      var sv = valueContainer.querySelector('.select__single-value');
+      if (!sv) {
+        sv = document.createElement('div');
+        sv.className = 'select__single-value';
+        valueContainer.insertBefore(sv, valueContainer.firstChild);
+      }
+      sv.textContent = o;
+      var ph = valueContainer.querySelector('.select__placeholder');
+      if (ph) ph.remove();
+      input.value = '';
+      var req = shell.querySelector('.requiredInput');
+      if (req) req.value = o;
+      close();
+    }
+    control.addEventListener('mousedown', function () { if (menu) close(); else render(input.value); });
+    input.addEventListener('input', function () { render(input.value); });
+    input.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') close();
+      if (e.key === 'ArrowDown' && !menu) render(input.value);
+    });
+    document.addEventListener('mousedown', function (e) { if (!shell.contains(e.target)) close(); });
+  }
+  document.querySelectorAll('.select-shell[data-rs]').forEach(buildSelect);
+
+  function collect(form) {
+    var out = {};
+    form.querySelectorAll('input, select, textarea').forEach(function (el) {
+      if (el.type === 'file') { out[el.id] = Array.prototype.map.call(el.files, function (f) { return f.name; }); return; }
+      if (el.classList.contains('select__input') || el.classList.contains('requiredInput')) return;
+      if (el.id) out[el.id] = el.value;
+    });
+    form.querySelectorAll('.select-shell[data-rs]').forEach(function (s) {
+      var sv = s.querySelector('.select__single-value');
+      out[s.getAttribute('data-rs')] = sv ? sv.textContent : '';
+    });
+    return out;
+  }
+
+  document.getElementById('application-form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var form = e.currentTarget;
+    fetch('/__hw/submit', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(collect(form)) })
+      .then(function () {
+        if (MODE === 'success') {
+          history.pushState({}, '', location.pathname.replace(/\/$/, '') + '/confirmation');
+          document.querySelector('main').innerHTML =
+            '<div class="application-confirmation"><h1 class="section-header">Thank you for applying.</h1>' +
+            '<p>Your application has been received. We will review it right away.</p></div>';
+        } else if (MODE === 'validation') {
+          document.getElementById('email-error').textContent = 'Enter a valid email address.';
+        } else if (MODE === 'captcha') {
+          var wrap = document.createElement('div');
+          wrap.innerHTML = '<iframe title="recaptcha challenge expires in two minutes" src="https://www.google.com/recaptcha/api2/bframe?k=fixture" width="400" height="580"></iframe>';
+          document.body.appendChild(wrap);
+        }
+      });
+  });
+})();
+</script>
+</body>
+</html>

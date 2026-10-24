@@ -1,0 +1,71 @@
+<!--
+  Synthetic form for form-scan unit tests (no live source). Each block exercises one label-resolution,
+  required-detection, option-extraction or skip rule.
+-->
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Scan cases</title></head>
+<body>
+<form id="f">
+  <!-- label[for] + required attribute + maxlength -->
+  <label for="a1">Preferred first name</label>
+  <input id="a1" name="a1" required maxlength="40">
+
+  <!-- wrapping label with asterisk -->
+  <label>Current employer * <input name="a2" type="text"></label>
+
+  <!-- aria-label, aria-required -->
+  <input id="a3" aria-label="Expected salary (LPA)" aria-required="true" type="number">
+
+  <!-- aria-labelledby -->
+  <span id="a4-label">Portfolio link</span>
+  <input id="a4" aria-labelledby="a4-label" type="url">
+
+  <!-- nearest question container text -->
+  <div class="question">
+    <div class="question-title">Notice period in days</div>
+    <div class="answer"><input name="a5" type="text"></div>
+  </div>
+
+  <!-- select with placeholder option -->
+  <label for="a6">Highest degree</label>
+  <select id="a6" name="a6" required>
+    <option value="">Choose...</option>
+    <option value="btech">B.Tech / B.E.</option>
+    <option value="mtech">M.Tech</option>
+  </select>
+
+  <!-- radio group in fieldset with legend -->
+  <fieldset>
+    <legend>Willing to relocate?</legend>
+    <label><input type="radio" name="a7" value="yes" required> Yes</label>
+    <label><input type="radio" name="a7" value="no"> No</label>
+  </fieldset>
+
+  <!-- checkbox group by shared name -->
+  <div class="question">
+    <p class="question-label">Languages you speak</p>
+    <label><input type="checkbox" name="a8" value="en"> English</label>
+    <label><input type="checkbox" name="a8" value="hi"> Hindi</label>
+  </div>
+
+  <!-- single consent checkbox -->
+  <label><input type="checkbox" name="a9" required> I agree to the privacy policy</label>
+
+  <!-- textarea -->
+  <label for="a10">Cover note</label>
+  <textarea id="a10" name="a10" maxlength="500"></textarea>
+
+  <!-- must be skipped -->
+  <input type="hidden" name="s1" value="x">
+  <input type="text" name="s2" disabled aria-label="Disabled field">
+  <input type="text" name="honeypot" aria-label="Leave empty">
+  <input type="text" name="s3" aria-label="Offscreen" style="position:absolute;left:-9999px">
+  <div style="display:none"><label for="s4">Hidden block</label><input id="s4"></div>
+  <input type="search" aria-label="Search countries">
+  <input type="password" aria-label="Password">
+  <input required tabindex="-1" aria-hidden="true" value="">
+  <button type="submit">Send</button>
+</form>
+</body>
+</html>

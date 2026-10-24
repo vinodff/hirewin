@@ -22,6 +22,7 @@
 
 import {
   callProvider,
+  streamProvider,
   hasKey,
   toAttempt,
   PROVIDERS,
@@ -280,3 +281,138 @@ export function routerStatus(): {
     caveat: PROVIDERS[name].caveat,
   }));
 }
+
+export interface AiStreamResult {
+  textStream: AsyncIterable<string>;
+  provider: ProviderName;
+  model: string;
+  usage: { inputTokens: number; outputTokens: number };
+  attempts: AiAttempt[];
+  usedPaidFallback: boolean;
+}
+
+/**
+ * Stream a task, failing over until a provider connects and begins streaming.
+ * Checks HTTP status and stream readiness before returning, guaranteeing
+ * seamless failover to secondary candidates if the primary is down or rate-limited.
+ */
+export async function routeStream(
+  task: TaskName,
+  req: Omit<AiRequest, 'maxTokens' | 'json' | 'timeoutMs'> &
+    Partial<Pick<AiRequest, 'maxTokens' | 'json' | 'timeoutMs'>>,
+  options: RouteOptions = {}
+): Promise<AiStreamResult> {
+  const spec = TASK_SPECS[task];
+  const attempts: AiAttempt[] = [];
+  const startedAt = Date.now();
+  const budgetMs = options.budgetMs ?? 240_000;
+
+  let candidates = candidatesFor(task, hasKey);
+  if (options.freeOnly) {
+    candidates = candidates.filter((c) => !PROVIDERS[c.provider].paid);
+  }
+
+  if (candidates.length === 0) {
+    throw new AllProvidersFailedError(task, [
+      {
+        provider: 'none',
+        model: 'none',
+        ok: false,
+        ms: 0,
+        status: null,
+        error: options.freeOnly
+          ? 'no free provider has an API key configured'
+          : 'no provider has an API key configured',
+        skipped: true,
+      },
+    ]);
+  }
+
+  const request: AiRequest = {
+    ...req,
+    maxTokens: req.maxTokens ?? spec.maxTokens,
+    json: req.json ?? spec.json,
+    timeoutMs: req.timeoutMs ?? spec.timeoutMs,
+  };
+
+  for (const candidate of candidates) {
+    const remaining = budgetMs - (Date.now() - startedAt);
+    if (remaining < 2_000) {
+      const attempt: AiAttempt = {
+        provider: candidate.provider,
+        model: candidate.model,
+        ok: false,
+        ms: 0,
+        status: null,
+        error: `skipped — only ${Math.max(0, remaining)}ms of budget left`,
+        skipped: true,
+      };
+      attempts.push(attempt);
+      options.onAttempt?.(attempt);
+      continue;
+    }
+
+    const reservation = await reserve(candidate.provider);
+    if (!reservation.allowed) {
+      const attempt: AiAttempt = {
+        provider: candidate.provider,
+        model: candidate.model,
+        ok: false,
+        ms: 0,
+        status: null,
+        error: reservation.reason,
+        skipped: true,
+      };
+      attempts.push(attempt);
+      options.onAttempt?.(attempt);
+      continue;
+    }
+
+    const attemptStart = Date.now();
+    const outcome = await streamProvider(candidate.provider, candidate.model, {
+      ...request,
+      timeoutMs: Math.min(request.timeoutMs ?? spec.timeoutMs, remaining),
+    });
+    const ms = Date.now() - attemptStart;
+
+    if (outcome.ok && outcome.stream) {
+      const attempt: AiAttempt = {
+        provider: candidate.provider,
+        model: candidate.model,
+        ok: true,
+        ms,
+        status: outcome.status,
+        error: null,
+      };
+      attempts.push(attempt);
+      options.onAttempt?.(attempt);
+
+      return {
+        textStream: outcome.stream,
+        provider: candidate.provider,
+        model: candidate.model,
+        usage: outcome.usage,
+        attempts,
+        usedPaidFallback: PROVIDERS[candidate.provider].paid,
+      };
+    }
+
+    if (outcome.status === 429) {
+      await penalise(candidate.provider, 60);
+    }
+
+    const attempt: AiAttempt = {
+      provider: candidate.provider,
+      model: candidate.model,
+      ok: false,
+      ms,
+      status: outcome.status,
+      error: outcome.error,
+    };
+    attempts.push(attempt);
+    options.onAttempt?.(attempt);
+  }
+
+  throw new AllProvidersFailedError(task, attempts);
+}
+

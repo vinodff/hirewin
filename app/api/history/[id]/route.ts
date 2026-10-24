@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { APPLICATION_STATUSES, type ApplicationStatus } from '@/types';
 
+import { isPaidUserPlan } from '@/lib/usage';
+import type { Plan } from '@/types';
+
 export async function GET(
   _req: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -15,18 +18,32 @@ export async function GET(
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const { data, error } = await supabase
-    .from('resume_versions')
-    .select('*')
-    .eq('id', id)
-    .eq('user_id', user.id)
-    .single();
+  const [{ data, error }, profileRes] = await Promise.all([
+    supabase
+      .from('resume_versions')
+      .select('*')
+      .eq('id', id)
+      .eq('user_id', user.id)
+      .single(),
+    supabase
+      .from('profiles')
+      .select('plan')
+      .eq('id', user.id)
+      .maybeSingle(),
+  ]);
 
   if (error || !data) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 });
   }
 
-  return NextResponse.json({ version: data });
+  const plan = (profileRes.data?.plan ?? 'free') as Plan;
+  const isPaid = isPaidUserPlan(plan, user.email);
+
+  if (!isPaid) {
+    data.interview_risks = null;
+  }
+
+  return NextResponse.json({ version: data, isPaid, plan });
 }
 
 // Status transitions stamp the matching timestamp column automatically.

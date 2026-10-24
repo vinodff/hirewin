@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAnthropicClient } from '@/lib/anthropic';
+import { route, extractJson } from '@/lib/ai/router';
 import { createClient } from '@/lib/supabase/server';
 import { checkRateLimit } from '@/lib/rate-limit';
+import { isPaidUserPlan } from '@/lib/usage';
+import type { Plan } from '@/types';
 
 export const maxDuration = 30;
 export const dynamic = 'force-dynamic';
@@ -76,6 +78,21 @@ export async function POST(req: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: 'Sign in required' }, { status: 401 });
 
+    // Gate: Pro / paid plan required
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('plan')
+      .eq('id', user.id)
+      .maybeSingle();
+
+    const plan = (profile?.plan ?? 'free') as Plan;
+    if (!isPaidUserPlan(plan, user.email)) {
+      return NextResponse.json(
+        { error: 'Pro feature. Please upgrade your plan to unlock the Self-Introduction Generator.' },
+        { status: 402 }
+      );
+    }
+
     const { success } = await checkRateLimit(`self-description:${user.id}`);
     if (!success) return NextResponse.json({ error: 'Too many requests. Try again in an hour.' }, { status: 429 });
 
@@ -99,21 +116,15 @@ export async function POST(req: NextRequest) {
       jdText ? `\nJob Description:\n${jdText}` : '',
     ].join('\n');
 
-    const message = await getAnthropicClient().messages.create({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 2048,
-      system: SELF_DESC_SYSTEM,
-      messages: [{ role: 'user', content: userMsg }],
+    const result = await route('self-description', {
+      messages: [
+        { role: 'system', content: SELF_DESC_SYSTEM },
+        { role: 'user', content: userMsg },
+      ],
     });
 
-    const firstBlock = message.content?.[0];
-    const raw = firstBlock?.type === 'text' ? firstBlock.text : '';
-    const cleaned = raw.replace(/^\s*```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '').trim();
-
-    let parsed;
-    try {
-      parsed = JSON.parse(cleaned);
-    } catch {
+    const parsed = extractJson(result.text);
+    if (!parsed || typeof parsed !== 'object') {
       return NextResponse.json({ error: 'AI returned malformed response.' }, { status: 500 });
     }
 

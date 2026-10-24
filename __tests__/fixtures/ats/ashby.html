@@ -1,0 +1,185 @@
+<!--
+  Ashby application fixture. APPROXIMATION of real markup.
+  Source consulted: https://jobs.ashbyhq.com/ashby/7458d4e9-da2e-47bd-98cb-adfda43d42b2/application (rendered DOM, read only, 2026-09-14).
+  Kept from the live page: no <form> element; the application sits in div[role=tabpanel]#form; an
+  "Autofill from resume" uploader with its own file input above the fields; field entries
+  (div.ashby-application-form-field-entry) with label.ashby-application-form-question-title whose
+  `_required_` class marks required; the async location autocomplete (input role=combobox, no options until typed);
+  yes/no as two button[aria-pressed] + hidden checkbox; textarea questions; a diversity survey of radio
+  groups in <fieldset>s; button.ashby-application-form-submit-button; an invisible reCAPTCHA challenge
+  iframe (visibility:hidden) present on load. The success container text was NOT seen live; it is a guess.
+  ?mode=success|validation|captcha|silent decides what happens after the POST.
+-->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Software Engineer @ Acme</title>
+<style>
+  ._input_1svni_78 { position:absolute; opacity:0; width:1px; height:1px; }
+  [aria-pressed="true"] { background:#333; color:#fff; }
+  .loc-listbox { border:1px solid #333; }
+</style>
+</head>
+<body>
+<div id="root">
+  <h1 class="ashby-job-posting-heading">Software Engineer</h1>
+  <div tabindex="0" role="tabpanel" aria-labelledby="job-application-form" id="form">
+    <div class="_autofillPane_5yu8i_448 ashby-application-form-autofill-uploader">
+      <div role="presentation" class="ashby-application-form-autofill-input-root">
+        <input id="autofill-file" type="file" tabindex="-1" style="position:absolute;width:1px;height:1px;clip:rect(0 0 0 0)">
+        <h3>Autofill from resume</h3>
+        <button class="_button_zyh3g_28">Upload file</button>
+      </div>
+    </div>
+    <div class="_jobPostingForm_5yu8i_402 ashby-application-form-container">
+      <div class="_section_5yu8i_86 ashby-application-form-section-container">
+        <div class="_fieldEntry_1e3gg_28 ashby-application-form-field-entry" data-field-path="_systemfield_name">
+          <label class="_heading_f7cvd_52 _required_f7cvd_91 _label_1e3gg_42 ashby-application-form-question-title" for="_systemfield_name">Name</label>
+          <div><input placeholder="Type here..." name="_systemfield_name" required="" id="_systemfield_name" type="text" class="ashby-application-form-input-text" value=""></div>
+        </div>
+        <div class="_fieldEntry_1e3gg_28 ashby-application-form-field-entry" data-field-path="_systemfield_email">
+          <label class="_heading_f7cvd_52 _required_f7cvd_91 _label_1e3gg_42 ashby-application-form-question-title" for="_systemfield_email">Email</label>
+          <div><input placeholder="hello@example.com..." name="_systemfield_email" required="" id="_systemfield_email" type="email" class="ashby-application-form-input-text" value=""></div>
+        </div>
+        <div class="_fieldEntry_1e3gg_28 ashby-application-form-field-entry" data-field-path="_systemfield_resume">
+          <label class="_heading_f7cvd_52 _required_f7cvd_91 _label_1e3gg_42 ashby-application-form-question-title" for="_systemfield_resume">Resume</label>
+          <div role="presentation" class="ashby-application-form-input-file">
+            <input type="file" tabindex="-1" id="_systemfield_resume" style="position:absolute;width:1px;height:1px;clip:rect(0 0 0 0)">
+            <button class="ashby-application-form-input-file-dropzone-upload">Upload File</button>
+          </div>
+        </div>
+        <div class="_fieldEntry_1e3gg_28 ashby-application-form-field-entry" data-field-path="2f73c135">
+          <label class="_heading_f7cvd_52 _required_f7cvd_91 _label_1e3gg_42 ashby-application-form-question-title" for="2f73c135">LinkedIn Profile</label>
+          <div><input placeholder="Type here..." name="2f73c135" required="" id="2f73c135" type="text" class="ashby-application-form-input-text" value=""></div>
+        </div>
+        <div class="_fieldEntry_1e3gg_28 ashby-application-form-field-entry" data-field-path="_systemfield_location">
+          <label class="_heading_f7cvd_52 _required_f7cvd_91 _label_1e3gg_42 ashby-application-form-question-title" for="_systemfield_location">Which city do you intend to work from?</label>
+          <div class="_description_1e3gg_48 ashby-application-form-question-description"><p>Please list your city and country.</p></div>
+          <div class="_inputContainer_d7ago_28" id="loc-container">
+            <input class="_input_d7ago_28 ashby-application-form-input-autocomplete" placeholder="Start typing..." aria-autocomplete="list" aria-expanded="false" aria-haspopup="listbox" role="combobox" value="">
+            <button class="_toggleButton_d7ago_32">v</button>
+          </div>
+        </div>
+        <div class="_fieldEntry_1e3gg_28 ashby-application-form-field-entry" data-field-path="9dbddae8">
+          <label class="_heading_f7cvd_52 _required_f7cvd_91 _label_1e3gg_42 ashby-application-form-question-title" for="9dbddae8">Will you now or in the future require sponsorship for employment visa status to work in this location?</label>
+          <div class="_container_1svni_28 _yesno_1e3gg_148 ashby-application-form-input-yesno">
+            <button class="_option_1svni_32 ashby-application-form-input-yesno-option" aria-pressed="false" data-option="yes">Yes</button>
+            <button class="_option_1svni_32 ashby-application-form-input-yesno-option" aria-pressed="false" data-option="no">No</button>
+            <input type="checkbox" class="_input_1svni_78" tabindex="-1" name="9dbddae8">
+          </div>
+        </div>
+        <div class="_fieldEntry_1e3gg_28 ashby-application-form-field-entry" data-field-path="5668eabe">
+          <label class="_heading_f7cvd_52 _required_f7cvd_91 _label_1e3gg_42 ashby-application-form-question-title" for="5668eabe">What's the most recent thing you've built or shipped?</label>
+          <textarea placeholder="Type here..." required="" name="5668eabe" id="5668eabe" class="ashby-application-form-input-textarea" rows="4"></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="ashby-survey-form-container">
+      <div class="ashby-application-form-container">
+        <div class="ashby-application-form-section-container">
+          <h2 class="ashby-application-form-section-header-title">Diversity Survey</h2>
+          <div data-field-path="8d7dcc65">
+            <fieldset class="_container_1258i_28 ashby-application-form-input-radio-group">
+              <label class="_heading_f7cvd_52 _label_1e3gg_42 ashby-application-form-question-title" for="8d7dcc65">What is your gender identity?</label>
+              <div class="ashby-application-form-input-radio-group-option"><span><input type="radio" id="g-0" name="survey_8d7dcc65"></span><label for="g-0">Man</label></div>
+              <div class="ashby-application-form-input-radio-group-option"><span><input type="radio" id="g-1" name="survey_8d7dcc65"></span><label for="g-1">Woman</label></div>
+              <div class="ashby-application-form-input-radio-group-option"><span><input type="radio" id="g-2" name="survey_8d7dcc65"></span><label for="g-2">I prefer not to answer</label></div>
+            </fieldset>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="ashby-application-form-errors" role="alert" style="display:none"></div>
+    <button class="_button_zyh3g_28 _primary_zyh3g_97 _submitButton_5yu8i_411 ashby-application-form-submit-button"><span>Submit Application</span></button>
+  </div>
+</div>
+<div style="visibility:hidden;position:absolute;top:-10000px;width:400px;height:580px" id="rc-wrap">
+  <iframe id="rc-bframe" title="recaptcha challenge expires in two minutes" src="https://www.recaptcha.net/recaptcha/enterprise/bframe?k=fixture" width="400" height="580"></iframe>
+</div>
+<script>
+(function () {
+  var MODE = new URLSearchParams(location.search).get('mode') || 'success';
+  var CITIES = ['Bengaluru, Karnataka, India', 'Mumbai, Maharashtra, India', 'Berlin, Germany'];
+
+  // yes/no buttons
+  document.querySelectorAll('.ashby-application-form-input-yesno').forEach(function (group) {
+    var box = group.querySelector('input');
+    group.querySelectorAll('button[aria-pressed]').forEach(function (btn) {
+      btn.addEventListener('click', function (e) {
+        e.preventDefault();
+        group.querySelectorAll('button[aria-pressed]').forEach(function (b) { b.setAttribute('aria-pressed', 'false'); });
+        btn.setAttribute('aria-pressed', 'true');
+        box.checked = btn.getAttribute('data-option') === 'yes';
+        box.setAttribute('data-answered', btn.getAttribute('data-option'));
+      });
+    });
+  });
+
+  // async location autocomplete: no options until typed
+  var locContainer = document.getElementById('loc-container');
+  var loc = locContainer.querySelector('input');
+  var listbox = null;
+  function closeLoc() { if (listbox) { listbox.remove(); listbox = null; } loc.setAttribute('aria-expanded', 'false'); }
+  loc.addEventListener('input', function () {
+    closeLoc();
+    var q = loc.value.trim().toLowerCase();
+    if (!q) return;
+    setTimeout(function () {
+      closeLoc();
+      listbox = document.createElement('ul');
+      listbox.className = 'loc-listbox';
+      listbox.setAttribute('role', 'listbox');
+      CITIES.filter(function (c) { return c.toLowerCase().indexOf(q) === 0; }).forEach(function (c) {
+        var li = document.createElement('li');
+        li.setAttribute('role', 'option');
+        li.textContent = c;
+        li.addEventListener('mousedown', function (e) { e.preventDefault(); });
+        li.addEventListener('click', function () { loc.value = c; closeLoc(); });
+        listbox.appendChild(li);
+      });
+      locContainer.appendChild(listbox);
+      loc.setAttribute('aria-expanded', 'true');
+    }, 150);
+  });
+  loc.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeLoc(); });
+
+  function collect() {
+    var root = document.getElementById('form');
+    var out = {};
+    root.querySelectorAll('input, textarea').forEach(function (el) {
+      if (el.closest('.ashby-application-form-autofill-uploader')) {
+        if (el.files && el.files.length) out.autofill_used = true;
+        return;
+      }
+      if (el.type === 'file') { out[el.id] = Array.prototype.map.call(el.files, function (f) { return f.name; }); return; }
+      if (el.type === 'radio') { if (el.checked) out[el.name] = el.id; return; }
+      if (el.type === 'checkbox') { out[el.name] = el.getAttribute('data-answered') || ''; return; }
+      out[el.name || el.id || 'location'] = el.value;
+    });
+    return out;
+  }
+
+  document.querySelector('.ashby-application-form-submit-button').addEventListener('click', function (e) {
+    e.preventDefault();
+    fetch('/__hw/submit', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(collect()) })
+      .then(function () {
+        if (MODE === 'success') {
+          document.getElementById('form').innerHTML =
+            '<div class="ashby-application-form-success-container"><h2>Thank you for applying</h2>' +
+            '<p>Your application was successfully submitted.</p></div>';
+        } else if (MODE === 'validation') {
+          var err = document.querySelector('.ashby-application-form-errors');
+          err.textContent = 'Your form needs corrections: Email is not a valid email address';
+          err.style.display = 'block';
+        } else if (MODE === 'captcha') {
+          var w = document.getElementById('rc-wrap');
+          w.style.visibility = 'visible';
+          w.style.top = '10px';
+        }
+      });
+  });
+})();
+</script>
+</body>
+</html>

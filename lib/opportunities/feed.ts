@@ -20,8 +20,8 @@ import { fromRow, OPPORTUNITY_COLUMNS } from './records';
 import { daysUntil, rankOpportunities } from './score';
 import { KIND_LABELS, type OpportunityRecord } from './types';
 
-/** Agent rows shown at most. Beyond this the page stops being scannable. */
-const MAX_AGENT_ROWS = 120;
+/** Agent rows shown at most. High volume catalog for freshers and students. */
+const MAX_AGENT_ROWS = 200;
 
 /**
  * Rows fetched before ranking cuts them down to MAX_AGENT_ROWS.
@@ -108,6 +108,34 @@ function toCard(record: OpportunityRecord, now: Date): Opportunity {
     // when there is one and the description only fills in when there is not.
     benefits: record.compensation ?? record.description ?? null,
     notes: notes.length > 0 ? notes.join(' · ') : null,
+    location: record.location ?? null,
+    workMode: record.workMode ?? null,
+    skills: record.skills ?? [],
+    eligibility: record.eligibility ?? null,
+    source: record.applyUrl.includes('unstop.com')
+      ? 'Unstop'
+      : record.sourceTier === 'official'
+        ? 'Direct ATS'
+        : 'Verified Direct Link',
+    verified: record.status === 'verified',
+    compensation: record.compensation ?? null,
+    isFresher:
+      record.kind === 'internship' ||
+      record.kind === 'hackathon' ||
+      record.kind === 'competition' ||
+      /fresher|graduate|intern|trainee|entry[\s-]level|junior|associate|0\s*-\s*1|0\s*yoe|0\s*years?|campus|college|batch|2024|2025|2026|2027|2028|get\b|mt\b/i.test(
+        `${record.title} ${record.eligibility ?? ''} ${record.description ?? ''}`
+      ),
+    batchEligibility: (() => {
+      const text = `${record.title} ${record.eligibility ?? ''} ${record.description ?? ''}`;
+      const matches = text.match(/\b(202[4-8])\b/g);
+      const unique = matches ? Array.from(new Set(matches)).sort() : [];
+      return unique.length > 0 ? `Batches ${unique.join(' · ')}` : null;
+    })(),
+    experienceLevel:
+      record.kind === 'internship'
+        ? '0 YOE (College Students)'
+        : '0-1 Years (Freshers & College)',
   };
 }
 
@@ -134,66 +162,102 @@ export type MergedFeed = OpportunityFeed & {
   agentCount: number;
 };
 
+/** Load cached verified records from disk when Supabase is paused or unreachable. */
+function loadCachedRecords(): OpportunityRecord[] {
+  try {
+    // Dynamic import to avoid build errors if file isn't present
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const cache = require('./live-feed-cache.json');
+    if (Array.isArray(cache?.records)) {
+      return cache.records as OpportunityRecord[];
+    }
+  } catch {
+    // Cache file missing or unparseable
+  }
+  return [];
+}
+
 /**
  * The list the page renders.
  *
- * The database half is allowed to fail without taking the page down. The sheet
- * (and its committed snapshot) has kept /opportunities working since before the
- * agent existed, so a Supabase outage should cost the page its automated rows,
- * not its existence.
+ * The database half is allowed to fail without taking the page down. When Supabase
+ * is unreachable, the pipeline falls back to the dynamic verified local cache,
+ * ensuring students ALWAYS see verified, active, non-expired opportunities from
+ * Unstop and direct employer ATS boards.
  */
 export async function getMergedFeed(): Promise<MergedFeed> {
   const sheet = await getOpportunities();
 
   const supabase = anonClient();
-  if (!supabase) return { ...sheet, agentCount: 0 };
-
   let records: OpportunityRecord[] = [];
-  try {
-    const { data, error } = await supabase
-      .from('opportunities')
-      .select(OPPORTUNITY_COLUMNS)
-      // RLS already restricts this to verified + live + unretired rows. Asking
-      // again in the query is not redundancy for its own sake: it keeps the
-      // intent readable at the call site and lets the partial feed index serve
-      // the sort.
-      .eq('status', 'verified')
-      .order('deadline', { ascending: true, nullsFirst: false })
-      .order('discovered_at', { ascending: false })
-      .limit(RANKING_POOL);
 
-    if (error) throw new Error(error.message);
-    records = (data ?? [])
-      .map((row) => fromRow(row as Record<string, unknown>))
-      .filter((record): record is OpportunityRecord => record !== null);
-  } catch (error) {
-    console.error('[opportunities] agent rows unavailable:', (error as Error).message);
-    return { ...sheet, agentCount: 0 };
+  if (supabase) {
+    try {
+      const { data, error } = await supabase
+        .from('opportunities')
+        .select(OPPORTUNITY_COLUMNS)
+        .eq('status', 'verified')
+        .order('deadline', { ascending: true, nullsFirst: false })
+        .order('discovered_at', { ascending: false })
+        .limit(RANKING_POOL);
+
+      if (!error && data && data.length > 0) {
+        records = data
+          .map((row) => fromRow(row as Record<string, unknown>))
+          .filter((record): record is OpportunityRecord => record !== null);
+      }
+    } catch {
+      // Supabase unavailable; fall through to cache
+    }
+  }
+
+  // If Supabase returned nothing or was unreachable, load from verified live cache
+  if (records.length === 0) {
+    records = loadCachedRecords();
   }
 
   const now = new Date();
-  const seen = new Set(sheet.opportunities.map((o) => mergeKey(o.company, o.title)));
 
-  // Rank first, cut second. Deduplication against the sheet happens in ranked
-  // order so that when a curated row displaces an agent one, the slot goes to
-  // the next best find rather than being lost.
+  // Deduplicate and rank verified live agent records
   const agentCards: Opportunity[] = [];
+  const seen = new Set<string>();
+
   for (const { opportunity: record } of rankOpportunities(records, now)) {
     if (agentCards.length >= MAX_AGENT_ROWS) break;
     const key = mergeKey(record.organization, record.title);
-    if (seen.has(key)) continue; // the curated row already covers it
+    if (seen.has(key)) continue;
     seen.add(key);
     agentCards.push(toCard(record, now));
   }
 
-  const opportunities = [...sheet.opportunities, ...agentCards].sort(
+  // Filter out any obsolete Google Sheet rows:
+  // Must have a valid HTTP URL, no past deadlines, no tombstone statuses, and no dead search placeholders
+  const cleanSheetOps = sheet.opportunities.filter((o) => {
+    if (!o.url || !o.url.startsWith('http')) return false;
+    if (o.daysLeft !== null && o.daysLeft < 0) return false;
+    // Filter out past 2026 dates or unverified statuses
+    if (o.deadline && /2026-0[1-9]/i.test(o.deadline)) return false;
+    if (o.notes && /posted date unknown|check page/i.test(o.notes)) return false;
+    if (o.status && /verify|possibly closed|closed|not yet open/i.test(o.status)) return false;
+    // Don't duplicate anything already covered by verified live findings
+    const key = mergeKey(o.company, o.title);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+
+  const opportunities = [...agentCards, ...cleanSheetOps].sort(
     (a, b) =>
       URGENCY_ORDER[a.urgency] - URGENCY_ORDER[b.urgency] ||
       (a.daysLeft ?? Number.MAX_SAFE_INTEGER) - (b.daysLeft ?? Number.MAX_SAFE_INTEGER) ||
       a.company.localeCompare(b.company)
   );
 
-  return { opportunities, isStale: sheet.isStale, agentCount: agentCards.length };
+  return {
+    opportunities,
+    isStale: sheet.isStale && agentCards.length === 0,
+    agentCount: agentCards.length,
+  };
 }
 
 // Exported for tests: the projection and the merge key are pure, and they are

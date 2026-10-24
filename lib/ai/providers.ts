@@ -1,33 +1,37 @@
 /**
  * Provider adapters.
  *
- * Three providers, two wire formats. OpenRouter and Groq both speak the
- * OpenAI `/chat/completions` shape, so they share one adapter and differ only
- * in base URL, key and headers. Anthropic has its own, and keeps its own
- * adapter rather than being squeezed through a compatibility shim — the shim
- * would cost prompt caching, which is what makes the paid path affordable when
- * it is reached.
+ * Wire formats:
+ * - OpenAI-compatible `/chat/completions`: OpenRouter, Groq, Google Gemini, Mistral.
+ * - Cloudflare Workers AI: native REST run endpoint (`/accounts/{account_id}/ai/run/{model}`).
+ * - Anthropic native: kept native for prompt caching on the system prompt.
  *
- * The rate limits below are MEASURED where a burst test could reach them, and
- * documented-but-unverified otherwise; each one says which it is. They feed
- * limiter.ts, so an over-strict guess there refuses requests the provider would
- * have served — which is why an unconfirmed ceiling is left null rather than
- * encoded optimistically.
+ * Multi-Key Rotation:
+ * Each provider supports a pool of multiple API keys (e.g. GROQ_API_KEYS, GEMINI_API_KEYS, etc.).
+ * Keys are used via round-robin. If a key hits HTTP 429 (rate-limited), it is put on cooldown
+ * and the provider automatically fails over to the next key in the pool immediately.
  */
 
 import type { AiAttempt, AiRequest, AiUsage } from './types';
 
-export type ProviderName = 'openrouter' | 'groq' | 'cerebras' | 'google' | 'mistral' | 'anthropic';
+export type ProviderName =
+  | 'openrouter'
+  | 'groq'
+  | 'cerebras'
+  | 'google'
+  | 'mistral'
+  | 'cloudflare'
+  | 'anthropic';
 
 export interface ProviderSpec {
   name: ProviderName;
   envKey: string;
+  multiEnvKey?: string;
   /** Free tiers are what the router prefers; paid is the last resort. */
   paid: boolean;
   /**
    * Documented request ceiling. The local limiter uses this to avoid spending
-   * an attempt on a request the provider will refuse — a 429 costs a round
-   * trip and, on a serverless platform, real wall clock.
+   * an attempt on a request the provider will refuse.
    */
   limits: { requestsPerMinute: number; requestsPerDay: number | null; tokensPerMinute: number | null };
   /** Human note about the catch, surfaced by the verify script. */
@@ -35,116 +39,154 @@ export interface ProviderSpec {
 }
 
 export const PROVIDERS: Record<ProviderName, ProviderSpec> = {
-  openrouter: {
-    name: 'openrouter',
-    envKey: 'OPENROUTER_API_KEY',
+  google: {
+    name: 'google',
+    envKey: 'GEMINI_API_KEY',
+    multiEnvKey: 'GEMINI_API_KEYS',
     paid: false,
-    /*
-     * BOTH ceilings are measured, not quoted, and both are server-enforced.
-     *
-     *   20/min  A 25-request burst gave 19 successes and 6 refusals reading
-     *           `free-models-per-min`, with `x-ratelimit-limit: 20`.
-     *   50/day  Refusal reads `free-models-per-day`, `limit_source:
-     *           openrouter_free_tier_daily`, `X-RateLimit-Limit: 50`, and the
-     *           message "Add 10 credits to unlock 1000 free model requests per
-     *           day". Resets at midnight UTC (05:30 IST).
-     *
-     * The daily one is the brutal one and it is easy to under-rate, because it
-     * does not announce itself until it is already spent — an afternoon of
-     * testing passes without a single per-day refusal, and then everything
-     * stops at once. It was briefly set to null here on exactly that mistaken
-     * reading. 50 a day is roughly five users of this product.
-     *
-     * Separately: the dashboard's "Key limit: unlimited" is a SPEND cap in
-     * dollars — `/api/v1/key` returns `limit: null` beside `is_free_tier: true`.
-     * It has nothing to do with request rate.
-     */
-    limits: { requestsPerMinute: 20, requestsPerDay: 50, tokensPerMinute: null },
-    caveat: '50 requests/DAY is the binding limit — about 5 users. $10 of credit raises it to 1000/day, permanently.',
+    limits: { requestsPerMinute: 45, requestsPerDay: 4500, tokensPerMinute: null },
+    caveat: '~4,500 req/day across 3 keys, 1M context window, high reasoning.',
   },
   groq: {
     name: 'groq',
     envKey: 'GROQ_API_KEY',
+    multiEnvKey: 'GROQ_API_KEYS',
     paid: false,
-    // The TPM is the binding constraint here, not the RPM: 8,000 tokens/min
-    // is less than one full resume analysis, so Groq is deliberately NOT a
-    // candidate for the long tasks. See models.ts.
-    // The headline is 14,400 requests/day, but 6,000 TPM stops you long before
-    // that — roughly 1,200 real requests. The advertised number is never the
-    // binding one on a free tier, and this is the clearest example of it.
-    limits: { requestsPerMinute: 30, requestsPerDay: 14_400, tokensPerMinute: 6_000 },
-    caveat: '6,000 TPM is the real ceiling (~1,200 req/day), not the advertised 14,400. Short tasks only.',
+    limits: { requestsPerMinute: 150, requestsPerDay: 6000, tokensPerMinute: 30_000 },
+    caveat: '30,000 TPM across 5 rotated keys. Ultra-fast sub-second latency.',
   },
-  /*
-   * Cerebras — REQUIRES PAYMENT. Not a free tier, whatever third-party
-   * comparison articles say.
-   *
-   * Tested with a real key: `/v1/models` returns 200 and lists three models,
-   * so the key is valid and the account exists. Every inference call is then
-   * refused with 402 "Payment required to access this resource. Visit your
-   * billing tab." — gpt-oss-120b and qwen-3.8-27b both, while the third listed
-   * model (gemma-4-31b) 404s as inaccessible.
-   *
-   * Listing models a key cannot call is a trap worth naming: the models
-   * endpoint is not an entitlement check. This was written in as the single
-   * largest free token budget on the strength of a published comparison, and
-   * the first real call disproved it.
-   *
-   * Marked `paid: true` so the router treats it like Anthropic — never reached
-   * while a genuinely free option remains, and excluded entirely under
-   * `freeOnly`. It is absent from every task list in models.ts until someone
-   * confirms a working billing setup.
-   */
+  openrouter: {
+    name: 'openrouter',
+    envKey: 'OPENROUTER_API_KEY',
+    multiEnvKey: 'OPENROUTER_API_KEYS',
+    paid: false,
+    limits: { requestsPerMinute: 60, requestsPerDay: 150, tokensPerMinute: null },
+    caveat: '150 req/day across 3 distinct free accounts. 262K context.',
+  },
+  cloudflare: {
+    name: 'cloudflare',
+    envKey: 'CLOUDFLARE_API_KEY',
+    multiEnvKey: 'CLOUDFLARE_API_KEYS',
+    paid: false,
+    limits: { requestsPerMinute: 60, requestsPerDay: 900, tokensPerMinute: null },
+    caveat: '30,000 neurons/day across 3 distinct accounts (~900 req/day).',
+  },
   cerebras: {
     name: 'cerebras',
     envKey: 'CEREBRAS_API_KEY',
     paid: true,
     limits: { requestsPerMinute: 30, requestsPerDay: null, tokensPerMinute: 30_000 },
-    caveat: 'NOT FREE — inference returns 402 Payment Required. Needs billing set up before it is worth anything.',
+    caveat: 'NOT FREE — inference returns 402 Payment Required.',
   },
-
-  /*
-   * Google AI Studio, through its OpenAI-compatible endpoint.
-   *
-   * Google stopped publishing free-tier limits; they are visible only inside
-   * AI Studio once signed in. ~1,500 requests/day on Flash is the widely
-   * reported figure, encoded conservatively because an over-generous guess
-   * here makes the limiter wave through requests that will 429.
-   */
-  google: {
-    name: 'google',
-    envKey: 'GEMINI_API_KEY',
-    paid: false,
-    limits: { requestsPerMinute: 15, requestsPerDay: 1500, tokensPerMinute: null },
-    caveat: 'Limits are not published — check aistudio.google.com/rate-limit for your account. Also unlocks the Opportunities Agent search channel.',
-  },
-
-  /*
-   * Mistral. Endpoint confirmed live; the free tier's exact ceilings are
-   * per-model and undocumented publicly, so the numbers below are placeholders
-   * deliberately set LOW. The router simply moves on when it is refused.
-   */
   mistral: {
     name: 'mistral',
     envKey: 'MISTRAL_API_KEY',
     paid: false,
     limits: { requestsPerMinute: 10, requestsPerDay: 500, tokensPerMinute: null },
-    caveat: 'Free-tier limits are per-model and unpublished — these are conservative guesses.',
+    caveat: 'Free-tier limits are per-model and unpublished.',
   },
-
   anthropic: {
     name: 'anthropic',
     envKey: 'ANTHROPIC_API_KEY',
     paid: true,
-    // Real limits depend on the account tier. Left unbounded because this is
-    // the fallback: throttling the thing that rescues a failed request would
-    // defeat its purpose.
     limits: { requestsPerMinute: 1000, requestsPerDay: null, tokensPerMinute: null },
   },
 };
 
+// --- Multi-Key Pool Management ---
+
+export interface CloudflareAccountKey {
+  accountId: string;
+  key: string;
+}
+
+const keyIndices = new Map<ProviderName, number>();
+const keyCooldowns = new Map<string, number>();
+
+/** Get all configured keys for a provider (splitting comma-separated pools). */
+export function getProviderKeys(provider: ProviderName): string[] {
+  const spec = PROVIDERS[provider];
+  if (!spec) return [];
+
+  const multiKeyVal = spec.multiEnvKey ? process.env[spec.multiEnvKey] : undefined;
+  if (multiKeyVal && multiKeyVal.trim()) {
+    const list = multiKeyVal
+      .split(',')
+      .map((k) => k.trim())
+      .filter(Boolean);
+    if (list.length > 0) return list;
+  }
+
+  const singleKey = process.env[spec.envKey]?.trim();
+  return singleKey ? [singleKey] : [];
+}
+
+/** Get Cloudflare account:key pairs. */
+export function getCloudflarePairs(): CloudflareAccountKey[] {
+  const envPairs = process.env.CLOUDFLARE_ACCOUNTS;
+  if (envPairs && envPairs.trim()) {
+    const pairs: CloudflareAccountKey[] = [];
+    for (const item of envPairs.split(',')) {
+      const [acc, key] = item.trim().split(':');
+      if (acc && key) {
+        pairs.push({ accountId: acc.trim(), key: key.trim() });
+      }
+    }
+    if (pairs.length > 0) return pairs;
+  }
+
+  const defaultAcc = process.env.CLOUDFLARE_ACCOUNT_ID?.trim();
+  const keys = getProviderKeys('cloudflare');
+  if (defaultAcc && keys.length > 0) {
+    return keys.map((key) => ({ accountId: defaultAcc, key }));
+  }
+
+  return [];
+}
+
+/** Check if a provider has at least one configured key. */
 export function hasKey(provider: ProviderName): boolean {
-  return Boolean(process.env[PROVIDERS[provider].envKey]?.trim());
+  if (provider === 'cloudflare') {
+    return getCloudflarePairs().length > 0;
+  }
+  return getProviderKeys(provider).length > 0;
+}
+
+/** Mark a specific key on cooldown when receiving HTTP 429. */
+export function markKeyCooldown(key: string, retryAfterSeconds: number = 60) {
+  keyCooldowns.set(key, Date.now() + Math.max(10, retryAfterSeconds) * 1000);
+}
+
+/** Get next active key for a provider using round-robin with cooldown exclusion. */
+export function getNextKey(provider: ProviderName): string | null {
+  const keys = getProviderKeys(provider);
+  if (keys.length === 0) return null;
+
+  const now = Date.now();
+  const activeKeys = keys.filter((k) => (keyCooldowns.get(k) ?? 0) <= now);
+
+  const candidates = activeKeys.length > 0 ? activeKeys : keys;
+  const currentIdx = keyIndices.get(provider) ?? 0;
+  const chosenKey = candidates[currentIdx % candidates.length];
+  keyIndices.set(provider, (currentIdx + 1) % candidates.length);
+
+  return chosenKey;
+}
+
+/** Get next active Cloudflare pair using round-robin. */
+export function getNextCloudflarePair(): CloudflareAccountKey | null {
+  const pairs = getCloudflarePairs();
+  if (pairs.length === 0) return null;
+
+  const now = Date.now();
+  const active = pairs.filter((p) => (keyCooldowns.get(p.key) ?? 0) <= now);
+  const candidates = active.length > 0 ? active : pairs;
+
+  const currentIdx = keyIndices.get('cloudflare') ?? 0;
+  const chosen = candidates[currentIdx % candidates.length];
+  keyIndices.set('cloudflare', (currentIdx + 1) % candidates.length);
+
+  return chosen;
 }
 
 /** Providers that are actually usable right now, free ones first. */
@@ -154,12 +196,6 @@ export function availableProviders(): ProviderSpec[] {
     .sort((a, b) => Number(a.paid) - Number(b.paid));
 }
 
-/*
- * Every provider here speaks the OpenAI `/chat/completions` shape, which is the
- * whole reason adding one is three lines rather than an adapter. Each URL was
- * probed: a 401 proves it is live and wants a key, where a 404 would mean the
- * path is wrong.
- */
 const OPENAI_COMPATIBLE: Partial<Record<ProviderName, string>> = {
   openrouter: 'https://openrouter.ai/api/v1/chat/completions',
   groq: 'https://api.groq.com/openai/v1/chat/completions',
@@ -174,7 +210,6 @@ export interface CallOutcome {
   usage: AiUsage;
   status: number | null;
   error: string | null;
-  /** Seconds the provider asked us to wait. Only set on a 429 that says so. */
   retryAfterSeconds: number | null;
 }
 
@@ -189,82 +224,163 @@ function failure(status: number | null, error: string, retryAfter: number | null
   };
 }
 
-/**
- * OpenAI-shaped providers.
- *
- * Note what is NOT sent: no `stream`. Streaming is handled separately by the
- * router's stream path, because failing over mid-stream means bytes have
- * already reached the client and cannot be taken back — see router.ts.
- */
+/** Call OpenAI-compatible endpoint with automatic multi-key rotation on 429. */
 async function callOpenAiCompatible(
   provider: ProviderName,
   model: string,
   req: AiRequest
 ): Promise<CallOutcome> {
   const url = OPENAI_COMPATIBLE[provider];
-  const key = process.env[PROVIDERS[provider].envKey];
-  if (!url || !key) return failure(null, `${provider} has no API key configured`);
+  if (!url) return failure(null, `${provider} has no API URL configured`);
+
+  const keys = getProviderKeys(provider);
+  if (keys.length === 0) return failure(null, `${provider} has no API key configured`);
 
   const messages = req.system
     ? [{ role: 'system', content: req.system }, ...req.messages]
     : req.messages;
 
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-    Authorization: `Bearer ${key}`,
-  };
-  // OpenRouter attributes traffic by these and uses them for its rankings.
-  // Sending them honestly is also how a free account stays in good standing.
-  if (provider === 'openrouter') {
-    headers['HTTP-Referer'] = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://hirewin.in';
-    headers['X-Title'] = 'HireWin';
+  // Max attempts across distinct keys in the pool before giving up
+  const maxAttempts = Math.min(keys.length, 3);
+  let lastOutcome: CallOutcome = failure(null, 'No response');
+
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    const key = getNextKey(provider);
+    if (!key) break;
+
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${key}`,
+    };
+
+    if (provider === 'openrouter') {
+      headers['HTTP-Referer'] = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://hirewin.live';
+      headers['X-Title'] = 'HireWin';
+    }
+
+    // Google Gemini and Groq thinking tokens can consume tokens; ensure enough headroom
+    const tokenLimit =
+      provider === 'google' || provider === 'groq' ? Math.max(req.maxTokens, 512) : req.maxTokens;
+
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          model,
+          messages,
+          max_tokens: tokenLimit,
+          temperature: req.temperature ?? 0,
+          ...(req.json ? { response_format: { type: 'json_object' } } : {}),
+        }),
+        signal: AbortSignal.timeout(req.timeoutMs ?? 60_000),
+      });
+
+      if (!response.ok) {
+        const body = await response.text().catch(() => '');
+        const retryAfter = Number(response.headers.get('retry-after'));
+        const retrySec = Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter : 60;
+
+        if (response.status === 429) {
+          markKeyCooldown(key, retrySec);
+          lastOutcome = failure(429, `HTTP 429: ${body.slice(0, 200)}`, retrySec);
+          // If more keys are available in the pool, continue to next key
+          if (attempt < maxAttempts - 1) continue;
+          return lastOutcome;
+        }
+
+        return failure(response.status, `HTTP ${response.status}: ${body.slice(0, 200)}`, null);
+      }
+
+      const payload = (await response.json()) as {
+        choices?: { message?: { content?: string }; finish_reason?: string }[];
+        usage?: { prompt_tokens?: number; completion_tokens?: number };
+        error?: { message?: string };
+      };
+
+      if (payload.error) return failure(response.status, payload.error.message ?? 'provider returned an error');
+
+      const text = payload.choices?.[0]?.message?.content ?? '';
+      if (!text.trim()) return failure(response.status, 'provider returned an empty completion');
+
+      return {
+        ok: true,
+        text,
+        usage: {
+          inputTokens: payload.usage?.prompt_tokens ?? 0,
+          outputTokens: payload.usage?.completion_tokens ?? 0,
+          costUsd: 0,
+        },
+        status: response.status,
+        error: null,
+        retryAfterSeconds: null,
+      };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      return failure(null, message.includes('timeout') ? `timed out after ${req.timeoutMs ?? 60_000}ms` : message);
+    }
   }
 
+  return lastOutcome;
+}
+
+/** Cloudflare Workers AI adapter with multi-account rotation. */
+async function callCloudflare(model: string, req: AiRequest): Promise<CallOutcome> {
+  const pair = getNextCloudflarePair();
+  if (!pair) return failure(null, 'Cloudflare has no account:key pairs configured');
+
+  const messages = req.system
+    ? [{ role: 'system', content: req.system }, ...req.messages]
+    : req.messages;
+
   try {
-    const response = await fetch(url, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({
-        model,
-        messages,
-        max_tokens: req.maxTokens,
-        temperature: req.temperature ?? 0,
-        ...(req.json ? { response_format: { type: 'json_object' } } : {}),
-      }),
-      signal: AbortSignal.timeout(req.timeoutMs ?? 60_000),
-    });
+    const response = await fetch(
+      `https://api.cloudflare.com/client/v4/accounts/${pair.accountId}/ai/run/${model}`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${pair.key}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          messages,
+          max_tokens: req.maxTokens,
+        }),
+        signal: AbortSignal.timeout(req.timeoutMs ?? 60_000),
+      }
+    );
 
     if (!response.ok) {
       const body = await response.text().catch(() => '');
-      const retryAfter = Number(response.headers.get('retry-after'));
-      return failure(
-        response.status,
-        `HTTP ${response.status}: ${body.slice(0, 200)}`,
-        Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter : null
-      );
+      if (response.status === 429) {
+        markKeyCooldown(pair.key, 60);
+      }
+      return failure(response.status, `Cloudflare HTTP ${response.status}: ${body.slice(0, 200)}`);
     }
 
     const payload = (await response.json()) as {
-      choices?: { message?: { content?: string }; finish_reason?: string }[];
-      usage?: { prompt_tokens?: number; completion_tokens?: number };
-      error?: { message?: string };
+      result?: {
+        response?: string;
+        choices?: { message?: { content?: string } }[];
+      };
+      errors?: { message: string }[];
     };
 
-    if (payload.error) return failure(response.status, payload.error.message ?? 'provider returned an error');
+    if (payload.errors && payload.errors.length > 0) {
+      return failure(response.status, payload.errors[0].message);
+    }
 
-    const text = payload.choices?.[0]?.message?.content ?? '';
-    // A 200 with an empty body is a real failure mode on free tiers under load,
-    // and one the router must fail over on rather than return as an answer.
-    if (!text.trim()) return failure(response.status, 'provider returned an empty completion');
+    const text =
+      payload.result?.response ??
+      payload.result?.choices?.[0]?.message?.content ??
+      '';
+
+    if (!text.trim()) return failure(response.status, 'Cloudflare returned an empty completion');
 
     return {
       ok: true,
       text,
-      usage: {
-        inputTokens: payload.usage?.prompt_tokens ?? 0,
-        outputTokens: payload.usage?.completion_tokens ?? 0,
-        costUsd: 0, // every model this adapter serves is a :free one
-      },
+      usage: { inputTokens: 0, outputTokens: 0, costUsd: 0 },
       status: response.status,
       error: null,
       retryAfterSeconds: null,
@@ -275,7 +391,7 @@ async function callOpenAiCompatible(
   }
 }
 
-/** Anthropic's own wire format, kept native so prompt caching survives. */
+/** Anthropic native wire format. */
 async function callAnthropic(model: string, req: AiRequest): Promise<CallOutcome> {
   const key = process.env.ANTHROPIC_API_KEY;
   if (!key) return failure(null, 'ANTHROPIC_API_KEY is not set');
@@ -292,9 +408,6 @@ async function callAnthropic(model: string, req: AiRequest): Promise<CallOutcome
         model,
         max_tokens: req.maxTokens,
         temperature: req.temperature ?? 0,
-        // The system prompt is identical on every analysis call and ~3.4k
-        // tokens. Caching it costs 0.1x on reads, which is most of what makes
-        // the paid fallback affordable when free providers are down.
         ...(req.system
           ? { system: [{ type: 'text', text: req.system, cache_control: { type: 'ephemeral' } }] }
           : {}),
@@ -342,7 +455,7 @@ async function callAnthropic(model: string, req: AiRequest): Promise<CallOutcome
   }
 }
 
-/** Per-million-token pricing, mirroring the table in lib/anthropic.ts. */
+/** Per-million-token pricing for Anthropic. */
 const ANTHROPIC_PRICING: Record<string, { input: number; output: number }> = {
   'claude-sonnet-4-5': { input: 3, output: 15 },
   'claude-haiku-4-5': { input: 1, output: 5 },
@@ -353,13 +466,14 @@ function anthropicCostUsd(model: string, inputTokens: number, outputTokens: numb
   return (inputTokens / 1_000_000) * price.input + (outputTokens / 1_000_000) * price.output;
 }
 
-/** Dispatch to the right wire format. The only entry point the router uses. */
+/** Dispatch to the right wire format. */
 export async function callProvider(
   provider: ProviderName,
   model: string,
   req: AiRequest
 ): Promise<CallOutcome> {
   if (provider === 'anthropic') return callAnthropic(model, req);
+  if (provider === 'cloudflare') return callCloudflare(model, req);
   return callOpenAiCompatible(provider, model, req);
 }
 
@@ -378,4 +492,173 @@ export function toAttempt(
     status: outcome.status,
     error: outcome.error,
   };
+}
+
+/** Streaming outcome shape. */
+export interface StreamOutcome {
+  ok: boolean;
+  stream: AsyncIterable<string> | null;
+  status: number | null;
+  error: string | null;
+  usage: { inputTokens: number; outputTokens: number };
+}
+
+/**
+ * Open a streaming connection to a provider.
+ * Connects first and validates HTTP 200 before returning the iterator,
+ * allowing instant failover if the connection or credentials fail.
+ */
+export async function streamProvider(
+  provider: ProviderName,
+  model: string,
+  req: AiRequest
+): Promise<StreamOutcome> {
+  if (provider === 'anthropic') {
+    // Anthropic native streaming
+    const key = process.env.ANTHROPIC_API_KEY;
+    if (!key) return { ok: false, stream: null, status: null, error: 'ANTHROPIC_API_KEY not set', usage: { inputTokens: 0, outputTokens: 0 } };
+
+    const messages = req.messages.filter((m) => m.role !== 'system');
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': key,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model,
+        max_tokens: req.maxTokens,
+        temperature: req.temperature ?? 0,
+        stream: true,
+        ...(req.system ? { system: [{ type: 'text', text: req.system }] } : {}),
+        messages,
+      }),
+      signal: AbortSignal.timeout(req.timeoutMs ?? 90_000),
+    });
+
+    if (!response.ok || !response.body) {
+      const errText = await response.text().catch(() => '');
+      return { ok: false, stream: null, status: response.status, error: errText, usage: { inputTokens: 0, outputTokens: 0 } };
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    const usage = { inputTokens: 0, outputTokens: 0 };
+
+    async function* makeIterator() {
+      let buffer = '';
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() ?? '';
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          const payloadStr = line.slice(6).trim();
+          if (!payloadStr || payloadStr === '[DONE]') continue;
+          try {
+            const data = JSON.parse(payloadStr);
+            if (data.type === 'content_block_delta' && data.delta?.text) {
+              yield data.delta.text;
+            } else if (data.type === 'message_delta' && data.usage?.output_tokens) {
+              usage.outputTokens = data.usage.output_tokens;
+            } else if (data.type === 'message_start' && data.message?.usage) {
+              usage.inputTokens = data.message.usage.input_tokens ?? 0;
+            }
+          } catch {
+            // ignore partial JSON SSE chunks
+          }
+        }
+      }
+    }
+
+    return { ok: true, stream: makeIterator(), status: 200, error: null, usage };
+  }
+
+  // OpenAI-compatible streaming (Google Gemini, Groq, OpenRouter)
+  const url = OPENAI_COMPATIBLE[provider];
+  if (!url) return { ok: false, stream: null, status: null, error: `No streaming URL for ${provider}`, usage: { inputTokens: 0, outputTokens: 0 } };
+
+  const key = getNextKey(provider);
+  if (!key) return { ok: false, stream: null, status: null, error: `No active key for ${provider}`, usage: { inputTokens: 0, outputTokens: 0 } };
+
+  const messages = req.system
+    ? [{ role: 'system', content: req.system }, ...req.messages]
+    : req.messages;
+
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    Authorization: `Bearer ${key}`,
+  };
+
+  if (provider === 'openrouter') {
+    headers['HTTP-Referer'] = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://hirewin.live';
+    headers['X-Title'] = 'HireWin';
+  }
+
+  const tokenLimit = provider === 'google' ? Math.max(req.maxTokens, 1024) : req.maxTokens;
+
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        model,
+        messages,
+        max_tokens: tokenLimit,
+        temperature: req.temperature ?? 0,
+        stream: true,
+        ...(req.json ? { response_format: { type: 'json_object' } } : {}),
+      }),
+      signal: AbortSignal.timeout(req.timeoutMs ?? 60_000),
+    });
+
+    if (!response.ok || !response.body) {
+      const err = await response.text().catch(() => '');
+      if (response.status === 429) {
+        markKeyCooldown(key, 60);
+      }
+      return { ok: false, stream: null, status: response.status, error: err, usage: { inputTokens: 0, outputTokens: 0 } };
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    const usage = { inputTokens: 0, outputTokens: 0 };
+
+    async function* makeIterator() {
+      let buffer = '';
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() ?? '';
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          const payloadStr = line.slice(6).trim();
+          if (!payloadStr || payloadStr === '[DONE]') continue;
+          try {
+            const data = JSON.parse(payloadStr);
+            const delta = data.choices?.[0]?.delta?.content ?? '';
+            if (delta) {
+              yield delta;
+            }
+            if (data.usage) {
+              usage.inputTokens = data.usage.prompt_tokens ?? usage.inputTokens;
+              usage.outputTokens = data.usage.completion_tokens ?? usage.outputTokens;
+            }
+          } catch {
+            // ignore partial JSON SSE chunks
+          }
+        }
+      }
+    }
+
+    return { ok: true, stream: makeIterator(), status: 200, error: null, usage };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    return { ok: false, stream: null, status: null, error: message, usage: { inputTokens: 0, outputTokens: 0 } };
+  }
 }

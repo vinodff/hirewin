@@ -1,0 +1,47 @@
+<!--
+  Unknown company career site fixture. Not modelled on any specific site (no live source): a job page whose
+  application form is hidden behind an "Apply now" button, and a submit button that would POST if clicked.
+  The generic adapter must fill it and never press submit. ?page=login renders a sign-in-only page instead.
+-->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Careers - Acme Example</title>
+</head>
+<body>
+<header><nav><a href="/">Home</a> <a href="/jobs">Jobs</a></nav></header>
+<main id="main">
+  <h1>Frontend Engineer</h1>
+  <p>Join the team.</p>
+  <form id="newsletter"><label for="nl">Newsletter</label><input id="nl" type="email"><button type="submit">Subscribe</button></form>
+  <button id="apply-now" type="button">Apply now</button>
+  <form id="job-application" style="display:none">
+    <p><label for="fullname">Full name *</label> <input id="fullname" name="fullname" required></p>
+    <p><label for="mail">Email *</label> <input id="mail" name="mail" type="email" required></p>
+    <p><label for="mobile">Mobile number</label> <input id="mobile" name="mobile" type="tel"></p>
+    <p><label for="cv">Upload your CV *</label> <input id="cv" name="cv" type="file" required></p>
+    <p><label for="why">Why do you want to join us? *</label> <textarea id="why" name="why" required></textarea></p>
+    <button type="submit" id="send">Send application</button>
+  </form>
+</main>
+<script>
+(function () {
+  if (new URLSearchParams(location.search).get('page') === 'login') {
+    document.getElementById('main').innerHTML =
+      '<h1>Sign in to apply</h1><form id="login"><label for="u">Email</label><input id="u" type="email">' +
+      '<label for="p">Password</label><input id="p" type="password"><label for="r">Remember me</label><input id="r" type="checkbox">' +
+      '<button type="submit">Sign in</button></form>';
+    return;
+  }
+  document.getElementById('apply-now').addEventListener('click', function () {
+    document.getElementById('job-application').style.display = 'block';
+  });
+  document.getElementById('job-application').addEventListener('submit', function (e) {
+    e.preventDefault();
+    fetch('/__hw/submit', { method: 'POST', body: '{}' });
+  });
+})();
+</script>
+</body>
+</html>

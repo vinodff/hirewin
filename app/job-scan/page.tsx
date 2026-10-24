@@ -6,12 +6,17 @@ import Link from 'next/link';
 import {
   Briefcase, MapPin, Search, Sparkles, Upload, Loader2, Check, X,
   AlertCircle, ExternalLink, FileText, Compass, CheckCircle2, AlertTriangle, ArrowRight,
+  GraduationCap, Zap, Copy, ShieldCheck, LogIn,
 } from 'lucide-react';
 import AppNav from '@/components/app-nav';
 import Footer from '@/components/footer';
+import LocalApplyPanel from '@/components/naukri/local-apply/panel';
+import { NaukriConnectionCard } from '@/components/naukri/local-apply/connection';
 import type { ResumeVersion } from '@/types';
+import type { CandidateProfile } from '@/lib/naukri/types';
 
-interface ScannedJob {
+export interface ScannedJob {
+  id?: string;
   title: string;
   company: string;
   location: string;
@@ -21,17 +26,30 @@ interface ScannedJob {
   fitReason: string;
   matchingSkills: string[];
   missingSkills: string[];
+  salaryText?: string;
+  experienceText?: string;
+  workMode?: string;
+  isFresherFriendly?: boolean;
+  applyType?: 'naukri_easy_apply' | 'external_redirect';
 }
 
 export default function JobScanPage() {
   const router = useRouter();
 
+  // Mode: Naukri Specialized vs Universal
+  const [engineMode, setEngineMode] = useState<'naukri' | 'universal'>('naukri');
+  const [expLevel, setExpLevel] = useState<number>(0); // 0 = Fresher
+
   // Form State
   const [role, setRole] = useState('');
-  const [location, setLocation] = useState('India');
+  const [location, setLocation] = useState('Bengaluru');
   const [resumeSource, setResumeSource] = useState<'history' | 'paste'>('paste');
   const [selectedResumeId, setSelectedResumeId] = useState('');
   const [resumeText, setResumeText] = useState('');
+  const [analyzingProfile, setAnalyzingProfile] = useState(false);
+  const [candidateProfile, setCandidateProfile] = useState<CandidateProfile | null>(null);
+  const [copiedAutofill, setCopiedAutofill] = useState(false);
+  const [isAutoApplyOpen, setIsAutoApplyOpen] = useState(false);
   
   // File Upload State
   const [fileName, setFileName] = useState('');
@@ -43,6 +61,7 @@ export default function JobScanPage() {
   const [historyResumes, setHistoryResumes] = useState<ResumeVersion[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(true);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  
 
   // Scan Execution State
   const [scanning, setScanning] = useState(false);
@@ -130,6 +149,51 @@ export default function JobScanPage() {
     if (file) handleFile(file);
   }
 
+  // Auto-analyze resume to infer roles, skills, and experience level
+  async function handleAnalyzeResume() {
+    let finalResumeText = resumeText;
+    if (resumeSource === 'history') {
+      const selected = historyResumes.find((r) => r.id === selectedResumeId);
+      if (selected) {
+        finalResumeText = selected.optimized_resume || selected.original_resume || '';
+      }
+    }
+
+    if (!finalResumeText || finalResumeText.trim().length < 50) {
+      setScanError('Please select or paste your resume text (min 50 characters) to analyze.');
+      return;
+    }
+
+    setAnalyzingProfile(true);
+    setScanError('');
+    try {
+      const res = await fetch('/api/naukri/analyze-profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ resumeText: finalResumeText }),
+      });
+      const data = await res.json();
+      if (data.profile) {
+        setCandidateProfile(data.profile);
+        if (data.profile.targetRoles && data.profile.targetRoles.length > 0) {
+          setRole(data.profile.targetRoles[0]);
+        }
+        if (data.profile.preferredLocations && data.profile.preferredLocations.length > 0) {
+          setLocation(data.profile.preferredLocations[0]);
+        }
+        if (data.profile.experienceLevel === 'fresher' || data.profile.totalYearsExperience === 0) {
+          setExpLevel(0);
+        } else {
+          setExpLevel(Math.floor(data.profile.totalYearsExperience));
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to analyze profile:', e);
+    } finally {
+      setAnalyzingProfile(false);
+    }
+  }
+
   // Handle Scan Run
   async function handleScan() {
     let finalResumeText = resumeText;
@@ -150,14 +214,24 @@ export default function JobScanPage() {
     setJobs([]);
 
     try {
-      const res = await fetch('/api/job-scan', {
+      const endpoint = engineMode === 'naukri' ? '/api/naukri/jobs' : '/api/job-scan';
+      const payload = engineMode === 'naukri'
+        ? {
+            resumeText: finalResumeText,
+            query: role,
+            location: location,
+            experienceYears: expLevel,
+          }
+        : {
+            resumeText: finalResumeText,
+            query: role,
+            location: location,
+          };
+
+      const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          resumeText: finalResumeText,
-          query: role,
-          location: location,
-        }),
+        body: JSON.stringify(payload),
       });
 
       const rawText = await res.text();
@@ -165,11 +239,9 @@ export default function JobScanPage() {
       try {
         data = JSON.parse(rawText);
       } catch (jsonErr) {
-        let errMsg = 'Failed to complete job scan. The server took too long to respond. Please try again.';
+        let errMsg = 'The search server took too long to respond. Please try again.';
         if (rawText && rawText.length > 0 && rawText.length < 200) {
           errMsg = rawText;
-        } else if (rawText && (rawText.includes('504') || rawText.toLowerCase().includes('gateway timeout') || rawText.toLowerCase().includes('timed out'))) {
-          errMsg = 'The job search timed out. Job portals might be slow today. Please try again with a simpler role or location.';
         }
         throw new Error(errMsg);
       }
@@ -181,9 +253,32 @@ export default function JobScanPage() {
         throw new Error(data.error || 'Failed to complete job scan. Please try again.');
       }
 
-      setJobs(data.jobs || []);
-      setScannedRole(data.role || role || 'Matching Roles');
-      setScannedLocation(data.location || location || 'India');
+      if (engineMode === 'naukri') {
+        const mappedJobs: ScannedJob[] = (data.jobs || []).map((j: any) => ({
+          id: j.id,
+          title: j.title,
+          company: j.company,
+          location: j.location,
+          jobUrl: j.jobUrl,
+          portal: 'Naukri.com',
+          fitScore: j.fitScore,
+          fitReason: j.fitReason,
+          matchingSkills: j.matchingSkills || [],
+          missingSkills: j.missingSkills || [],
+          salaryText: j.salaryText,
+          experienceText: j.experienceText,
+          workMode: j.workMode,
+          isFresherFriendly: j.isFresherFriendly,
+          applyType: j.applyType || 'naukri_easy_apply',
+        }));
+        setJobs(mappedJobs);
+        if (data.profile) setCandidateProfile(data.profile);
+      } else {
+        setJobs(data.jobs || []);
+      }
+
+      setScannedRole(data.role || role || 'Target Roles');
+      setScannedLocation(data.location || location || 'Bengaluru');
       setHasScanned(true);
     } catch (e: any) {
       if (e.message === 'limit_reached') {
@@ -194,6 +289,20 @@ export default function JobScanPage() {
     } finally {
       setScanning(false);
     }
+  }
+
+  function handleCopyAutofill(job: ScannedJob) {
+    const isFresher = expLevel === 0;
+    const info = `Applicant Info for ${job.company} - ${job.title}:
+Experience: ${isFresher ? '0 Years (Fresher / 2024-2026)' : `${expLevel} Years`}
+Notice Period: Immediate Joiner
+Preferred Location: ${location}
+Key Skills: ${job.matchingSkills.join(', ')}
+Status: Ready to interview`;
+
+    navigator.clipboard.writeText(info);
+    setCopiedAutofill(true);
+    setTimeout(() => setCopiedAutofill(false), 2500);
   }
 
   // Prefill optimizer and redirect
@@ -254,7 +363,77 @@ export default function JobScanPage() {
           {/* Inputs Panel (1 Column) */}
           <div className="lg:col-span-1 space-y-6">
             <div className="rounded-2xl p-5 space-y-5" style={{ background: 'var(--surface)', border: '1px solid rgba(255,255,255,0.07)' }}>
-              <h2 className="text-sm font-bold text-white uppercase tracking-wider">Search Parameters</h2>
+              
+              <div className="flex items-center justify-between">
+                <h2 className="text-xs font-bold text-white uppercase tracking-wider">Search Engine</h2>
+                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                  {engineMode === 'naukri' ? 'Naukri Active' : 'Web Active'}
+                </span>
+              </div>
+
+              {/* Engine Toggle */}
+              <div className="grid grid-cols-2 gap-2 p-1 rounded-xl bg-black/30 border border-white/5">
+                <button
+                  type="button"
+                  onClick={() => setEngineMode('naukri')}
+                  className={`py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+                    engineMode === 'naukri'
+                      ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Zap className="w-3.5 h-3.5" />
+                  Naukri.com AI
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEngineMode('universal')}
+                  className={`py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+                    engineMode === 'universal'
+                      ? 'bg-accent-500/20 text-accent-300 border border-accent-500/30'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Compass className="w-3.5 h-3.5" />
+                  All Portals
+                </button>
+              </div>
+
+              {/* Naukri connection — read from the HireWin browser profile, not a flag. */}
+              {engineMode === 'naukri' && <NaukriConnectionCard />}
+
+              {/* Experience Level Selector for Naukri */}
+              {engineMode === 'naukri' && (
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-semibold text-slate-400">Experience Level</label>
+                    <span className="text-[10px] text-emerald-400 font-medium">
+                      {expLevel === 0 ? 'Fresher (0 Yrs)' : `${expLevel}+ Years`}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-4 gap-1.5">
+                    {[
+                      { label: 'Fresher (0)', value: 0 },
+                      { label: '1-2 Yrs', value: 1 },
+                      { label: '3-4 Yrs', value: 3 },
+                      { label: '5+ Yrs', value: 5 },
+                    ].map((t) => (
+                      <button
+                        key={t.value}
+                        type="button"
+                        onClick={() => setExpLevel(t.value)}
+                        className={`py-1.5 text-[11px] font-semibold rounded-lg border transition-all ${
+                          expLevel === t.value
+                            ? 'border-emerald-500/50 bg-emerald-500/20 text-emerald-300'
+                            : 'border-white/5 bg-white/2 text-slate-400 hover:bg-white/5'
+                        }`}
+                      >
+                        {t.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Target Role */}
               <div className="space-y-1.5">
@@ -265,7 +444,7 @@ export default function JobScanPage() {
                     type="text"
                     value={role}
                     onChange={(e) => setRole(e.target.value)}
-                    placeholder="e.g. React Developer (or auto-detect)"
+                    placeholder={expLevel === 0 ? 'e.g. React Developer Fresher' : 'e.g. React Developer'}
                     className="w-full pl-9 pr-3 py-2.5 text-sm rounded-xl focus:outline-none focus:ring-1 focus:ring-accent-500/50 placeholder-slate-600 text-slate-200"
                     style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)' }}
                   />
@@ -281,7 +460,7 @@ export default function JobScanPage() {
                     type="text"
                     value={location}
                     onChange={(e) => setLocation(e.target.value)}
-                    placeholder="e.g. Remote, Bangalore, India"
+                    placeholder="e.g. Bengaluru, Hyderabad, Remote"
                     className="w-full pl-9 pr-3 py-2.5 text-sm rounded-xl focus:outline-none focus:ring-1 focus:ring-accent-500/50 placeholder-slate-600 text-slate-200"
                     style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)' }}
                   />
@@ -341,12 +520,23 @@ export default function JobScanPage() {
                 /* Paste or Upload Panel */
                 <div className="space-y-3">
                   <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-400">Paste Resume Text</label>
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-semibold text-slate-400">Paste Resume Text</label>
+                      <button
+                        type="button"
+                        onClick={handleAnalyzeResume}
+                        disabled={analyzingProfile}
+                        className="text-[11px] font-semibold text-emerald-400 hover:text-emerald-300 flex items-center gap-1 disabled:opacity-50"
+                      >
+                        {analyzingProfile ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
+                        Auto-Detect Role
+                      </button>
+                    </div>
                     <textarea
                       value={resumeText}
                       onChange={(e) => setResumeText(e.target.value)}
                       placeholder="Paste your resume content here..."
-                      rows={5}
+                      rows={4}
                       className="w-full p-3 text-xs rounded-xl focus:outline-none focus:ring-1 focus:ring-accent-500/50 placeholder-slate-600 text-slate-200 resize-none"
                       style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)' }}
                     />
@@ -355,7 +545,7 @@ export default function JobScanPage() {
                   {/* Drop zone */}
                   <div
                     onClick={() => !pdfParsing && fileInputRef.current?.click()}
-                    className="rounded-xl p-3 text-center transition-all border-2 border-dashed border-white/5 bg-white/2 cursor-pointer"
+                    className="rounded-xl p-3 text-center transition-all border-2 border-dashed border-white/5 bg-white/2 cursor-pointer hover:border-white/10"
                   >
                     <input
                       ref={fileInputRef}
@@ -387,22 +577,40 @@ export default function JobScanPage() {
                 </div>
               )}
 
-              {/* Action Button */}
+              {/* Detected Profile Badge if present */}
+              {candidateProfile && (
+                <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-300 space-y-1">
+                  <div className="font-bold flex items-center gap-1.5 text-emerald-400">
+                    <GraduationCap className="w-3.5 h-3.5" />
+                    Detected: {candidateProfile.experienceLevel.toUpperCase()} ({candidateProfile.totalYearsExperience} Yrs Exp)
+                  </div>
+                  <div className="text-[11px] text-slate-400">
+                    Skills: {candidateProfile.coreSkills.slice(0, 4).join(', ')}
+                  </div>
+                </div>
+              )}
+
+              {/* Action Button - Always Enabled for Free Testing */}
               <button
+                id="btn-scan-jobs"
                 onClick={handleScan}
                 disabled={scanning}
-                className="w-full py-3 rounded-xl text-[var(--on-accent)] font-bold text-sm transition-all hover:opacity-90 active:scale-[0.98] glow-purple disabled:opacity-50 flex items-center justify-center gap-2 btn-accent"
-                style={{ background: 'var(--accent-fill)' }}
+                className="w-full py-3 rounded-xl text-white font-bold text-sm transition-all hover:opacity-90 active:scale-[0.98] glow-purple disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg"
+                style={{
+                  background: engineMode === 'naukri'
+                    ? 'linear-gradient(135deg, #10b981, #059669)'
+                    : 'var(--accent-fill)',
+                }}
               >
                 {scanning ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    Scanning...
+                    Searching Naukri & Ranking...
                   </>
                 ) : (
                   <>
                     <Search className="w-4 h-4" />
-                    Scan Job Portals
+                    {engineMode === 'naukri' ? 'Find Naukri Best Jobs' : 'Scan Job Portals'}
                   </>
                 )}
               </button>
@@ -507,12 +715,25 @@ export default function JobScanPage() {
                       Location: {scannedLocation} · Found {jobs.length} matching jobs
                     </p>
                   </div>
-                  <button
-                    onClick={handleScan}
-                    className="text-xs text-accent-400 font-semibold hover:text-accent-300 transition-colors"
-                  >
-                    Rescan
-                  </button>
+                  <div className="flex items-center gap-2">
+                    {engineMode === 'naukri' && jobs.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setIsAutoApplyOpen(true)}
+                        className="px-3.5 py-1.5 rounded-xl text-xs font-bold text-white flex items-center gap-1.5 transition-all hover:scale-105 active:scale-95 shadow-lg shadow-emerald-500/20"
+                        style={{ background: 'linear-gradient(135deg, #10b981, #059669)' }}
+                      >
+                        <Zap className="w-3.5 h-3.5" />
+                        Background Auto-Apply
+                      </button>
+                    )}
+                    <button
+                      onClick={handleScan}
+                      className="text-xs text-accent-400 font-semibold hover:text-accent-300 transition-colors px-2 py-1"
+                    >
+                      Rescan
+                    </button>
+                  </div>
                 </div>
 
                 {/* Jobs List */}
@@ -571,13 +792,32 @@ export default function JobScanPage() {
                           </div>
 
                           {/* Middle Row: Meta details */}
-                          <div className="flex items-center gap-3 text-slate-500 text-xs flex-wrap">
+                          <div className="flex items-center gap-2.5 text-slate-400 text-xs flex-wrap">
+                            {job.salaryText && job.salaryText !== 'Not Disclosed' && (
+                              <span className="px-2 py-0.5 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 font-bold text-[11px]">
+                                💰 {job.salaryText}
+                              </span>
+                            )}
+                            {job.experienceText && (
+                              <span className="px-2 py-0.5 rounded-md bg-white/5 border border-white/10 text-slate-300 text-[11px] font-medium">
+                                ⏳ {job.experienceText}
+                              </span>
+                            )}
                             <span className="flex items-center gap-1">
-                              <MapPin className="w-3.5 h-3.5 text-slate-600" />
+                              <MapPin className="w-3.5 h-3.5 text-slate-500" />
                               {job.location || 'Location Not Specified'}
                             </span>
-                            <span className="w-1 h-1 rounded-full bg-slate-700" />
-                            <span className="px-2 py-0.5 rounded bg-slate-900 border border-white/5 text-[10px] text-slate-400 uppercase font-semibold">
+                            {job.workMode && (
+                              <span className="capitalize px-2 py-0.5 rounded bg-slate-900 border border-white/5 text-[10px] text-slate-400 font-medium">
+                                {job.workMode}
+                              </span>
+                            )}
+                            {job.isFresherFriendly && (
+                              <span className="px-2 py-0.5 rounded bg-emerald-500/15 border border-emerald-500/30 text-[10px] text-emerald-300 font-bold uppercase tracking-wider">
+                                🌱 Fresher Friendly
+                              </span>
+                            )}
+                            <span className="ml-auto px-2 py-0.5 rounded bg-slate-900 border border-white/5 text-[10px] text-slate-400 uppercase font-semibold">
                               {job.portal}
                             </span>
                           </div>
@@ -625,22 +865,33 @@ export default function JobScanPage() {
                           </div>
 
                           {/* Card Actions */}
-                          <div className="flex gap-3 pt-2 border-t border-white/[0.04]">
-                            {/* Apply Now */}
+                          <div className="flex gap-2.5 pt-2 border-t border-white/[0.04] flex-wrap sm:flex-nowrap">
+                            {/* Apply on Naukri */}
                             <a
                               href={job.jobUrl}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-semibold text-slate-300 bg-white/5 border border-white/10 hover:bg-white/10 hover:text-white transition-all active:scale-[0.98]"
+                              className="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-xs font-bold text-emerald-300 bg-emerald-500/10 border border-emerald-500/20 hover:bg-emerald-500/20 transition-all active:scale-[0.98]"
                             >
-                              Apply Now
+                              Apply on Naukri
                               <ExternalLink className="w-3.5 h-3.5" />
                             </a>
+
+                            {/* Copy Quick Autofill Info */}
+                            <button
+                              type="button"
+                              onClick={() => handleCopyAutofill(job)}
+                              className="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-xs font-semibold text-slate-300 bg-white/5 border border-white/10 hover:bg-white/10 hover:text-white transition-all active:scale-[0.98]"
+                              title="Copy structured answers for application form"
+                            >
+                              <Copy className="w-3.5 h-3.5" />
+                              {copiedAutofill ? 'Copied Details!' : 'Copy Form Data'}
+                            </button>
 
                             {/* Optimize Resume */}
                             <button
                               onClick={() => handleOptimize(job)}
-                              className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-bold text-white transition-all hover:opacity-90 active:scale-[0.98]"
+                              className="flex-1 flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-xs font-bold text-white transition-all hover:opacity-90 active:scale-[0.98]"
                               style={{ background: 'var(--accent-fill)' }}
                             >
                               <Sparkles className="w-3.5 h-3.5" />
@@ -657,6 +908,14 @@ export default function JobScanPage() {
           </div>
         </div>
       </main>
+
+      <LocalApplyPanel
+        isOpen={isAutoApplyOpen}
+        onClose={() => setIsAutoApplyOpen(false)}
+        jobs={jobs}
+        candidateProfile={candidateProfile}
+        resumeText={resumeText}
+      />
 
       <Footer />
     </div>

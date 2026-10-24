@@ -23,6 +23,12 @@ export function isUnlimitedSession(email?: string | null): boolean {
   return isAdminEmail(email);
 }
 
+/** True when the plan or session has paid-tier access to premium features. */
+export function isPaidUserPlan(plan: Plan, email?: string | null): boolean {
+  if (isUnlimitedSession(email)) return true;
+  return plan !== 'free';
+}
+
 export function canImprove(plan: Plan, improvementsUsed: number, email?: string | null): boolean {
   if (process.env.USAGE_LIMITS_DISABLED === 'true') return true;
   const limits = getEffectiveLimits(plan, email);

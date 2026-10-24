@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { getEffectiveLimits, isUnlimitedSession } from '@/lib/usage';
 import type { Plan } from '@/types';
-import { getEffectiveLimits } from '@/lib/usage';
 
 const SHARES_NEEDED = 5;
 const MAX_SHARES_STORED = 10;
@@ -111,6 +111,7 @@ export async function GET(req: NextRequest) {
     const limit = getEffectiveLimits(plan, user.email).downloads;
     const planUnlimited = limit === Infinity;
     const downloadsLeft = planUnlimited ? -1 : Math.max(0, limit - downloadsUsed);
+    const isPaid = plan !== 'free' || planUnlimited || isUnlimitedSession(user.email);
 
     return NextResponse.json({
       shareCount,
@@ -118,8 +119,10 @@ export async function GET(req: NextRequest) {
       downloadsLeft,
       planUnlimited,
       signedIn: true,
+      plan,
+      isPaid,
     });
   } catch {
-    return NextResponse.json({ shareCount: 0, unlocked: false, downloadsLeft: 0, planUnlimited: false, signedIn: false });
+    return NextResponse.json({ shareCount: 0, unlocked: false, downloadsLeft: 0, planUnlimited: false, signedIn: false, plan: 'free', isPaid: false });
   }
 }

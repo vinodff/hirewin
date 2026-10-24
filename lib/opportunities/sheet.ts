@@ -33,6 +33,16 @@ export type Opportunity = {
   urgency: Urgency;
   benefits: string | null;
   notes: string | null;
+  location?: string | null;
+  workMode?: string | null;
+  skills?: readonly string[] | string[];
+  eligibility?: string | null;
+  source?: string | null;
+  verified?: boolean;
+  compensation?: string | null;
+  isFresher?: boolean;
+  batchEligibility?: string | null;
+  experienceLevel?: string | null;
 };
 
 /** Closing first, dead last. */

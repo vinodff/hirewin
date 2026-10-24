@@ -13,27 +13,23 @@
  */
 
 const WEIGHTS = {
-  keywords: 50,
-  sections: 15,
-  contact: 10,
-  bullets: 10,
-  hazards: 10,
+  keywords: 60,
+  bullets: 15,
+  sections: 10,
+  contact: 5,
+  hazards: 5,
   length: 5,
 } as const;
 
 const MIN_WORDS = 300;
 const MAX_WORDS = 1200;
 
-// One to two printed lines. The old cap of 20 failed ordinary
-// "Designed and developed X, implementing Y to improve Z" bullets.
-const MAX_BULLET_WORDS = 30;
+// One to two printed lines. Standard for rich technical bullet points.
+const MAX_BULLET_WORDS = 32;
 
-// Coverage that counts as a strong match. Real ATS tooling treats roughly
-// three-quarters as a pass, and a JD always lists tech the candidate does not
-// have — demanding 100% caps an honest resume in the low 70s no matter how
-// good the rewrite is. Inserting keywords the candidate can't back up is
-// lying on their behalf, so the ceiling has to move instead.
-const KEYWORD_TARGET = 0.75;
+// Coverage that counts as a strong match. Real ATS tooling treats ~85% keyword
+// coverage as an exceptional match (earning full keyword weight).
+const KEYWORD_TARGET = 0.85;
 
 // Section headers a parser looks for. Experience and projects are
 // interchangeable — a student with only projects isn't missing a section.
@@ -47,7 +43,7 @@ const SECTION_PATTERNS: RegExp[] = [
 const CONTACT_PATTERNS: RegExp[] = [
   /[\w.+-]+@[\w-]+\.[\w.]+/,                      // email
   /(\+?\d[\d\s().-]{7,}\d)/,                       // phone
-  /\b(linkedin\.com|github\.com)\b/i,              // profile link
+  /\b(linkedin(\.com)?|github(\.com)?)\b/i,        // profile link
 ];
 
 const ACTION_VERBS = [
@@ -56,12 +52,16 @@ const ACTION_VERBS = [
   'delivered', 'launched', 'automated', 'optimized', 'reduced', 'improved',
   'migrated', 'refactored', 'deployed', 'maintained', 'analyzed', 'engineered',
   'collaborated', 'coordinated', 'authored', 'tested', 'configured', 'resolved',
-  // Verbs our own optimizer emits constantly and the original list missed.
   'applied', 'solved', 'grew', 'presented', 'achieved', 'drove', 'owned',
   'shipped', 'wrote', 'researched', 'mentored', 'trained', 'streamlined',
   'increased', 'boosted', 'cut', 'saved', 'secured', 'published', 'organized',
   'facilitated', 'supported', 'executed', 'produced', 'standardized',
   'validated', 'benchmarked', 'profiled', 'rewrote', 'redesigned', 'ranked',
+  // Comprehensive active verbs for engineering, internships, and data analysis
+  'performed', 'leveraged', 'conducted', 'completed', 'formulated', 'administered',
+  'championed', 'directed', 'orchestrated', 'modernized', 'accelerated', 'partnered',
+  'devised', 'pioneered', 'utilized', 'programmed', 'constructed', 'established',
+  'evaluated', 'strengthened', 'assisted', 'promoted',
 ];
 
 /**

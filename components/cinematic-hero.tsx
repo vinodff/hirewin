@@ -4,7 +4,8 @@ import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { ArrowRight, Sparkles, ShieldCheck, Zap, Star, CheckCircle2, Lock } from 'lucide-react';
 import RotatingHeadline from '@/components/rotating-headline';
-import HeroDemo from '@/components/hero-demo';
+import { motion } from 'motion/react';
+import LinearCalibrationStudio from '@/components/linear-calibration-studio';
 
 function MagneticButton({ children, href, primary }: { children: React.ReactNode; href: string; primary?: boolean }) {
   const ref = useRef<HTMLAnchorElement>(null);
@@ -31,156 +32,99 @@ function MagneticButton({ children, href, primary }: { children: React.ReactNode
       onMouseLeave={reset}
       className={
         primary
-          ? 'group relative w-full sm:w-auto flex items-center justify-center gap-2 text-[var(--on-accent)] font-extrabold px-8 py-4 rounded-2xl text-lg overflow-hidden glow-breathe transition-[transform] duration-150 ease-out shadow-xl shadow-accent-500/20'
-          : 'w-full sm:w-auto flex items-center justify-center gap-2 text-slate-200 font-semibold px-7 py-4 rounded-2xl text-base sm:text-lg border border-white/10 hover:border-accent-400/50 hover:text-white transition-[transform,border-color,background-color] duration-150 ease-out hover:bg-white/[0.04]'
+          ? 'group relative w-full sm:w-auto flex items-center justify-center gap-2 text-slate-950 font-bold px-7 py-3.5 rounded-xl text-base transition-all duration-150 ease-out bg-emerald-500 hover:bg-emerald-400 shadow-lg shadow-emerald-500/20 active:scale-95'
+          : 'w-full sm:w-auto flex items-center justify-center gap-2 text-slate-200 font-semibold px-6 py-3.5 rounded-xl text-base border border-white/10 hover:border-emerald-400/40 hover:text-white transition-all duration-150 ease-out bg-white/[0.03] hover:bg-white/[0.06]'
       }
-      style={primary ? { background: 'var(--accent-fill)', minHeight: 60 } : { minHeight: 60, background: 'rgba(255,255,255,0.025)', backdropFilter: 'blur(8px)' }}
     >
-      {primary && (
-        <span
-          className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
-          style={{
-            background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.25), transparent)',
-            backgroundSize: '200% 100%',
-            animation: 'shimmer-x 1.5s linear infinite',
-          }}
-        />
-      )}
       <span className="relative flex items-center gap-2">{children}</span>
     </Link>
   );
 }
 
-/** Letter-by-letter character reveal */
-function CharReveal({ text, delay = 0 }: { text: string; delay?: number }) {
-  return (
-    <>
-      {text.split('').map((ch, i) => (
-        <span
-          key={i}
-          className="char-pop"
-          style={{ animationDelay: `${delay + i * 25}ms`, whiteSpace: ch === ' ' ? 'pre' : 'normal' }}
-        >
-          {ch}
-        </span>
-      ))}
-    </>
-  );
-}
-
 export default function CinematicHero() {
-  const [scrollY, setScrollY] = useState(0);
-
-  useEffect(() => {
-    let raf = 0;
-    function onScroll() {
-      cancelAnimationFrame(raf);
-      raf = requestAnimationFrame(() => setScrollY(window.scrollY));
-    }
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => {
-      window.removeEventListener('scroll', onScroll);
-      cancelAnimationFrame(raf);
-    };
-  }, []);
-
-  const parallax = Math.min(scrollY * 0.25, 100);
-
   return (
-    <section className="relative max-w-6xl mx-auto px-4 sm:px-6 pt-16 sm:pt-24 pb-12 text-center">
+    <section className="relative max-w-6xl mx-auto px-4 sm:px-6 pt-16 sm:pt-20 pb-12 text-center">
       {/* Live trust pill */}
-      <div
-        className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full text-xs sm:text-sm font-semibold mb-8 reveal-up"
-        style={{
-          background: 'rgba(255,255,255,0.04)',
-          border: '1px solid rgba(var(--accent-rgb), 0.3)',
-          backdropFilter: 'blur(12px)',
-          animationDelay: '0.05s',
-        }}
+      <motion.div
+        initial={{ opacity: 0, y: -16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+        className="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full text-xs font-semibold mb-6 bg-white/[0.04] border border-white/10 text-slate-300 font-mono"
       >
         <span className="relative flex w-2 h-2">
-          <span className="absolute inset-0 rounded-full bg-emerald-400" style={{ animation: 'pulse-ring 2s ease-out infinite' }} />
+          <span className="absolute inset-0 rounded-full bg-emerald-400 animate-ping opacity-75" />
           <span className="relative w-2 h-2 rounded-full bg-emerald-400" />
         </span>
-        <span className="text-slate-200 font-medium">14,200+ resumes optimized with 94%+ ATS pass rate</span>
-      </div>
+        <span className="font-mono text-emerald-400 font-bold">14,200+</span>
+        <span>resumes calibrated with 94%+ ATS pass rate</span>
+      </motion.div>
 
-      {/* Headline with character reveal */}
-      <h1
-        className="text-5xl sm:text-6xl lg:text-8xl font-extrabold text-white tracking-tight leading-[0.95] mb-7"
-        style={{ transform: `translateY(${-parallax * 0.3}px)`, transition: 'transform 0.1s linear' }}
+      {/* Editorial Headline */}
+      <motion.h1
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.65, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
+        className="text-3xl sm:text-5xl lg:text-6xl font-black text-white tracking-tight leading-[1.08] mb-4 max-w-4xl mx-auto font-display"
       >
-        <div className="block reveal-up">
-          <CharReveal text="The resume" delay={300} />
-        </div>
-        <div className="block reveal-up" style={{ animationDelay: '0.2s' }}>
-          <CharReveal text="that proves" delay={600} />
-        </div>
-        <div className="block shimmer-text mt-1 reveal-up" style={{ animationDelay: '0.4s' }}>
-          <RotatingHeadline
-            words={["you're ready.", "you're hireable.", "you're the one.", "you belong here."]}
-            intervalMs={2600}
-          />
-        </div>
-      </h1>
+        Stop getting filtered.<br className="hidden sm:inline" />
+        <span className="text-emerald-400"> Optimize your resume</span> for real callbacks.
+      </motion.h1>
 
       {/* Subhead */}
-      <p
-        className="text-base sm:text-xl text-slate-300 max-w-2xl mx-auto mb-9 leading-relaxed reveal-up px-2"
-        style={{ animationDelay: '0.7s' }}
+      <motion.p
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.65, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
+        className="text-sm sm:text-base text-slate-300 max-w-2xl mx-auto mb-8 leading-relaxed px-2 font-normal"
       >
-        Upload your resume and target job. Our AI analyzes 40+ ATS parameters, injects proven metric-driven impact, and{' '}
-        <span className="text-white font-semibold">assigns a verified Trust Score</span> — so you walk into interviews confident, not caught out.
-      </p>
+        Upload your resume and target job description. Inspect exact ATS parser matches, identify missing competencies, and synthesize Google X-Y-Z evidence bullets in seconds.
+      </motion.p>
 
       {/* CTAs */}
-      <div
-        className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 mb-10 reveal-up px-2"
-        style={{ animationDelay: '0.85s' }}
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.65, delay: 0.3, ease: [0.16, 1, 0.3, 1] }}
+        className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 mb-10 px-2"
       >
         <MagneticButton href="/analyze" primary>
-          Optimize My Resume — Free
-          <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1" />
+          <span>Audit My Resume — Free</span>
+          <ArrowRight className="w-4 h-4" />
         </MagneticButton>
         <MagneticButton href="/builder">
-          Build From Scratch →
+          <span>Resume Studio →</span>
         </MagneticButton>
-      </div>
+      </motion.div>
 
       {/* Quick trust strip */}
-      <div
-        className="flex items-center justify-center flex-wrap gap-x-6 gap-y-2 text-xs sm:text-sm text-slate-400 mb-12 reveal-up"
-        style={{ animationDelay: '1s' }}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.6, delay: 0.4 }}
+        className="flex items-center justify-center flex-wrap gap-x-6 gap-y-2 text-xs text-slate-400 mb-12 font-mono"
       >
         {[
-          { icon: ShieldCheck, text: 'Trust-scored output', color: 'var(--accent-soft)' },
-          { icon: Zap, text: '~20s instant analysis', color: '#60a5fa' },
-          { icon: Sparkles, text: 'No credit card required', color: '#34d399' },
+          { icon: ShieldCheck, text: 'Trust-scored output', color: '#34d399' },
+          { icon: Zap, text: '~20s instant analysis', color: '#38bdf8' },
+          { icon: Sparkles, text: 'No credit card required', color: '#10b981' },
           { icon: Star, text: '4.8★ average candidate rating', color: '#fbbf24' },
         ].map(({ icon: Icon, text, color }) => (
           <div key={text} className="flex items-center gap-1.5 font-medium">
-            <Icon className="w-4 h-4" style={{ color }} />
+            <Icon className="w-3.5 h-3.5" style={{ color }} />
             <span>{text}</span>
           </div>
         ))}
-      </div>
+      </motion.div>
 
-      {/* Live demo card with parallax + tilt */}
-      <div
-        className="relative reveal-up tilt-3d"
-        style={{
-          animationDelay: '1.15s',
-          transform: `translateY(${parallax * 0.15}px)`,
-        }}
+      {/* Approved Direction 1: Linear-Style Document & ATS Calibration Studio */}
+      <motion.div
+        initial={{ opacity: 0, y: 32, filter: 'blur(4px)' }}
+        animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+        transition={{ duration: 0.8, delay: 0.45, ease: [0.16, 1, 0.3, 1] }}
+        className="relative mt-2"
       >
-        <HeroDemo />
-
-        {/* Premium glow ring around demo */}
-        <div
-          className="absolute -inset-4 rounded-3xl blur-2xl opacity-40 pointer-events-none -z-10"
-          style={{ background: 'radial-gradient(ellipse at center, rgba(var(--accent-rgb), 0.4), transparent 70%)' }}
-        />
-      </div>
+        <LinearCalibrationStudio />
+      </motion.div>
     </section>
   );
 }

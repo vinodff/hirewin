@@ -3,8 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { Mic, User, Mail, Briefcase, FileText, BarChart2, ArrowRight, Volume2, Sparkles } from 'lucide-react';
-
-/* ─── Mini preview components ────────────────────────────── */
+import { motion } from 'motion/react';
 
 function Bar({ label, value, color }: { label: string; value: number; color: string }) {
   return (
@@ -298,9 +297,9 @@ export default function FeatureShowcase() {
           <Sparkles className="w-3.5 h-3.5" />
           5 tools. One complete kit.
         </div>
-        <h2 className="text-3xl sm:text-4xl lg:text-6xl font-extrabold text-white mb-5 leading-[1.05] tracking-tight">
+        <h2 className="text-3xl sm:text-4xl lg:text-6xl font-black text-white mb-5 leading-[1.05] tracking-tight font-display">
           Everything you need<br className="hidden sm:block" />
-          <span className="gradient-text"> to get hired faster.</span>
+          <span className="text-emerald-400"> to get hired faster.</span>
         </h2>
         <p className="text-slate-400 text-sm sm:text-base max-w-xl mx-auto leading-relaxed">
           Resume optimization, voice interview practice, self-introduction, cold outreach, and job tracking — all AI-powered, all in one place.

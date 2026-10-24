@@ -206,24 +206,24 @@ export function cleanSkillForNaukriSlug(query: string, isFresher: boolean = fals
     baseSlug = 'sql';
   } else if (/\b(react|react\.?js|reactjs|next\.?js|nextjs)\b/i.test(cleaned)) {
     baseSlug = 'react-js';
-  } else if (/\b(frontend|front[\s-]*end|ui\b|web\s*dev)/i.test(cleaned)) {
-    baseSlug = 'frontend-developer';
-  } else if (/\b(backend|back[\s-]*end)\b/i.test(cleaned)) {
-    baseSlug = 'backend-developer';
-  } else if (/\b(node|node\.?js|nodejs|express)\b/i.test(cleaned)) {
-    baseSlug = 'node-js';
-  } else if (/\b(full[\s-]*stack|mern|mean)\b/i.test(cleaned)) {
-    baseSlug = 'full-stack-developer';
   } else if (/\b(python|django|fastapi|flask)\b/i.test(cleaned)) {
     baseSlug = 'python';
   } else if (/\b(java|spring|springboot)\b/i.test(cleaned)) {
     baseSlug = 'java';
+  } else if (/\b(node|node\.?js|nodejs|express)\b/i.test(cleaned)) {
+    baseSlug = 'node-js';
+  } else if (/\b(full[\s-]*stack|mern|mean)\b/i.test(cleaned)) {
+    baseSlug = 'full-stack-developer';
   } else if (/\b(data\s*analyst|data\s*analytics|power\s*bi|tableau)\b/i.test(cleaned)) {
     baseSlug = 'data-analyst';
   } else if (/\b(data\s*science|machine\s*learning|ai|deep\s*learning)\b/i.test(cleaned)) {
     baseSlug = 'data-science';
   } else if (/\b(devops|aws|cloud|docker|kubernetes)\b/i.test(cleaned)) {
     baseSlug = 'devops';
+  } else if (/\b(frontend|front[\s-]*end|ui\b|web\s*dev)/i.test(cleaned)) {
+    baseSlug = 'frontend-developer';
+  } else if (/\b(backend|back[\s-]*end)\b/i.test(cleaned)) {
+    baseSlug = 'backend-developer';
   } else if (/\b(qa|automation\s*testing|selenium|software\s*tester)\b/i.test(cleaned)) {
     baseSlug = 'qa';
   } else {

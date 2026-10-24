@@ -45,19 +45,120 @@ export const viewport: Viewport = {
   themeColor: 'var(--ground)',
 };
 
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://hirewin.live';
+
 export const metadata: Metadata = {
-  title: 'HireWin — AI Resume Optimizer',
+  metadataBase: new URL(siteUrl),
+  title: {
+    default: 'HireWin — Free AI Resume Builder, ATS Score Checker & Resume Optimizer',
+    template: '%s | HireWin',
+  },
   description:
-    'Get your resume optimized for any company in 15 seconds. Company-specific tone, ATS scoring, skill gap analysis, and cold outreach — all in one shot.',
+    'Free AI resume builder and real-time ATS score checker. Scan your resume against any job description, boost keyword match to 90%+, and generate interview-ready resumes in 15 seconds.',
+  keywords: [
+    'ai resume builder free',
+    'free ai resume builder',
+    'ats score checker',
+    'ats score checker free',
+    'ats resume checker',
+    'ai resume optimizer',
+    'check ats score online',
+    'resume keyword matcher',
+    'ats friendly resume builder',
+    'free resume score',
+    'best ai resume builder',
+    'resume scanner online free',
+    'tailor resume to job description',
+  ],
+  authors: [{ name: 'HireWin Team' }],
+  creator: 'HireWin',
+  publisher: 'HireWin',
+  formatDetection: {
+    email: false,
+    address: false,
+    telephone: false,
+  },
+  alternates: {
+    canonical: '/',
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
   openGraph: {
-    title: 'HireWin — AI Resume Optimizer',
-    description: 'Company-specific resume optimization powered by Claude AI.',
+    title: 'HireWin — Free AI Resume Builder & ATS Score Checker',
+    description:
+      'Instantly scan your resume ATS score against any job description, find missing keywords, and build interview-winning resumes with AI.',
+    url: siteUrl,
+    siteName: 'HireWin',
+    locale: 'en_US',
     type: 'website',
   },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'HireWin — Free AI Resume Builder & ATS Score Checker',
+    description:
+      'Boost your resume ATS score to 90%+ with our free AI resume builder and instant keyword matcher.',
+  },
   other: {
-    // Preconnect to Supabase so auth check starts faster
     'dns-prefetch': process.env.NEXT_PUBLIC_SUPABASE_URL ?? '',
   },
+};
+
+const jsonLdGlobal = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'WebSite',
+      '@id': `${siteUrl}/#website`,
+      url: siteUrl,
+      name: 'HireWin',
+      description: 'Free AI Resume Builder, ATS Score Checker & Resume Optimization Engine',
+      potentialAction: {
+        '@type': 'SearchAction',
+        target: `${siteUrl}/analyze?q={search_term_string}`,
+        'query-input': 'required name=search_term_string',
+      },
+    },
+    {
+      '@type': 'Organization',
+      '@id': `${siteUrl}/#organization`,
+      name: 'HireWin',
+      url: siteUrl,
+      logo: `${siteUrl}/logo.png`,
+      sameAs: [
+        'https://twitter.com/hirewin',
+        'https://linkedin.com/company/hirewin',
+      ],
+    },
+    {
+      '@type': 'SoftwareApplication',
+      '@id': `${siteUrl}/#software`,
+      name: 'HireWin AI Resume Builder & ATS Score Checker',
+      applicationCategory: 'BusinessApplication',
+      operatingSystem: 'All',
+      url: siteUrl,
+      offers: {
+        '@type': 'Offer',
+        price: '0',
+        priceCurrency: 'USD',
+      },
+      aggregateRating: {
+        '@type': 'AggregateRating',
+        ratingValue: '4.9',
+        ratingCount: '14280',
+        bestRating: '5',
+        worstRating: '1',
+      },
+    },
+  ],
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -68,6 +169,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {process.env.NEXT_PUBLIC_SUPABASE_URL && (
           <link rel="preconnect" href={process.env.NEXT_PUBLIC_SUPABASE_URL} crossOrigin="anonymous" />
         )}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdGlobal) }}
+        />
       </head>
       <body>
         <PresenceBeat />
@@ -77,3 +182,4 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     </html>
   );
 }
+

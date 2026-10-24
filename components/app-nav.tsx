@@ -105,7 +105,7 @@ export default function AppNav() {
         <Link href="/" className="flex items-center gap-1.5 shrink-0">
           <img src="/logo.png" alt="HireWin Logo" className="w-7 h-7 object-contain" />
           <span className="font-bold text-white tracking-tight text-sm">
-            Hire<span className="gradient-text">Win</span>
+            Hire<span className="text-emerald-400 font-black">Win</span>
           </span>
         </Link>
 

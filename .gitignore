@@ -37,6 +37,10 @@ next-env.d.ts
 # supabase
 supabase/.temp
 
+# automation session & proofs
+.naukri-session/
+public/proofs/
+
 # Reference project (not part of HireWin)
 career-ops-main/
 
@@ -55,3 +59,10 @@ graphify-out/
 
 # Windows crash dumps
 *.stackdump
+
+# Agent skills, internal tooling, and scratch files
+.agents/
+.impeccable/
+.backup-redesign/
+scratch/
+fresher-scrape.txt

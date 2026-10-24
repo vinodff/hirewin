@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAnthropicClient } from '@/lib/anthropic';
+import { route, extractJson } from '@/lib/ai/router';
 import { createClient } from '@/lib/supabase/server';
 import { checkRateLimit } from '@/lib/rate-limit';
+import { isPaidUserPlan } from '@/lib/usage';
+import type { Plan } from '@/types';
 
 export const maxDuration = 30;
 export const dynamic = 'force-dynamic';
@@ -39,6 +41,21 @@ export async function POST(req: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: 'Sign in required' }, { status: 401 });
 
+    // --- Paid plan gate ---
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('plan')
+      .eq('id', user.id)
+      .maybeSingle();
+
+    const plan = (profile?.plan ?? 'free') as Plan;
+    if (!isPaidUserPlan(plan, user.email)) {
+      return NextResponse.json(
+        { error: 'Pro feature. Please upgrade your plan to unlock interview question preparation.' },
+        { status: 402 }
+      );
+    }
+
     // --- Rate limit ---
     const { success } = await checkRateLimit(`interview:${user.id}`);
     if (!success) return NextResponse.json({ error: 'Too many requests. Try again in an hour.' }, { status: 429 });
@@ -58,21 +75,15 @@ export async function POST(req: NextRequest) {
 
     const userMsg = `Resume:\n${resumeText}\n\nRole: ${role}\nCompany: ${company}${jdText ? `\n\nJob Description:\n${jdText}` : ''}`;
 
-    const message = await getAnthropicClient().messages.create({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 2048,
-      system: INTERVIEW_SYSTEM,
-      messages: [{ role: 'user', content: userMsg }],
+    const result = await route('interview-question', {
+      messages: [
+        { role: 'system', content: INTERVIEW_SYSTEM },
+        { role: 'user', content: userMsg },
+      ],
     });
 
-    const firstBlock = message.content?.[0];
-    const raw = firstBlock?.type === 'text' ? firstBlock.text : '';
-    const cleaned = raw.replace(/^\s*```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '').trim();
-
-    let parsed;
-    try {
-      parsed = JSON.parse(cleaned);
-    } catch {
+    const parsed = extractJson(result.text);
+    if (!parsed || typeof parsed !== 'object') {
       return NextResponse.json({ error: 'AI returned malformed response' }, { status: 500 });
     }
 

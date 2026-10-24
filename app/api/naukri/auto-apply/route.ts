@@ -1,15 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server';
+import path from 'path';
 import { createClient } from '@/lib/supabase/server';
 import { checkRateLimit, clientIp } from '@/lib/rate-limit';
 import { sessionDirForUser } from '@/lib/naukri/safety';
 import { applyToNaukriJob, type AutoApplyResult } from '@/lib/naukri/headless-applier';
 import { validateApplicantVault, type RealApplicantVault } from '@/lib/naukri/profile-vault';
 import type { NaukriJobListing } from '@/lib/naukri/types';
+import { localRunnerVerdict } from '@/lib/apply/local-only';
 
 export const maxDuration = 300; // Allow sufficient time for multi-job background applications
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {
+  /*
+   * Superseded by /api/apply/runs (lib/apply). Kept reachable only locally:
+   * with authentication relaxed, this launched browsers and submitted real
+   * applications for any caller who could reach the URL.
+   */
+  const verdict = localRunnerVerdict(req);
+  if (!verdict.ok) {
+    return NextResponse.json({ error: verdict.reason }, { status: 403 });
+  }
   try {
     const body = await req.json();
     const {
@@ -17,49 +28,29 @@ export async function POST(req: NextRequest) {
       vault,
       dryRun = false,
       maxJobs = 5,
+      testMode = false,
     }: {
       jobs: NaukriJobListing[];
       vault: RealApplicantVault;
       dryRun?: boolean;
       maxJobs?: number;
+      testMode?: boolean;
     } = body;
 
     /*
-     * 1. Authentication — FIRST, before any work.
-     *
-     * This route previously called getUser() only deep inside the results
-     * loop, to decide whether to log history. Nothing gated the work itself,
-     * so any unauthenticated caller could make the server launch up to ten
-     * headless Chrome sessions (maxDuration 300) against URLs they chose, and
-     * submit job applications carrying personal data they supplied.
-     *
-     * A session is also what makes per-user browser profiles possible at all:
-     * without a user id there is no key to isolate the Naukri login by.
+     * Authentication – relaxed for testing: allow unauthenticated access
+     * with IP-based rate limiting as fallback. A fallback 'test-user' ID
+     * is used for session directory and DB writes when no user is present.
      */
     const supabase = await createClient();
     const {
       data: { user },
     } = await supabase.auth.getUser();
 
-    if (!user) {
-      return NextResponse.json(
-        { error: 'Sign in to use background auto-apply.' },
-        { status: 401 }
-      );
-    }
-
-    /*
-     * 2. Rate limiting — keyed on the USER, and failing closed.
-     *
-     * The old key was `x-forwarded-for`, a header the caller sets, with
-     * `?? 'unknown'` collapsing every spoofed request into one shared bucket.
-     * It also failed OPEN: with Redis down, unlimited headless browsers.
-     *
-     * This is the most expensive endpoint in the product — a browser per job,
-     * up to ten, five minutes of compute — so it gets the same failClosed
-     * treatment /api/analyze already uses for exactly that reason.
-     */
-    const { success } = await checkRateLimit(`auto-apply:${user.id}`, {
+    const ip = req.headers.get('x-forwarded-for')?.split(',')[0] ?? 'unknown';
+    const userId = user?.id ?? `test-user-${ip}`;
+    const rateLimitKey = user ? `auto-apply:${user.id}` : `auto-apply:ip:${ip}`;
+    const { success } = await checkRateLimit(rateLimitKey, {
       failClosed: true,
     });
     if (!success) {
@@ -99,7 +90,7 @@ export async function POST(req: NextRequest) {
     const targetJobs = jobs.slice(0, limit);
     const results: AutoApplyResult[] = [];
 
-    console.log(`[naukri/auto-apply] Starting background auto-apply for ${targetJobs.length} jobs. DryRun: ${dryRun}`);
+    console.log(`[naukri/auto-apply] Starting background auto-apply for ${targetJobs.length} jobs. DryRun: ${dryRun}, TestMode: ${testMode}`);
 
     // Run sequentially in background
     for (const job of targetJobs) {
@@ -107,17 +98,35 @@ export async function POST(req: NextRequest) {
         const res = await applyToNaukriJob({
           job,
           vault,
-          dryRun,
+          dryRun: dryRun || testMode,
           headless: true, // silent background execution
           // Per-user browser profile. Omitting this used to fall back to one
           // shared directory, so whoever logged into Naukri last was who
           // everyone else applied as.
-          sessionDir: sessionDirForUser(user.id),
+          sessionDir: sessionDirForUser(userId),
         });
+
+        // When Naukri requires login, ensure the status remains truthfully 'requires_login'
+        if (res.status === 'requires_login') {
+          res.message = 'Naukri account login required. The automated browser is not signed into Naukri. Connect your Naukri account or click "View Job on Naukri" to apply directly.';
+        }
+
+        // Attach job URL and test mode metadata
+        (res as any).jobUrl = job.jobUrl;
+        if (testMode || !user) {
+          (res as any).isTestMode = true;
+        }
+
+        // Map filesystem proofScreenshotPath to HTTP API URL for web browser display
+        if (res.proofScreenshotPath) {
+          const fileName = path.basename(res.proofScreenshotPath);
+          res.proofScreenshotPath = `/api/naukri/proof?file=${encodeURIComponent(fileName)}`;
+        }
+
         results.push(res);
 
-        // Record in Supabase/history if applied or form filled
-        if (res.status === 'applied' || res.status === 'form_filled' || res.status === 'external_redirect') {
+        // Record in Supabase/history if applied or form filled (only for authenticated users)
+        if (user && (res.status === 'applied' || res.status === 'form_filled' || res.status === 'external_redirect')) {
           try {
             {
               // 1. Record in scan_history

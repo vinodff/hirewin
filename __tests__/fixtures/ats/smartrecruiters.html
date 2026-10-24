@@ -1,0 +1,103 @@
+<!--
+  SmartRecruiters posting + one-click application fixture. APPROXIMATION, largely UNVERIFIED.
+  Sources consulted (read only, 2026-09-14): https://api.smartrecruiters.com/v1/companies/smartrecruiters/postings
+  and https://jobs.smartrecruiters.com/smartrecruiters/744000148454651, which redirected to
+  /oneclick-ui/company/smartrecruiters/publication/<uuid> and answered a headless browser with a DataDome
+  challenge iframe (geo.captcha-delivery.com). The application form itself could not be seen, so the fields
+  below are a plausible stand-in: a <form>, contact fields, a resume file input, a required screening
+  <select>, one field rendered inside an open shadow root (the real UI uses web components), and a
+  type=submit button. The "Thank you for applying!" confirmation is a guess.
+  ?mode=success|validation|captcha|silent decides what happens after the POST.
+-->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Acme Corp - Software Engineer</title>
+</head>
+<body>
+<div id="posting" hidden>
+  <h1 class="job-title">Software Engineer</h1>
+  <a id="interested" class="button button--primary" href="/oneclick-ui/company/AcmeCorp/publication/1f0e7a52-0000-4000-8000-000000000001">I'm interested</a>
+</div>
+
+<div id="application" hidden>
+  <main>
+    <h2>Apply for Software Engineer</h2>
+    <form id="oc-form" novalidate>
+      <div class="field"><label for="first-name-input">First name <span aria-hidden="true">*</span></label>
+        <input id="first-name-input" name="firstName" type="text" required></div>
+      <div class="field"><label for="last-name-input">Last name <span aria-hidden="true">*</span></label>
+        <input id="last-name-input" name="lastName" type="text" required></div>
+      <div class="field"><label for="email-input">Email <span aria-hidden="true">*</span></label>
+        <input id="email-input" name="email" type="email" required></div>
+      <div class="field"><label for="confirm-email-input">Confirm your email <span aria-hidden="true">*</span></label>
+        <input id="confirm-email-input" name="confirmEmail" type="email" required></div>
+      <div class="field"><label for="phone-number-input">Phone number</label>
+        <input id="phone-number-input" name="phoneNumber" type="tel"></div>
+      <spl-field id="city-field"></spl-field>
+      <div class="field"><label for="resume-input">Resume <span aria-hidden="true">*</span></label>
+        <input id="resume-input" name="resume" type="file" required></div>
+      <div class="field"><label for="q-ts-years">How many years of TypeScript experience do you have? <span aria-hidden="true">*</span></label>
+        <select id="q-ts-years" name="q_ts_years" required>
+          <option value="">Select</option>
+          <option value="0-1">0-1</option>
+          <option value="2-4">2-4</option>
+          <option value="5+">5+</option>
+        </select></div>
+      <p class="error-message" id="form-error" hidden></p>
+      <button type="submit" data-test="footer-submit">Submit</button>
+    </form>
+  </main>
+</div>
+<script>
+(function () {
+  var MODE = new URLSearchParams(location.search).get('mode') || 'success';
+
+  customElements.define('spl-field', class extends HTMLElement {
+    constructor() {
+      super();
+      var root = this.attachShadow({ mode: 'open' });
+      root.innerHTML = '<div class="field"><label for="city-input">City</label><input id="city-input" name="city" type="text"></div>';
+    }
+  });
+
+  if (!/\/oneclick-ui\//.test(location.pathname)) {
+    document.getElementById('posting').hidden = false;
+    var a = document.getElementById('interested');
+    a.setAttribute('href', a.getAttribute('href') + location.search);
+    return;
+  }
+  document.getElementById('application').hidden = false;
+
+  document.getElementById('oc-form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var form = e.currentTarget;
+    var out = {};
+    form.querySelectorAll('input, select').forEach(function (el) {
+      if (el.type === 'file') out[el.name] = Array.prototype.map.call(el.files, function (f) { return f.name; });
+      else out[el.name] = el.value;
+    });
+    out.city = document.getElementById('city-field').shadowRoot.querySelector('input').value;
+    fetch('/__hw/submit', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(out) })
+      .then(function () {
+        if (MODE === 'success') {
+          history.pushState({}, '', location.pathname + '/confirmation');
+          document.querySelector('main').innerHTML = '<div class="confirmation"><h1>Thank you for applying!</h1><p>Your application has been sent to Acme Corp.</p></div>';
+        } else if (MODE === 'validation') {
+          var p = document.getElementById('form-error');
+          p.textContent = 'Email addresses do not match.';
+          p.hidden = false;
+        } else if (MODE === 'captcha') {
+          var f = document.createElement('iframe');
+          f.src = 'https://geo.captcha-delivery.com/captcha/?initialCid=fixture';
+          f.title = 'DataDome CAPTCHA';
+          f.width = '500'; f.height = '500';
+          document.body.appendChild(f);
+        }
+      });
+  });
+})();
+</script>
+</body>
+</html>

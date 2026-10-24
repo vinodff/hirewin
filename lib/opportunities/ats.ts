@@ -82,9 +82,11 @@ export const ATS_BOARDS: readonly AtsBoard[] = [
   { vendor: 'greenhouse', slug: 'doordashusa', name: 'DoorDash' }, // 4
   { vendor: 'greenhouse', slug: 'anthropic', name: 'Anthropic' }, // 3
   { vendor: 'greenhouse', slug: 'cloudflare', name: 'Cloudflare' }, // 2
+  { vendor: 'greenhouse', slug: 'inmobi', name: 'InMobi' }, // 72
   { vendor: 'greenhouse', slug: 'figma', name: 'Figma' }, // 2
 
   // --- Lever
+  { vendor: 'lever', slug: 'cred', name: 'CRED' }, // 8
   { vendor: 'lever', slug: 'meesho', name: 'Meesho' }, // 44
   { vendor: 'lever', slug: 'mindtickle', name: 'Mindtickle' }, // 18
   { vendor: 'lever', slug: 'fampay', name: 'FamPay' }, // 12

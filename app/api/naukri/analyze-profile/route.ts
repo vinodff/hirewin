@@ -9,21 +9,17 @@ export const dynamic = 'force-dynamic';
 export async function POST(req: NextRequest) {
   try {
     /*
-     * Authentication first. This route reaches a PAID model, so an
-     * unauthenticated caller is an unmetered Anthropic bill with a public
-     * endpoint attached.
+     * Authentication – relaxed for testing: allow unauthenticated access
+     * with IP-based rate limiting as fallback.
      */
     const supabase = await createClient();
     const {
       data: { user },
     } = await supabase.auth.getUser();
-    if (!user) {
-      return NextResponse.json({ error: 'Sign in to use this feature.' }, { status: 401 });
-    }
 
-    // Fails CLOSED: a Redis outage must not turn a paid-model endpoint into
-    // an open bar, which is the rule /api/analyze already follows.
-    const { success } = await checkRateLimit(`naukri-analyze:${user.id}`, { failClosed: true });
+    const ip = req.headers.get('x-forwarded-for')?.split(',')[0] ?? 'unknown';
+    const rateLimitKey = user ? `naukri-analyze:${user.id}` : `naukri-analyze:ip:${ip}`;
+    const { success } = await checkRateLimit(rateLimitKey, { failClosed: true });
     if (!success) {
       return NextResponse.json({ error: 'Too many requests.' }, { status: 429 });
     }

@@ -1,0 +1,157 @@
+<!--
+  TEST FIXTURE. Approximates a signed-in Naukri job page: ids and classes
+  (#apply-button, span.apply-message, li.botItem, .ssrc__radio-btn-container,
+  div.textArea, .sendMsg) come from open-source Naukri bots. UNVERIFIED against
+  a logged-in live page.
+
+  Behaves like the real page where it matters to the applier: clicking Apply
+  sends a real fetch POST to apply-workflow; a questionnaire response opens a
+  chat drawer that asks one question at a time and re-POSTs with applyData;
+  a jobs[0].status=200 response shows the success message.
+-->
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Software Engineer - Acme - 0 to 1 years - Bengaluru - Naukri.com</title>
+  <style>
+    .chatbot_Drawer { position: fixed; right: 0; top: 0; width: 380px; height: 100%; background: #fff; border-left: 1px solid #ccc; overflow: auto; }
+    .sendMsg { display: inline-block; padding: 6px 12px; background: #457eff; color: #fff; cursor: pointer; }
+    .textArea { min-height: 24px; border: 1px solid #ccc; padding: 4px; }
+  </style>
+</head>
+<body>
+  <header><div class="nI-gNb-drawer__icon">Menu</div><a href="/mnjuser/profile">My profile</a></header>
+  <main>
+    <section class="jd-header">
+      <h1>Software Engineer</h1>
+      <a class="company">Acme</a>
+      <div><span>0 - 1 years</span> <span>Not Disclosed</span> <span>Bengaluru</span></div>
+      <div>Posted: 3+ weeks ago | Openings: 1 | Applicants: 100+</div>
+      <div class="apply-button-container">
+        <button id="apply-button" class="apply-button">Apply</button>
+      </div>
+      <span class="apply-message" hidden></span>
+    </section>
+    <section class="job-desc"><p>Build web applications with React and TypeScript.</p></section>
+  </main>
+  <script>
+    (function () {
+      var APPLY_URL = 'https://www.naukri.com/cloudgateway-workflow/workflow-services/apply-workflow/v1/apply';
+      var jobId = (location.pathname.match(/-(\d+)$/) || [])[1] || 'unknown';
+
+      function post(extra) {
+        var body = Object.assign({ strJobsarr: [jobId], chatBotSDK: true, applySrc: 'jd' }, extra || {});
+        return fetch(APPLY_URL, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })
+          .then(function (r) {
+            return r.json().catch(function () { return null; }).then(function (j) { return { status: r.status, json: j }; });
+          });
+      }
+
+      function handle(res) {
+        var job = res.json && res.json.jobs && res.json.jobs[0];
+        if (res.status !== 200 || !job) return;
+        if (job.questionnaire && job.questionnaire.length) return openChatbot(job.questionnaire);
+        if (job.status === 200) success();
+      }
+
+      function success() {
+        var drawer = document.querySelector('.chatbot_Drawer');
+        if (drawer) drawer.remove();
+        var m = document.querySelector('.apply-message');
+        m.hidden = false;
+        m.textContent = 'You have successfully applied to this job.';
+        var b = document.getElementById('apply-button');
+        b.id = 'already-applied';
+        b.textContent = 'Applied';
+        b.disabled = true;
+      }
+
+      function optionsOf(q) {
+        var o = q.answerOption;
+        if (Array.isArray(o)) {
+          return o.map(function (x) { return typeof x === 'object' ? { label: x.label } : { label: String(x) }; });
+        }
+        return Object.keys(o || {}).filter(function (k) { return o[k]; }).map(function (k) { return { label: o[k] }; });
+      }
+
+      function openChatbot(questions) {
+        var drawer = document.createElement('div');
+        drawer.className = 'chatbot_Drawer';
+        drawer.innerHTML =
+          '<div class="chatbot_DrawerContentWrapper">' +
+          '<div class="crossIcon chatBot chatBot-ic-cross" role="button" aria-label="close">x</div>' +
+          '<ul id="chatList_1" class="chatbot_MessageContainer"></ul>' +
+          '<div class="chatbot_InputContainer"></div>' +
+          '<div class="sendMsgbtn_container"><div class="sendMsg" role="button" tabindex="0">Save</div></div>' +
+          '</div>';
+        document.body.appendChild(drawer);
+        var list = drawer.querySelector('ul');
+        var input = drawer.querySelector('.chatbot_InputContainer');
+        var answers = {};
+        var i = 0;
+
+        drawer.querySelector('.crossIcon').addEventListener('click', function () { drawer.remove(); });
+
+        function say(cls, text) {
+          var li = document.createElement('li');
+          li.className = cls + ' chatbot_ListItem';
+          li.innerHTML = '<div class="msg"><div><span></span></div></div>';
+          li.querySelector('span').textContent = text;
+          list.appendChild(li);
+        }
+
+        function ask() {
+          var q = questions[i];
+          say('botItem', q.questionName);
+          input.innerHTML = '';
+          if (q.questionType === 'Text Box') {
+            input.innerHTML = '<div class="textArea" contenteditable="true" data-placeholder="Type message here..."></div>';
+            return;
+          }
+          var type = q.questionType === 'Check Box' ? 'checkbox' : 'radio';
+          optionsOf(q).forEach(function (opt, n) {
+            var wrap = document.createElement('div');
+            wrap.className = type === 'radio' ? 'ssrc__radio-btn-container' : 'mcc__checkbox-container';
+            var id = 'opt_' + i + '_' + n;
+            wrap.innerHTML = '<input type="' + type + '" name="q' + i + '" id="' + id + '"><label for="' + id + '"></label>';
+            wrap.querySelector('input').value = opt.label;
+            wrap.querySelector('label').textContent = opt.label;
+            input.appendChild(wrap);
+          });
+        }
+
+        drawer.querySelector('.sendMsg').addEventListener('click', function () {
+          var q = questions[i];
+          var value;
+          if (q.questionType === 'Text Box') {
+            value = input.querySelector('.textArea').innerText.trim();
+            if (!value) return;
+          } else {
+            value = [].slice.call(input.querySelectorAll('input:checked')).map(function (x) { return x.value; });
+            if (!value.length) return;
+          }
+          answers[q.questionId] = value;
+          say('userItem', Array.isArray(value) ? value.join(', ') : value);
+          i++;
+          if (i < questions.length) {
+            setTimeout(ask, 150);
+          } else {
+            input.innerHTML = '';
+            var applyData = {};
+            applyData[jobId] = { answers: answers };
+            post({ applyData: applyData }).then(handle);
+          }
+        });
+
+        say('botItem', 'Hi, I am here to help with your application. Please answer a few questions from the recruiter.');
+        setTimeout(ask, 150);
+      }
+
+      document.getElementById('apply-button').addEventListener('click', function () {
+        post().then(handle);
+      });
+    })();
+  </script>
+</body>
+</html>

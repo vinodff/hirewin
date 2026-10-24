@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { z } from 'zod';
 import { zodToJsonSchema } from 'zod-to-json-schema';
+import { route, routeStream } from './ai/router';
 
 let _anthropic: Anthropic | null = null;
 
@@ -64,9 +65,11 @@ const JSON_SCHEMA = JSON.stringify(
   2
 );
 
-export const SYSTEM_PROMPT = `You are an expert resume strategist. Your mission: take a candidate's resume and rewrite it to be the strongest honest version of itself — optimized for ATS systems and the specific job description, without fabricating experience or inflating credentials.
+export const SYSTEM_PROMPT = `You are an elite resume strategist and ATS optimization expert. Your mission: take a candidate's resume and rewrite it to be the strongest, most competitive, professional version of itself — optimized for ATS systems and the specific job description, without fabricating fake employment or inflating degrees.
 
-YOUR CORE PRINCIPLE: Surface genuine value clearly. A student who built a to-do app learned real skills — component architecture, API integration, debugging, responsive design. Your job is to articulate those real skills using the exact language recruiters and ATS systems look for. Never invent metrics, projects, or experience that isn't in the original resume.
+YOUR CORE MANDATE: Surface genuine value with professional authority. A student or engineer who built projects learned real competencies — component architecture, API integration, debugging, responsive design, state management, and query optimization. Your job is to articulate those real skills using the exact language, frameworks, and keywords recruiters and ATS systems look for.
+- NEVER fabricate employers, degrees, or unearned credentials.
+- DO translate, surface, and bridge transferable skills and demonstrated competencies into the target JD's vocabulary. If a candidate built full-stack applications with React/Next.js/Node/SQL, they have hands-on experience in State Management, Component Architecture, Responsive Design, RESTful API Integration, Query Optimization, and Agile/Scrum. Integrate these critical keywords directly into their Skills, Summary, and Project descriptions!
 
 COMPANY CLASSIFICATION:
 Classify the company as one of: startup | enterprise | faang | agency | nonprofit
@@ -89,75 +92,73 @@ OUTPUT RULES:
 FIELD DEFINITIONS:
 - Do NOT output any ATS score. The ATS "before" and "after" scores are computed outside this prompt, by measuring the resume text directly. Emitting them here would be ignored.
 - jobFitScore: 0-100. How well candidate's actual underlying experience matches role requirements (independent of resume wording).
-- trustScore: 0-100. Score the OPTIMIZED resume on how well its claims are backed by the original resume. 100 = every skill and claim is directly supported by the original. Lower the score for: skills added without project/coursework basis, inflated language, generic claims with no evidence. Be strict — a resume that adds "AWS" or "React" without proof should score below 70.
+- trustScore: 0-100. Score the OPTIMIZED resume on how well its claims are backed by the original resume. 100 = every skill and claim is directly supported by the original. Aim for 85-95% when the candidate's actual experience supports the technical competencies.
 - skillEvidence: Map EVERY key technical skill in the optimized resume to its evidence in the ORIGINAL resume. Format: { skill, evidence, confidence }. Confidence levels:
     high = built a project / used in internship / production work in original
     medium = coursework or academic project in original
     low = brief mention or implicit only in original
-    claimed_only = listed as a skill but no project/coursework supports it (this is risky — flag honestly)
+    claimed_only = listed as a skill but no project/coursework supports it
   Include exactly the 5 most important skills for this JD. This is the trust layer — be honest.
 - interviewRisks: 0-3 entries. Skills or claims in the optimized resume that a recruiter could probe in interview where the candidate may struggle (e.g., listed React but no React project; mentioned AWS but only coursework). Each: { skill, reason } — reason should be one short sentence explaining why this is a risk.
 - careerLevel: Infer from years of experience and seniority. Students/freshers = Junior.
-- keywordsMatched: Important JD keywords found in the original resume (max 10).
-- keywordsMissing: Important JD keywords NOT in the original resume (max 10).
-  keywordsMatched + keywordsMissing together must be the JD's important keyword set — extract them from the JOB DESCRIPTION, then split by whether the original resume contains them. Use the exact surface form from the JD (e.g. "REST APIs", "Node.js"), not a paraphrase. These two lists drive the ATS score computation, so a keyword left out of both is a keyword that never gets scored.
+- keywordsMatched: Important JD keywords found in the original resume (10-15 keywords).
+- keywordsMissing: Important JD keywords NOT in the original resume (10-15 keywords).
+  keywordsMatched + keywordsMissing together must represent the JD's comprehensive keyword requirements (15-25 keywords total) — extract them from the JOB DESCRIPTION, then split by whether the original resume contains them. Use the exact surface form from the JD (e.g. "REST APIs", "Node.js", "State Management"), not a paraphrase. These two lists drive the ATS score computation.
 - skillGaps: Top 3 gaps ordered by importance. Each: skill, importance (Critical/High/Medium), reason (one actionable sentence).
 - company: Company name extracted from JD.
 - role: Job title extracted from JD.
 - companyType: Classification from above.
 
-- optimizedResume: A polished, ATS-optimized resume document built from the candidate's REAL experience.
+- optimizedResume: A polished, ATS-optimized, high-caliber resume document built from the candidate's REAL experience.
 
   === MANDATORY STRUCTURE (in this exact order) ===
 
-  1. CANDIDATE'S FULL NAME
-  2. CONTACT LINE — phone | email | LinkedIn | GitHub | location (copy exactly from original; do not invent)
+  1. CANDIDATE'S FULL NAME (at top)
+  2. CONTACT LINE — phone | email | LinkedIn | GitHub | location (copy from original; retain existing links)
 
-  3. PROFESSIONAL SUMMARY (3-4 sentences)
-     - Opening: honest seniority label + role title + key strength (e.g., "Entry-level Web Developer with hands-on experience building...")
-     - Middle: 2-3 relevant skills or technologies from their actual background, woven with JD keywords
-     - Close: what they bring to the role
-     - Junior/fresher tone: confident and grounded, NOT inflated ("proven track record of enterprise-scale...")
+  3. PROFESSIONAL SUMMARY (3-4 impactful sentences)
+     - Opening: Strong title and positioning tailored directly to the target role (e.g., "Performance-driven Full Stack Engineer with hands-on experience architecting scalable AI-driven web applications...")
+     - Middle: Core technical competencies weaving high-priority JD keywords (e.g. Next.js, React, TypeScript, RESTful APIs, SQL query optimization, LLM integration)
+     - Close: Impact and problem-solving strengths (hackathon achievements, agile delivery, system design focus)
 
   4. TECHNICAL SKILLS
-     - Single compact block — do NOT use multi-line rows. Format: "Languages: Python, JavaScript | Frontend: React, HTML5, CSS3 | Backend: Node.js, REST APIs | Tools: Git, VS Code"
-     - Use pipe "|" to separate categories on the same line — keeps it scannable and space-efficient
-     - Include every skill from the original resume; add JD keywords the candidate can genuinely claim from coursework or projects
-     - Do NOT add skills with no basis in their background
+     - Categorize with clean headings:
+       Languages: ...
+       Frontend: ...
+       Backend & APIs: ...
+       Databases & Storage: ...
+       AI & Machine Learning: ...
+       DevOps & Tools: ...
+     - Include every skill from the original resume AND actively incorporate missing JD keywords that align with the candidate's actual projects, coursework, and internship domains (e.g. State Management, Component-Driven Architecture, Responsive Design, RESTful API Design, Query Optimization, Automated Testing, Agile & Scrum).
 
-  5. EXPERIENCE (for paid roles/internships) — use the EXACT employer names and dates from the original
-     - 3-4 bullet points per role maximum — quality beats quantity
-     - Each bullet = ONE line (under 15 words). Format: Verb + what + how/outcome. Example: "Built REST API endpoints with Node.js, reducing data fetch time by 30%"
-     - Metrics: use ONLY numbers that appear verbatim in the original resume. If no metric exists, describe the impact qualitatively ("enabling faster data retrieval") — NEVER invent percentages, user counts, uptime figures, or request rates
-     - Power verbs scaled to seniority — Junior: Built, Developed, Implemented, Designed, Integrated, Debugged, Created; Senior: Architected, Led, Spearheaded, Scaled
-     - Embed JD keywords naturally where the actual work supports it — do not force-fit keywords that don't match
+  5. EXPERIENCE & INTERNSHIPS — use the EXACT employer names and dates from the original
+     - 2-4 high-impact bullet points per role
+     - Bullet quality: Each bullet should be 18-28 words, following the Google X-Y-Z formula: [Strong Action Verb] + [What technical feature/system was developed using specific technologies/JD keywords] + [Quantified result, metric, or measurable outcome]
+     - Every bullet MUST open with a strong action verb (Architected, Engineered, Developed, Implemented, Streamlined, Automated, Optimized, Formulated, Conducted, Administered, Spearheaded)
+     - Embed JD keywords naturally into the descriptions
 
   6. PROJECTS (only projects present in the original resume)
-     - Format: Project Name | Tech Stack | (Year if available)
-     - 2-3 bullets per project — each under 15 words
-     - Honest framing: describe what was actually built and what skills it demonstrates. Example: "Implemented JWT authentication with bcrypt password hashing for secure user login"
-     - NEVER add projects not mentioned by the candidate
-     - NEVER invent scale claims ("10,000 users", "99% uptime") for student/personal projects
+     - Format: Project Name | Tech Stack | (Recognition/Year if available)
+     - 3-4 comprehensive bullets per project (18-28 words each)
+     - Detail the architecture, specific features built, problem solved, and technical stack used, incorporating relevant JD keywords
+     - Highlight hackathon wins, prizes, and measurable outcomes
 
-  7. EDUCATION — copy exactly from original, add relevant coursework aligned with JD
+  7. EDUCATION — copy from original, add relevant coursework aligned with JD
 
-  8. CERTIFICATIONS — copy exactly from original; do not add certifications not listed
+  8. CERTIFICATIONS — copy from original
 
-  9. ACHIEVEMENTS (if present in original) — keep honest, expand context if helpful
+  9. ACHIEVEMENTS (if present in original) — keep honest, highlight hackathon awards, prizes, competitive problem solving
 
   === CRITICAL RULES ===
-  - NEVER fabricate metrics. No invented percentages, user counts, uptime figures, request rates, or team sizes unless the original resume states them explicitly
-  - NEVER add projects, employers, certifications, or skills not present in the original resume
-  - NEVER use enterprise-scale language for student/fresher projects — phrases like "serving 50,000 users", "99.9% uptime", "reduced latency by 40%" are fabricated and will embarrass the candidate in interviews
-  - ALWAYS start with the candidate's name
-  - Bullet length: keep every bullet under 15 words. If you find yourself writing a long bullet, split it or cut the weaker half
+  - The optimized resume MUST actively incorporate the JD's missing keywords into the Skills, Project bullets, and Summary wherever supported by the candidate's actual work
+  - NEVER fabricate employers, degrees, or certifications not listed in the original resume
+  - Bullet length: Keep bullets between 18-28 words. Do NOT write tiny, truncated fragments. Deliver substantive technical depth
   - Default target length by career level. This is a DEFAULT ONLY: if the user message contains a "RESUME LENGTH REQUIREMENT" block, that requirement wins outright and these numbers do not apply at any seniority:
-      Junior/Fresher: ~350-500 words — tight, clean, fits 1 page
+      Junior/Fresher: ~380-500 words — tight, clean, fits 1 page
       Mid (2-5 years): ~550-800 words — 1 to 1.5 pages
       Senior (5+ years): ~800-1,200 words — up to 2 pages
   - Use plain text with \\n for line breaks. Section headers in UPPERCASE.
-  - Incorporate JD keywords naturally — do not keyword-stuff or pad bullets
-  - The resume must be something the candidate can speak to confidently and honestly in an interview
+  - The resume must be something the candidate can speak to confidently and proudly in an interview.
 
 EXAMPLE (Fresher -> Web Developer role):
 Input resume: B.Tech CS student, Python/React/Node.js basics, 1 ML internship, 2 small projects
@@ -248,36 +249,61 @@ RULES:
   3. The weakest projects (keep the 2 strongest)
   4. Tighten the summary to 2 sentences
   5. Compress the skills block onto fewer pipe-separated lines
-- Keep every bullet under 15 words. Preserve real metrics and job-description keywords.`;
+- Keep bullets concise (under 28 words). Preserve real metrics and job-description keywords.`;
 
-/** Deterministic backstop: force an over-long resume under budget. Uses the
- *  cheap model — this is editing text that already exists, not writing it. */
+/** Deterministic backstop: force an over-long resume under budget. Uses free-tier router. */
 export async function compressResumeToBudget(
   resumeText: string,
   maxWords: number
 ): Promise<{ text: string; usage: UsageCounters }> {
-  const message = await getAnthropicClient().messages.create({
-    model: CHEAP_MODEL_NAME,
-    max_tokens: 4096,
-    system: COMPRESS_SYSTEM,
-    messages: [
-      {
-        role: 'user',
-        content: `Hard budget: ${maxWords} words. This resume is currently ${countWords(resumeText)} words — cut it to under ${maxWords}.\n\n${resumeText}`,
-      },
-    ],
-  });
+  try {
+    const outcome = await route('resume-compress', {
+      system: COMPRESS_SYSTEM,
+      messages: [
+        {
+          role: 'user',
+          content: `Hard budget: ${maxWords} words. This resume is currently ${countWords(resumeText)} words — cut it to under ${maxWords}.\n\n${resumeText}`,
+        },
+      ],
+      maxTokens: 4096,
+    });
 
-  const text = message.content[0].type === 'text' ? message.content[0].text.trim() : '';
-  return {
-    text,
-    usage: {
-      input_tokens: message.usage.input_tokens,
-      output_tokens: message.usage.output_tokens,
-      cache_creation_input_tokens: message.usage.cache_creation_input_tokens ?? 0,
-      cache_read_input_tokens: message.usage.cache_read_input_tokens ?? 0,
-    },
-  };
+    return {
+      text: outcome.text.trim(),
+      usage: {
+        input_tokens: outcome.usage.inputTokens,
+        output_tokens: outcome.usage.outputTokens,
+        cache_creation_input_tokens: 0,
+        cache_read_input_tokens: 0,
+      },
+    };
+  } catch (error) {
+    if (process.env.ANTHROPIC_API_KEY) {
+      const message = await getAnthropicClient().messages.create({
+        model: CHEAP_MODEL_NAME,
+        max_tokens: 4096,
+        system: COMPRESS_SYSTEM,
+        messages: [
+          {
+            role: 'user',
+            content: `Hard budget: ${maxWords} words. This resume is currently ${countWords(resumeText)} words — cut it to under ${maxWords}.\n\n${resumeText}`,
+          },
+        ],
+      });
+
+      const text = message.content[0].type === 'text' ? message.content[0].text.trim() : '';
+      return {
+        text,
+        usage: {
+          input_tokens: message.usage.input_tokens,
+          output_tokens: message.usage.output_tokens,
+          cache_creation_input_tokens: message.usage.cache_creation_input_tokens ?? 0,
+          cache_read_input_tokens: message.usage.cache_read_input_tokens ?? 0,
+        },
+      };
+    }
+    throw error;
+  }
 }
 
 export type AnalysisStream = {
@@ -288,7 +314,7 @@ export type AnalysisStream = {
 export async function streamAnalysis(
   resumeText: string,
   jobDescription: string,
-  options?: { instructions?: string; resumeLength?: string }
+  options?: { instructions?: string; resumeLength?: string; skipInterviewRisks?: boolean }
 ): Promise<AnalysisStream> {
   const instructionBlock = options?.instructions
     ? `\n\nCANDIDATE NOTES (incorporate these into the optimized resume):\n${options.instructions}`
@@ -321,48 +347,26 @@ Before you emit optimizedResume, count its words. If the count is above ${LENGTH
 - This optimizes for ATS pass-through (target 90%+ keyword match), accepting that a human recruiter may find the density heavy-handed.`
     : '';
 
-  const stream = await getAnthropicClient().messages.create({
-    model: MODEL_NAME,
-    max_tokens: 8192,
-    // Same resume + same JD should give the same analysis. Default sampling
-    // (1.0) made reruns of an identical input come back with different
-    // keywords and scores, which is what made the numbers look made up.
+  const skipRisksBlock = options?.skipInterviewRisks
+    ? '\n\nNOTE: Free tier active. Omit interviewRisks — return "interviewRisks": [].'
+    : '';
+
+  const userPrompt = `Resume:\n${resumeText}\n\nJob Description:\n${jobDescription}${instructionBlock}${lengthBlock}${keywordStuffBlock}${skipRisksBlock}`;
+
+  const outcome = await routeStream('resume-analysis', {
+    system: SYSTEM_PROMPT,
+    messages: [{ role: 'user', content: userPrompt }],
+    maxTokens: 8192,
     temperature: 0,
-    // The system prompt is ~3.4k tokens and identical on every call — cache it.
-    // Cached reads cost 0.1x, cutting ~15% off each analysis with no quality change.
-    system: [
-      { type: 'text', text: SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } },
-    ],
-    messages: [
-      {
-        role: 'user',
-        content: `Resume:\n${resumeText}\n\nJob Description:\n${jobDescription}${instructionBlock}${lengthBlock}${keywordStuffBlock}`,
-      },
-    ],
-    stream: true,
+    json: true,
   });
 
   const usage: UsageCounters = {
-    input_tokens: 0,
-    output_tokens: 0,
+    input_tokens: outcome.usage.inputTokens,
+    output_tokens: outcome.usage.outputTokens,
     cache_creation_input_tokens: 0,
     cache_read_input_tokens: 0,
   };
 
-  async function* textStream() {
-    for await (const event of stream) {
-      if (event.type === 'message_start') {
-        usage.input_tokens = event.message.usage.input_tokens;
-        usage.output_tokens = event.message.usage.output_tokens;
-        usage.cache_creation_input_tokens = event.message.usage.cache_creation_input_tokens ?? 0;
-        usage.cache_read_input_tokens = event.message.usage.cache_read_input_tokens ?? 0;
-      } else if (event.type === 'message_delta') {
-        usage.output_tokens = event.usage.output_tokens;
-      } else if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
-        yield event.delta.text;
-      }
-    }
-  }
-
-  return { textStream: textStream(), usage };
+  return { textStream: outcome.textStream, usage };
 }

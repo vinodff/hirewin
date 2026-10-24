@@ -1,3 +1,4 @@
+import { describe, it } from 'vitest';
 import assert from 'node:assert/strict';
 import { scoreResume } from './ats-score';
 
@@ -115,4 +116,8 @@ function run() {
   console.log(`ok — raw ${rawScore}, optimized ${a}, gain +${a - rawScore}`);
 }
 
-run();
+describe('scoreResume in lib', () => {
+  it('evaluates ats score correctly', () => {
+    run();
+  });
+});

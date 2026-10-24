@@ -1,0 +1,42 @@
+<!--
+  TEST FIXTURE. Approximates a Naukri job page seen by a signed-out visitor,
+  modelled on a real screenshot: header Login / Register, and "Continue with
+  Google" in the apply slot. Ids (#login_Layer, #register_Layer) are from
+  Naukri's header as reported by open-source bots. UNVERIFIED against a live page.
+
+  The zero-size #apply-button mirrors the placeholder the existing headless
+  applier observed; if it were ever clicked it would POST, which the test
+  counts to prove nothing was sent.
+-->
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Software Engineer - Acme - 0 to 1 years - Bengaluru - Naukri.com</title>
+</head>
+<body>
+  <header>
+    <a id="login_Layer" href="/nlogin/login">Login</a>
+    <a id="register_Layer" href="/registration/createAccount">Register</a>
+  </header>
+  <main>
+    <section class="jd-header">
+      <h1>Software Engineer</h1>
+      <a class="company">Acme</a>
+      <div><span>0 - 1 years</span> <span>Not Disclosed</span> <span>Bengaluru</span></div>
+      <div>Posted: 3+ weeks ago | Openings: 1 | Applicants: 100+</div>
+      <div class="apply-button-container">
+        <button id="continue-with-google-button">Continue with Google</button>
+        <button id="apply-button" style="width:0;height:0;padding:0;border:0;overflow:hidden"></button>
+      </div>
+    </section>
+  </main>
+  <script>
+    document.getElementById('apply-button').addEventListener('click', function () {
+      fetch('https://www.naukri.com/cloudgateway-workflow/workflow-services/apply-workflow/v1/apply', {
+        method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ strJobsarr: ['120626505274'] })
+      });
+    });
+  </script>
+</body>
+</html>

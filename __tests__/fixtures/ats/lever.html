@@ -1,0 +1,197 @@
+<!--
+  Lever posting / apply / thanks fixture (one file, branch on location.pathname). APPROXIMATION of real markup.
+  Source consulted: https://jobs.lever.co/palantir/ac978161-6f46-4f6b-ad9e-a258e642751c/apply (rendered DOM, read only, 2026-09-14).
+  Kept from the live page: form#application-form (multipart POST), li.application-question with a wrapping
+  <label> whose first child div.application-label holds the text and span.required "✱"; input[name=resume]
+  file inside an <a> button; name/email/phone/location/org inputs; urls[LinkedIn]; custom cards with checkbox
+  and radio groups sharing a name and a native <select>; a marketing consent checkbox; invisible hCaptcha
+  iframes (visibility:hidden) present on load; button#btn-submit (type=button, "Submit application").
+  The /thanks page ("Application submitted!") was NOT seen live; it is a guess.
+  ?mode=success|validation|captcha|silent decides what happens after the POST.
+-->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Acme - Software Engineer</title>
+</head>
+<body>
+<div id="posting" hidden>
+  <div class="posting-headline"><h2>Software Engineer</h2></div>
+  <div class="postings-btn-wrapper"><a class="postings-btn template-btn-submit" id="apply-link" href="apply">Apply for this job</a></div>
+</div>
+
+<div id="thanks" hidden>
+  <div class="section page-centered" data-qa="msg-submit-success">
+    <h3>Application submitted!</h3>
+    <p>Thank you for your application. We'll be in touch.</p>
+  </div>
+</div>
+
+<div id="apply" hidden>
+<form id="application-form" enctype="multipart/form-data" method="POST">
+  <div class="section page-centered application-form">
+    <h4>Submit your application</h4>
+    <ul>
+      <li class="application-question resume">
+        <label>
+          <div class="application-label">Resume/CV <span class="required">✱</span></div>
+          <div class="application-field">
+            <a href="#" class="postings-btn template-btn-utility visible-resume-upload">
+              <span class="default-label">ATTACH RESUME/CV</span>
+              <input class="application-file-input invisible-resume-upload" data-qa="input-resume" id="resume-upload-input" name="resume" tabindex="-1" type="file" style="opacity:0;width:1px;height:1px">
+            </a>
+          </div>
+        </label>
+      </li>
+      <li class="application-question">
+        <label><div class="application-label">Full name<span class="required">✱</span></div>
+        <div class="application-field"><input type="text" data-qa="name-input" name="name" required=""></div></label>
+      </li>
+      <li class="application-question">
+        <label><div class="application-label">Email<span class="required">✱</span></div>
+        <div class="application-field"><input name="email" data-qa="email-input" type="email" required=""></div></label>
+      </li>
+      <li class="application-question">
+        <label><div class="application-label">Phone </div>
+        <div class="application-field"><input type="text" data-qa="phone-input" name="phone"></div></label>
+      </li>
+      <li class="application-question" data-qa="structured-contact-location-question">
+        <label><div class="application-label">Current location <span class="required">✱</span></div>
+        <div class="application-field">
+          <input class="location-input" data-qa="location-input" id="location-input" type="text" maxlength="100" name="location" required="">
+          <input id="selected-location" type="hidden" name="selectedLocation">
+          <div class="dropdown-container"><div class="dropdown-no-results" style="display:none">No location found. Try entering a different location</div></div>
+        </div></label>
+      </li>
+      <li class="application-question">
+        <label><div class="application-label">Current company </div>
+        <div class="application-field"><input type="text" data-qa="org-input" name="org"></div></label>
+      </li>
+    </ul>
+  </div>
+  <div class="section page-centered application-form">
+    <h4>Links</h4>
+    <ul>
+      <li class="application-question">
+        <label><div class="application-label">LinkedIn URL</div>
+        <div class="application-field"><input type="text" name="urls[LinkedIn]"></div></label>
+      </li>
+    </ul>
+  </div>
+  <div class="section page-centered application-form" data-qa="additional-cards">
+    <h4 data-qa="card-name">Supplementary Questions</h4>
+    <input type="hidden" value="{}" name="cards[a69a][baseTemplate]">
+    <ul>
+      <li class="application-question custom-question"><div>
+        <div class="application-label full-width multiple-select"><div class="text">Language Skill(s) (Check all that apply)<span class="required">✱</span></div></div>
+        <div class="application-field full-width required-field">
+          <ul data-qa="checkboxes">
+            <li><label><input type="checkbox" name="cards[a69a][field0]" value="English (ENG)" required=""><span class="application-answer-alternative">English (ENG)</span></label></li>
+            <li><label><input type="checkbox" name="cards[a69a][field0]" value="Hindi (HIN)" required=""><span class="application-answer-alternative">Hindi (HIN)</span></label></li>
+            <li><label><input type="checkbox" name="cards[a69a][field0]" value="Telugu (TEL)" required=""><span class="application-answer-alternative">Telugu (TEL)</span></label></li>
+          </ul>
+        </div>
+      </div></li>
+      <li class="application-question custom-question"><div>
+        <div class="application-label full-width text"><div class="text">Preferred Name | What would you like us to call you?</div></div>
+        <div class="application-field full-width"><input class="card-field-input" type="text" placeholder="Type your response" value="" name="cards[a69a][field1]"></div>
+      </div></li>
+    </ul>
+  </div>
+  <div class="section page-centered application-form" data-qa="additional-cards">
+    <h4 data-qa="card-name">Work Authorization</h4>
+    <ul>
+      <li class="application-question custom-question"><div>
+        <div class="application-label full-width multiple-choice"><div class="text">Are you legally authorized to work in the country for which you are applying?<span class="required">✱</span></div></div>
+        <div class="application-field full-width required-field">
+          <ul data-qa="multiple-choice">
+            <li><label><input type="radio" name="cards[1c71][field0]" value="Yes" required="required"><span class="application-answer-alternative">Yes</span></label></li>
+            <li><label><input type="radio" name="cards[1c71][field0]" value="No" required="required"><span class="application-answer-alternative">No</span></label></li>
+          </ul>
+        </div>
+      </div></li>
+    </ul>
+  </div>
+  <div class="section page-centered application-form" data-qa="additional-cards">
+    <h4 data-qa="card-name">University</h4>
+    <ul>
+      <li class="application-question custom-question"><div>
+        <div class="application-label full-width dropdown"><div class="text">Which university are you currently attending or did you last attend?<span class="required">✱</span></div></div>
+        <div class="application-field full-width required-field">
+          <select name="cards[3da5][field0]" required="">
+            <option value="">Click Here</option>
+            <option value="Anna University">Anna University</option>
+            <option value="Andhra University">Andhra University</option>
+            <option value="Other (School Not Listed)">Other (School Not Listed)</option>
+          </select>
+        </div>
+      </div></li>
+    </ul>
+  </div>
+  <div class="section page-centered application-form" data-qa="consent-section">
+    <ul><li class="application-question"><div class="application-field">
+      <label><input type="checkbox" name="consent[marketing]" value="1"><span>Acme has my consent to contact me about future job opportunities.</span></label>
+      <input type="hidden" name="consent[marketing]" value="0">
+    </div></li></ul>
+  </div>
+  <input id="hcaptchaResponseInput" type="hidden" name="h-captcha-response" value="">
+  <div id="h-captcha" class="h-captcha" data-sitekey="fixture">
+    <iframe id="hcaptcha-frame" title="Widget containing checkbox for hCaptcha security challenge" src="https://newassets.hcaptcha.com/captcha/v1/fixture/static/hcaptcha-enclave.html" style="position:fixed;top:0;left:0;width:100%;height:100%;visibility:hidden"></iframe>
+  </div>
+  <div class="section page-centered last-section-apply">
+    <div class="application-error" role="alert" style="display:none"></div>
+    <button id="btn-submit" type="button" class="postings-btn template-btn-submit black" data-qa="btn-submit">Submit application</button>
+  </div>
+</form>
+</div>
+
+<script>
+(function () {
+  var MODE = new URLSearchParams(location.search).get('mode') || 'success';
+  var path = location.pathname.replace(/\/+$/, '');
+  var base = path.split('/').filter(Boolean).slice(0, 2).join('/');
+  if (/\/thanks$/.test(path)) { document.getElementById('thanks').hidden = false; return; }
+  if (!/\/apply$/.test(path)) {
+    document.getElementById('posting').hidden = false;
+    document.getElementById('apply-link').setAttribute('href', '/' + base + '/apply' + location.search);
+    return;
+  }
+  document.getElementById('apply').hidden = false;
+
+  function collect(form) {
+    var out = {};
+    form.querySelectorAll('input, select, textarea').forEach(function (el) {
+      if (!el.name || el.type === 'hidden') return;
+      if (el.type === 'file') { out[el.name] = Array.prototype.map.call(el.files, function (f) { return f.name; }); return; }
+      if (el.type === 'checkbox' || el.type === 'radio') {
+        if (el.checked) (out[el.name] = out[el.name] || []).push(el.value);
+        return;
+      }
+      out[el.name] = el.value;
+    });
+    return out;
+  }
+
+  document.getElementById('btn-submit').addEventListener('click', function () {
+    var form = document.getElementById('application-form');
+    fetch('/__hw/submit', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(collect(form)) })
+      .then(function () {
+        if (MODE === 'success') {
+          location.href = '/' + base + '/thanks';
+        } else if (MODE === 'validation') {
+          var err = document.querySelector('.application-error');
+          err.textContent = 'Please fill out a valid phone number.';
+          err.className = 'application-error error-message';
+          err.style.display = 'block';
+        } else if (MODE === 'captcha') {
+          var frame = document.getElementById('hcaptcha-frame');
+          frame.title = 'Main content of the hCaptcha challenge';
+          frame.style.visibility = 'visible';
+        }
+      });
+  });
+})();
+</script>
+</body>
+</html>

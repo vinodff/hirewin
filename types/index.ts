@@ -346,7 +346,7 @@ export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
 // SSE event types from /api/analyze
 export type SSEEvent =
   | { type: 'field'; field: keyof AnalysisResult; value: unknown }
-  | { type: 'complete'; versionId: string; result: AnalysisResult; originalResume: string }
+  | { type: 'complete'; versionId: string; result: AnalysisResult; originalResume: string; isPaid?: boolean }
   | { type: 'error'; message: string };
 
 // SSE event types from /api/evaluate (deep evaluation)

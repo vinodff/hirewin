@@ -1,0 +1,151 @@
+<!--
+  Workday posting / apply / wizard fixture (one file, branch on location.pathname). APPROXIMATION.
+  Sources consulted (read only, 2026-09-14): https://nvidia.wd5.myworkdayjobs.com/en-US/NVIDIAExternalCareerSite/job/Israel-Yokneam/Mechanical-Hardware-Design-Engineer--IC-Product_JR2020215
+  and its /apply and /apply/applyManually pages. Kept from the live pages: a[data-automation-id="adventureButton"]
+  → /apply; div[data-automation-id="applyAdventurePage"] offering applyManually / autofillWithResume /
+  useMyLastApplication; applyManually → div[data-automation-id="applyFlowPage"] whose progressBarActiveStep is
+  "Create Account/Sign In". ?mode=account reproduces that gate.
+  NOT seen live (needs an account): the signed-in / guest wizard. The "My Information" step below follows
+  Workday's data-automation-id conventions (formField-*, button[aria-haspopup=listbox] dropdowns with a
+  role=listbox popup, pageFooterNextButton "Save and Continue" / "Submit", errorMessage) and the
+  "Application Submitted" dialog is a guess.
+  ?mode=success|validation|captcha|silent decides what happens after the final POST.
+-->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Software Engineer</title>
+<style>[data-automation-widget="wd-popup"] { border:1px solid #333; background:#fff; }</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+(function () {
+  var MODE = new URLSearchParams(location.search).get('mode') || 'success';
+  var q = location.search;
+  var path = location.pathname.replace(/\/+$/, '');
+  var app = document.getElementById('app');
+  var jobBase = path.replace(/\/apply(\/applyManually)?$/, '');
+
+  function progress(active) {
+    var steps = ['My Information', 'Application Questions', 'Review'];
+    if (active === 'Create Account/Sign In') steps = ['Create Account/Sign In', 'My Information', 'Review'];
+    return '<ol data-automation-id="progressBar">' + steps.map(function (s) {
+      return '<li data-automation-id="' + (s === active ? 'progressBarActiveStep' : 'progressBarInactiveStep') + '"><label>' + s + '</label></li>';
+    }).join('') + '</ol>';
+  }
+
+  if (/\/apply\/applyManually$/.test(path)) {
+    app.innerHTML =
+      '<div data-automation-id="applyFlowPage"><h2 data-automation-id="jobTitleHeading">Software Engineer</h2>' +
+      progress('Create Account/Sign In') +
+      '<div data-automation-id="signInContent"><h2>Sign In</h2>' +
+      '<label for="si-email">Email Address</label><input id="si-email" type="text" data-automation-id="email">' +
+      '<label for="si-pass">Password</label><input id="si-pass" type="password" data-automation-id="password">' +
+      '<button data-automation-id="signInSubmitButton">Sign In</button>' +
+      '<button data-automation-id="createAccountLink">Create Account</button></div></div>';
+    return;
+  }
+
+  if (/\/apply$/.test(path) && MODE === 'account') {
+    app.innerHTML =
+      '<div data-automation-id="applyAdventurePage"><h2>Start Your Application</h2>' +
+      '<a role="button" data-automation-id="autofillWithResume" href="' + path + '/autofillWithResume' + q + '">Autofill with Resume</a>' +
+      '<a role="button" data-automation-id="applyManually" href="' + path + '/applyManually' + q + '">Apply Manually</a>' +
+      '<a role="button" data-automation-id="useMyLastApplication" href="' + path + '/useMyLastApplication' + q + '">Use My Last Application</a></div>';
+    return;
+  }
+
+  if (!/\/apply$/.test(path)) {
+    app.innerHTML =
+      '<div data-automation-id="jobPostingPage"><h2 data-automation-id="jobPostingHeader">Software Engineer</h2>' +
+      '<a href="' + jobBase + '/apply' + q + '" role="button" data-automation-id="adventureButton">Apply</a>' +
+      '<div data-automation-id="jobPostingDescription"><p>Build things.</p></div></div>';
+    return;
+  }
+
+  // Guest wizard (no account required on this tenant).
+  var values = {};
+  function field(id, label, required, input) {
+    return '<div data-automation-id="formField-' + id + '"><label for="' + id + '">' + label +
+      (required ? '<abbr title="required">*</abbr>' : '') + '</label>' + input + '</div>';
+  }
+  function stepOne() {
+    app.innerHTML =
+      '<div data-automation-id="applyFlowPage"><h2 data-automation-id="jobTitleHeading">Software Engineer</h2>' + progress('My Information') +
+      '<div data-automation-id="applyFlowMyInfoPage">' +
+      field('source', 'How Did You Hear About Us?', true,
+        '<button type="button" id="source" aria-haspopup="listbox" aria-label="How Did You Hear About Us? Select One Required">Select One</button>') +
+      field('legalNameSection_firstName', 'First Name', true, '<input type="text" id="legalNameSection_firstName" aria-required="true" data-automation-id="legalNameSection_firstName">') +
+      field('legalNameSection_lastName', 'Last Name', true, '<input type="text" id="legalNameSection_lastName" aria-required="true" data-automation-id="legalNameSection_lastName">') +
+      field('email', 'Email Address', true, '<input type="text" id="email" aria-required="true" data-automation-id="email">') +
+      field('phone-number', 'Phone Number', true, '<input type="text" id="phone-number" aria-required="true" data-automation-id="phone-number">') +
+      '<div data-automation-id="errorMessage" id="step-error" hidden></div>' +
+      '</div><div data-automation-id="pageFooter"><button data-automation-id="pageFooterNextButton" id="next">Save and Continue</button></div></div>';
+
+    var btn = document.getElementById('source');
+    var popup = null;
+    function close() { if (popup) { popup.remove(); popup = null; } btn.setAttribute('aria-expanded', 'false'); }
+    btn.addEventListener('click', function () {
+      if (popup) { close(); return; }
+      popup = document.createElement('div');
+      popup.setAttribute('data-automation-widget', 'wd-popup');
+      popup.innerHTML = '<ul role="listbox">' + ['Job Board', 'LinkedIn', 'Referral'].map(function (o) {
+        return '<li role="option" data-automation-label="' + o + '"><div>' + o + '</div></li>';
+      }).join('') + '</ul>';
+      popup.querySelectorAll('[role="option"]').forEach(function (li) {
+        li.addEventListener('click', function () { btn.textContent = li.textContent; values.source = li.textContent; close(); });
+      });
+      document.body.appendChild(popup);
+      btn.setAttribute('aria-expanded', 'true');
+    });
+    btn.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(); });
+
+    document.getElementById('next').addEventListener('click', function () {
+      ['legalNameSection_firstName', 'legalNameSection_lastName', 'email', 'phone-number'].forEach(function (id) {
+        values[id] = document.getElementById(id).value;
+      });
+      var missing = !values.source || !values.email;
+      if (missing) {
+        var err = document.getElementById('step-error');
+        err.textContent = 'Error: The field How Did You Hear About Us? is required and must have a value.';
+        err.hidden = false;
+        return;
+      }
+      setTimeout(stepTwo, 200);
+    });
+  }
+  function stepTwo() {
+    app.innerHTML =
+      '<div data-automation-id="applyFlowPage"><h2 data-automation-id="jobTitleHeading">Software Engineer</h2>' + progress('Review') +
+      '<div data-automation-id="applyFlowReviewPage">' +
+      field('relocate', 'Are you willing to relocate?', true,
+        '<select id="relocate" aria-required="true"><option value="">Select One</option><option value="Yes">Yes</option><option value="No">No</option></select>') +
+      '<div data-automation-id="errorMessage" id="final-error" hidden></div>' +
+      '</div><div data-automation-id="pageFooter"><button data-automation-id="pageFooterNextButton" id="submit">Submit</button></div></div>';
+    document.getElementById('submit').addEventListener('click', function () {
+      values.relocate = document.getElementById('relocate').value;
+      fetch('/__hw/submit', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(values) })
+        .then(function () {
+          if (MODE === 'success') {
+            app.innerHTML = '<div role="dialog" data-automation-id="congratulationsPopup"><h2>Application Submitted</h2><p>Thank you for applying.</p></div>';
+          } else if (MODE === 'validation') {
+            var err = document.getElementById('final-error');
+            err.textContent = 'Error: Phone Number - Enter a valid phone number.';
+            err.hidden = false;
+          } else if (MODE === 'captcha') {
+            var f = document.createElement('iframe');
+            f.src = 'https://www.google.com/recaptcha/api2/bframe?k=fixture';
+            f.title = 'recaptcha challenge expires in two minutes';
+            f.width = '400'; f.height = '580';
+            document.body.appendChild(f);
+          }
+        });
+    });
+  }
+  stepOne();
+})();
+</script>
+</body>
+</html>

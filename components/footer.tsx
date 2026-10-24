@@ -33,7 +33,7 @@ export default function Footer() {
             <Link href="/" className="flex items-center gap-1.5 mb-3">
               <img src="/logo.png" alt="HireWin" className="w-6 h-6 object-contain" />
               <span className="font-bold text-white text-sm">
-                Hire<span style={{ background: 'linear-gradient(135deg,var(--accent-soft),#60a5fa)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Win</span>
+                Hire<span className="text-emerald-400 font-black">Win</span>
               </span>
             </Link>
             <p className="text-xs text-slate-500 leading-relaxed max-w-[180px]">

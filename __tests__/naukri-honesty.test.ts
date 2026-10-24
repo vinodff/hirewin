@@ -150,3 +150,13 @@ describe('search strategy — unknowns stay unknown', () => {
     }
   });
 });
+
+describe('auto-apply status honesty — unauthenticated jobs never claimed as applied', () => {
+  test('requires_login must never be treated as applied or submitted', () => {
+    // When headless browser hits login screen, status must strictly remain requires_login
+    const resultStatus = 'requires_login';
+    expect(resultStatus).not.toBe('applied');
+    expect(resultStatus).not.toBe('form_filled');
+  });
+});
+

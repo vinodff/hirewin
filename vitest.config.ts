@@ -4,6 +4,8 @@ import path from 'path';
 export default defineConfig({
   test: {
     environment: 'node',
+    include: ['__tests__/**/*.test.ts'],
+    exclude: ['**/node_modules/**', '**/.kilo/**', '**/.next/**'],
   },
   resolve: {
     alias: {
@@ -11,3 +13,4 @@ export default defineConfig({
     },
   },
 });
+

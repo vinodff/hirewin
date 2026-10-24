@@ -1,111 +1,145 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 
 /**
- * Multi-layer cinematic background:
- *  - Deep gradient base
- *  - Animated aurora ribbons (CSS-only)
- *  - Floating geometric shapes
- *  - Cursor-following spotlight
- *  - Subtle grid pulse
+ * Dynamic, GPU-accelerated cinematic background substrate:
+ *  - Deep dark obsidian/slate base (#080C0F)
+ *  - Dynamic floating ambient light beams (smooth CSS transforms)
+ *  - Subtle technical grid with periodic scanning radar sweep
+ *  - Interactive mouse spotlight for desktop (disabled on touch)
+ *  - Tactile film grain overlay
  *
- * All layers are pointer-events:none and fixed so they never block UI.
+ * All layers are pointer-events:none and hardware-accelerated.
  */
 export default function CinematicBackground() {
-  const spotRef = useRef<HTMLDivElement>(null);
+  const spotlightRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    let raf = 0;
-    let tx = 0, ty = 0, cx = 0, cy = 0;
-
-    function onMove(e: MouseEvent) {
-      tx = e.clientX;
-      ty = e.clientY;
+    // Only run mouse spotlight on pointer-capable devices
+    if (typeof window === 'undefined' || !window.matchMedia('(pointer: fine)').matches) {
+      return;
     }
 
-    function tick() {
-      cx += (tx - cx) * 0.08;
-      cy += (ty - cy) * 0.08;
-      if (spotRef.current) {
-        spotRef.current.style.transform = `translate(${cx - 300}px, ${cy - 300}px)`;
+    let rafId = 0;
+    let targetX = -999;
+    let targetY = -999;
+    let currentX = -999;
+    let currentY = -999;
+
+    function handleMouseMove(e: MouseEvent) {
+      targetX = e.clientX;
+      targetY = e.clientY;
+    }
+
+    function animateSpotlight() {
+      if (targetX !== -999) {
+        // Smooth lerp (linear interpolation)
+        currentX += (targetX - currentX) * 0.08;
+        currentY += (targetY - currentY) * 0.08;
+
+        if (spotlightRef.current) {
+          spotlightRef.current.style.transform = `translate3d(${currentX - 350}px, ${currentY - 350}px, 0)`;
+        }
       }
-      raf = requestAnimationFrame(tick);
+      rafId = requestAnimationFrame(animateSpotlight);
     }
 
-    window.addEventListener('mousemove', onMove, { passive: true });
-    raf = requestAnimationFrame(tick);
+    window.addEventListener('mousemove', handleMouseMove, { passive: true });
+    rafId = requestAnimationFrame(animateSpotlight);
 
     return () => {
-      cancelAnimationFrame(raf);
-      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mousemove', handleMouseMove);
+      cancelAnimationFrame(rafId);
     };
   }, []);
 
   return (
     <div className="fixed inset-0 pointer-events-none overflow-hidden -z-10" aria-hidden="true">
-      {/* Base gradient */}
-      <div className="absolute inset-0"
+      {/* ── 1 · Base Deep Ground ──────────────────────────────────────── */}
+      <div 
+        className="absolute inset-0"
         style={{
-          background: 'radial-gradient(ellipse at top, #0e1530 0%, var(--ground) 50%, #050810 100%)',
-        }} />
+          background: 'radial-gradient(ellipse 100% 70% at 50% 0%, #0D1620 0%, var(--ground) 60%, #05080B 100%)',
+        }} 
+      />
 
-      {/* Animated grid */}
-      <div className="absolute inset-0 opacity-[0.06]"
+      {/* ── 2 · Dynamic Floating Ambient Light Beams (CSS Keyframes) ─── */}
+      <div className="absolute inset-0 overflow-hidden">
+        {/* Primary Emerald Aurora Orb */}
+        <div 
+          className="absolute -top-32 -left-32 w-[600px] h-[600px] rounded-full blur-[120px] opacity-25 animate-drift-slow"
+          style={{
+            background: 'radial-gradient(circle, rgba(16, 185, 129, 0.28) 0%, rgba(5, 150, 105, 0.12) 50%, transparent 75%)',
+            willChange: 'transform',
+          }}
+        />
+
+        {/* Secondary Deep Cyan Beam */}
+        <div 
+          className="absolute top-10 -right-40 w-[550px] h-[550px] rounded-full blur-[130px] opacity-20 animate-drift-reverse"
+          style={{
+            background: 'radial-gradient(circle, rgba(14, 165, 233, 0.24) 0%, rgba(56, 189, 248, 0.10) 50%, transparent 75%)',
+            willChange: 'transform',
+          }}
+        />
+
+        {/* Tertiary Subtle Teal Core */}
+        <div 
+          className="absolute top-[45%] left-[25%] w-[480px] h-[480px] rounded-full blur-[140px] opacity-15 animate-pulse-slow"
+          style={{
+            background: 'radial-gradient(circle, rgba(20, 184, 166, 0.20) 0%, transparent 70%)',
+            willChange: 'transform, opacity',
+          }}
+        />
+      </div>
+
+      {/* ── 3 · Architectural Fine Hairline Grid ──────────────────────── */}
+      <div 
+        className="absolute inset-0 opacity-[0.04]"
         style={{
           backgroundImage:
-            'linear-gradient(rgba(148,163,184,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(148,163,184,0.5) 1px, transparent 1px)',
-          backgroundSize: '64px 64px',
-          maskImage: 'radial-gradient(ellipse at center, black 30%, transparent 80%)',
-          WebkitMaskImage: 'radial-gradient(ellipse at center, black 30%, transparent 80%)',
-          animation: 'grid-drift 30s linear infinite',
-        }} />
+            'linear-gradient(rgba(255,255,255,0.45) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.45) 1px, transparent 1px)',
+          backgroundSize: '48px 48px',
+          maskImage: 'radial-gradient(ellipse at center, black 35%, transparent 85%)',
+          WebkitMaskImage: 'radial-gradient(ellipse at center, black 35%, transparent 85%)',
+        }} 
+      />
 
-      {/* Aurora ribbons */}
-      <div className="absolute inset-0">
-        <div className="aurora aurora-1" />
-        <div className="aurora aurora-2" />
-        <div className="aurora aurora-3" />
-      </div>
-
-      {/* Floating shapes */}
-      <div className="absolute inset-0">
-        {[
-          { size: 240, top: '12%', left: '8%',  hue: 'rgba(var(--accent-rgb), 0.18)', delay: '0s',  dur: '22s' },
-          { size: 180, top: '20%', right: '12%', hue: 'rgba(var(--accent-rgb), 0.16)', delay: '-7s', dur: '26s' },
-          { size: 320, bottom:'8%', left: '18%', hue: 'rgba(var(--accent-soft-rgb), 0.14)', delay: '-14s', dur: '28s' },
-          { size: 200, bottom:'18%', right: '6%', hue: 'rgba(52,211,153,0.12)', delay: '-3s', dur: '24s' },
-          { size: 150, top: '55%', left: '45%', hue: 'rgba(244,114,182,0.10)', delay: '-10s', dur: '32s' },
-        ].map((s, i) => (
-          <div key={i}
-            className="absolute rounded-full blur-3xl"
-            style={{
-              width: s.size, height: s.size,
-              ...s,
-              background: `radial-gradient(circle, ${s.hue}, transparent 70%)`,
-              animation: `float-drift ${s.dur} ease-in-out ${s.delay} infinite`,
-              willChange: 'transform',
-            }} />
-        ))}
-      </div>
-
-      {/* Cursor-following spotlight */}
-      <div ref={spotRef}
-        className="absolute w-[600px] h-[600px] rounded-full will-change-transform"
+      {/* ── 4 · Technical Radar Scanner Beam ──────────────────────────── */}
+      <div 
+        className="absolute inset-x-0 h-40 opacity-20 animate-scan-sweep pointer-events-none"
         style={{
-          background: 'radial-gradient(circle, rgba(var(--accent-rgb), 0.07), transparent 65%)',
-          transform: 'translate(-9999px,-9999px)',
-        }} />
+          background: 'linear-gradient(180deg, transparent 0%, rgba(16, 185, 129, 0.08) 50%, rgba(52, 211, 153, 0.18) 98%, #10B981 100%)',
+          maskImage: 'linear-gradient(90deg, transparent 5%, black 50%, transparent 95%)',
+          WebkitMaskImage: 'linear-gradient(90deg, transparent 5%, black 50%, transparent 95%)',
+        }}
+      />
 
-      {/* Top vignette to keep nav readable */}
-      <div className="absolute top-0 inset-x-0 h-32 pointer-events-none"
-        style={{ background: 'linear-gradient(180deg, rgba(8,13,26,0.5), transparent)' }} />
-
-      {/* Noise overlay (premium texture) */}
-      <div className="absolute inset-0 opacity-[0.03] mix-blend-overlay"
+      {/* ── 5 · Interactive Desktop Cursor Spotlight ─────────────────── */}
+      <div 
+        ref={spotlightRef}
+        className="absolute w-[700px] h-[700px] rounded-full pointer-events-none hidden md:block"
         style={{
-          backgroundImage: `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='0.7'/></svg>")`,
-        }} />
+          background: 'radial-gradient(circle 350px at center, rgba(16, 185, 129, 0.07) 0%, rgba(14, 165, 233, 0.03) 40%, transparent 70%)',
+          transform: 'translate3d(-9999px, -9999px, 0)',
+          willChange: 'transform',
+        }}
+      />
+
+      {/* ── 6 · Top Vignette for Nav Contrast ─────────────────────────── */}
+      <div 
+        className="absolute top-0 inset-x-0 h-28 pointer-events-none"
+        style={{ background: 'linear-gradient(180deg, rgba(8,12,15,0.85) 0%, transparent 100%)' }} 
+      />
+
+      {/* ── 7 · Subtle Tactile Noise Grain ───────────────────────────── */}
+      <div 
+        className="absolute inset-0 opacity-[0.025] mix-blend-overlay pointer-events-none"
+        style={{
+          backgroundImage: `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='0.7'/></svg>")`,
+        }} 
+      />
     </div>
   );
 }

@@ -1,58 +1,63 @@
 'use client';
-import { useEffect, useRef, useState } from 'react';
+
+import React from 'react';
+import { motion, useReducedMotion } from 'motion/react';
+
+interface ScrollRevealProps {
+  children: React.ReactNode;
+  className?: string;
+  delay?: number;
+  direction?: 'up' | 'down' | 'left' | 'right' | 'none';
+  distance?: number;
+  duration?: number;
+}
 
 export default function ScrollReveal({
   children,
   className = '',
   delay = 0,
   direction = 'up',
-}: {
-  children: React.ReactNode;
-  className?: string;
-  delay?: number;
-  direction?: 'up' | 'left' | 'right';
-}) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [visible, setVisible] = useState(false);
+  distance = 28,
+  duration = 0.65,
+}: ScrollRevealProps) {
+  const shouldReduceMotion = useReducedMotion();
 
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
+  const getInitial = () => {
+    if (shouldReduceMotion) return { opacity: 0 };
+    switch (direction) {
+      case 'up': return { opacity: 0, y: distance, filter: 'blur(3px)' };
+      case 'down': return { opacity: 0, y: -distance, filter: 'blur(3px)' };
+      case 'left': return { opacity: 0, x: -distance, filter: 'blur(3px)' };
+      case 'right': return { opacity: 0, x: distance, filter: 'blur(3px)' };
+      case 'none': return { opacity: 0, scale: 0.97 };
+      default: return { opacity: 0, y: distance };
+    }
+  };
 
-    // Fallback: force visible after 800ms in case IntersectionObserver doesn't fire
-    const fallback = setTimeout(() => setVisible(true), 800);
-
-    const obs = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setVisible(true);
-          obs.disconnect();
-          clearTimeout(fallback);
-        }
-      },
-      { threshold: 0, rootMargin: '0px 0px -30px 0px' }
-    );
-    obs.observe(el);
-    return () => { obs.disconnect(); clearTimeout(fallback); };
-  }, []);
-
-  const initial: Record<string, string> = {
-    up: 'translateY(32px)',
-    left: 'translateX(-32px)',
-    right: 'translateX(32px)',
+  const getAnimate = () => {
+    if (shouldReduceMotion) return { opacity: 1 };
+    return {
+      opacity: 1,
+      y: 0,
+      x: 0,
+      scale: 1,
+      filter: 'blur(0px)',
+    };
   };
 
   return (
-    <div
-      ref={ref}
-      className={className}
-      style={{
-        opacity: visible ? 1 : 0,
-        transform: visible ? 'none' : initial[direction],
-        transition: `opacity 0.65s ease ${delay}ms, transform 0.65s cubic-bezier(0.22,1,0.36,1) ${delay}ms`,
+    <motion.div
+      initial={getInitial()}
+      whileInView={getAnimate()}
+      viewport={{ once: true, margin: '-60px' }}
+      transition={{
+        duration,
+        delay: delay / 1000,
+        ease: [0.16, 1, 0.3, 1] as const,
       }}
+      className={className}
     >
       {children}
-    </div>
+    </motion.div>
   );
 }

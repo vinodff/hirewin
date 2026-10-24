@@ -95,9 +95,6 @@ export default function ConnectExtensionPage() {
         <p className="text-center text-xs text-slate-600 mt-6">
           Keep this code private — it links the extension to your account. You can regenerate it anytime by reloading this page.
         </p>
-        <div className="text-center mt-4">
-          <Link href="/linkedin-optimizer" className="text-sm text-slate-500 hover:text-slate-300">Or use the web optimizer →</Link>
-        </div>
       </div>
 
       <Footer />

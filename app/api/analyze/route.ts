@@ -127,6 +127,7 @@ export async function POST(req: NextRequest) {
         // This used to pass p_limit: -1 ("unlimited") and only count for
         // analytics, so PLAN_LIMITS.improvements was never actually applied —
         // the free tier advertised 2 rewrites a month and enforced none.
+        let isPaidUser = isAdmin;
         if (user) {
           await supabase.rpc('reset_monthly_usage_if_needed', { profile_id: user.id });
 
@@ -136,10 +137,10 @@ export async function POST(req: NextRequest) {
             .eq('id', user.id)
             .single();
 
-          const planLimit = getEffectiveLimits(
-            (quotaProfile?.plan ?? 'free') as Plan,
-            user.email
-          ).improvements;
+          const userPlan = (quotaProfile?.plan ?? 'free') as Plan;
+          isPaidUser = isPaidUser || userPlan !== 'free';
+
+          const planLimit = getEffectiveLimits(userPlan, user.email).improvements;
           const rpcLimit =
             process.env.USAGE_LIMITS_DISABLED === 'true' || planLimit === Infinity ? -1 : planLimit;
 
@@ -184,6 +185,8 @@ export async function POST(req: NextRequest) {
               const partial = parsePartial(cleaned) as Partial<AnalysisResult>;
               if (partial && typeof partial === 'object') {
                 for (const [field, value] of Object.entries(partial)) {
+                  // Interview risk alerts are a premium feature — omit for free tier
+                  if (!isPaidUser && field === 'interviewRisks') continue;
                   if (!emittedFields.has(field) && value !== undefined) {
                     emit({ type: 'field', field, value });
                     emittedFields.add(field);
@@ -216,7 +219,11 @@ export async function POST(req: NextRequest) {
         }
 
         try {
-          const { textStream, usage } = await streamAnalysis(finalResume, finalJd, { instructions, resumeLength });
+          const { textStream, usage } = await streamAnalysis(finalResume, finalJd, {
+            instructions,
+            resumeLength,
+            skipInterviewRisks: !isPaidUser,
+          });
           await consumeStream(textStream);
           totalUsage.input_tokens += usage.input_tokens;
           totalUsage.output_tokens += usage.output_tokens;
@@ -367,6 +374,11 @@ export async function POST(req: NextRequest) {
 
         emit({ type: 'field', field: 'optimizedAtsScore', value: result.optimizedAtsScore });
 
+        // Interview risks are paywall-gated: ensure stripped for free users
+        if (!isPaidUser) {
+          delete result.interviewRisks;
+        }
+
         // --- Save to Supabase + increment usage ---
         let versionId = uuidv4();
         if (user) {
@@ -385,7 +397,7 @@ export async function POST(req: NextRequest) {
               job_fit_score: result.jobFitScore,
               trust_score: result.trustScore ?? null,
               skill_evidence: result.skillEvidence ?? null,
-              interview_risks: result.interviewRisks ?? null,
+              interview_risks: isPaidUser ? (result.interviewRisks ?? null) : null,
               career_level: result.careerLevel,
               original_resume: finalResume,
               optimized_resume: result.optimizedResume,
@@ -418,7 +430,7 @@ export async function POST(req: NextRequest) {
           cacheReadTokens: totalUsage.cache_read_input_tokens,
         });
 
-        emit({ type: 'complete', versionId, result, originalResume: finalResume });
+        emit({ type: 'complete', versionId, result, originalResume: finalResume, isPaid: isPaidUser });
       } catch (e) {
         const message = e instanceof Error ? e.message : 'Unexpected error';
         emit({ type: 'error', message });

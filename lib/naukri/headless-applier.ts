@@ -220,6 +220,9 @@ export async function applyToNaukriJob(options: AutoApplyOptions): Promise<AutoA
       const proofPath = path.join(proofs, proofFileName);
       await page.screenshot({ path: proofPath, fullPage: false });
 
+      // No preview branch here. A logged-out page has no form: reporting
+      // "form_filled ... AI Screener Q&A: 100% matched" for it listed fields
+      // that were never filled. Preview or not, the truth is: login required.
       console.log(`[headless-applier] Job ${job.id} requires Naukri user login.`);
       return {
         jobId: job.id,
@@ -311,6 +314,7 @@ export async function applyToNaukriJob(options: AutoApplyOptions): Promise<AutoA
       const proofPath = path.join(proofs, proofFileName);
       await targetPage.screenshot({ path: proofPath, fullPage: false });
 
+      // Same as above: a login drawer is not a filled form, preview or not.
       return {
         jobId: job.id,
         jobTitle: job.title,
