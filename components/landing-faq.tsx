@@ -22,7 +22,7 @@ const FAQS = [
   },
   {
     q: 'Will my resume actually pass ATS scanners?',
-    a: 'HireWin targets the keyword and formatting signals that ATS systems score heavily. Our users average a 57-point score jump. Results vary by job and resume.',
+    a: 'HireWin targets the keyword and formatting signals that ATS systems score heavily. Results vary by job and resume.',
   },
   {
     q: 'Is my resume data private?',
