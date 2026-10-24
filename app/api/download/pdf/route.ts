@@ -1,17 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { generatePdf } from '@/lib/pdf';
-import { canDownload } from '@/lib/usage';
+import { authorizeDownload, consumeDownloadCredit } from '@/lib/download-guard';
 
 export const maxDuration = 30;
-
-const SHARES_NEEDED = 5;
 
 export async function POST(req: NextRequest) {
   try {
     const { resumeText, versionId } = await req.json();
 
-    if (!resumeText?.trim()) {
+    if (typeof resumeText !== 'string' || !resumeText.trim()) {
       return NextResponse.json({ error: 'No resume text provided' }, { status: 400 });
     }
 
@@ -29,32 +27,41 @@ export async function POST(req: NextRequest) {
       .eq('id', user.id)
       .single();
 
-    const planAllows = profile && canDownload(profile.plan, profile.downloads_used);
-
-    // Check server-side share count — never trust shareUnlocked from the client body
-    let shareUnlocked = false;
-    if (!planAllows && versionId) {
-      const { count } = await supabase
-        .from('share_events')
-        .select('id', { count: 'exact', head: true })
-        .eq('user_id', user.id)
-        .eq('version_id', versionId);
-      shareUnlocked = (count ?? 0) >= SHARES_NEEDED;
+    if (!profile) {
+      return NextResponse.json({ error: 'Profile not found' }, { status: 403 });
     }
 
-    if (!planAllows && !shareUnlocked) {
+    // Server-side authorization — never trust shareUnlocked from the client body.
+    // Share-unlocked downloads serve the stored version text, not supplied text.
+    const authz = await authorizeDownload(
+      supabase,
+      user.id,
+      profile.plan,
+      profile.downloads_used,
+      versionId
+    );
+
+    if (authz.kind === 'denied') {
       return NextResponse.json({ error: 'locked' }, { status: 403 });
     }
 
-    if (profile && planAllows) {
-      await supabase
-        .from('profiles')
-        .update({ downloads_used: profile.downloads_used + 1 })
-        .eq('id', user.id);
+    const textToRender = authz.kind === 'share' ? authz.downloadText : resumeText;
+
+    // Generate FIRST, consume credit only on success, so a generation
+    // failure never burns a credit (P1-4).
+    const pdfBuffer = await generatePdf(textToRender);
+
+    if (authz.kind === 'plan') {
+      const consumed = await consumeDownloadCredit(supabase, user.id, authz.limit);
+      if (!consumed) {
+        // Quota lost in a race between the check and the atomic increment.
+        return NextResponse.json({ error: 'locked' }, { status: 403 });
+      }
     }
 
-    const pdfBuffer = await generatePdf(resumeText);
-    const filename = versionId ? `resume-${versionId.slice(0, 8)}.pdf` : 'resume-optimized.pdf';
+    const filename = versionId && typeof versionId === 'string'
+      ? `resume-${versionId.slice(0, 8)}.pdf`
+      : 'resume-optimized.pdf';
 
     return new NextResponse(new Uint8Array(pdfBuffer), {
       headers: {

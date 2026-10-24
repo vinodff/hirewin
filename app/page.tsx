@@ -110,7 +110,7 @@ export default function LandingPage() {
                 Start free now
                 <ArrowRight className="w-5 h-5" />
               </Link>
-              <p className="text-xs text-slate-500 mt-5">No sign-up wall · Free unlimited optimizations</p>
+              <p className="text-xs text-slate-500 mt-5">Free to optimize · No credit card · 2 free optimizations/month</p>
             </div>
           </div>
         </ScrollReveal>

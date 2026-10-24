@@ -53,10 +53,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ shareCount, unlocked: shareCount >= SHARES_NEEDED });
     }
 
-    await supabase.from('share_events').insert({
+    // Do not report a share that failed to persist: previously a DB
+    // failure still returned an incremented count (false progress).
+    const { error: insertError } = await supabase.from('share_events').insert({
       user_id: user.id,
       version_id: versionId,
     });
+
+    if (insertError) {
+      console.error('[share] insert error:', insertError);
+      return NextResponse.json({ error: 'Failed to record share' }, { status: 500 });
+    }
 
     const shareCount = Math.min((existing ?? 0) + 1, SHARES_NEEDED);
     return NextResponse.json({ shareCount, unlocked: shareCount >= SHARES_NEEDED });

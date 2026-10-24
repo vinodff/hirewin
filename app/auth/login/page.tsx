@@ -157,11 +157,11 @@ export default function LoginPage() {
         {/* Terms */}
         <p className="text-center text-xs text-slate-600 mt-6 leading-relaxed px-2">
           By signing in you agree to our{' '}
-          <Link href="#" className="text-slate-400 hover:text-slate-200 underline underline-offset-2 transition-colors">
+          <Link href="/terms" className="text-slate-400 hover:text-slate-200 underline underline-offset-2 transition-colors">
             Terms
           </Link>{' '}
           &amp;{' '}
-          <Link href="#" className="text-slate-400 hover:text-slate-200 underline underline-offset-2 transition-colors">
+          <Link href="/privacy" className="text-slate-400 hover:text-slate-200 underline underline-offset-2 transition-colors">
             Privacy Policy
           </Link>
           .<br />
