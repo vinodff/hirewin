@@ -3,14 +3,36 @@ import { z } from 'zod';
 import { zodToJsonSchema } from 'zod-to-json-schema';
 
 let _anthropic: Anthropic | null = null;
+let _cachedKey: string | null = null;
+
+/** Normalise a key as copied from console.anthropic.com: strip surrounding
+ * quotes and whitespace, which are the most common cause of a 401 on an
+ * otherwise valid key. Never log or return the key itself. */
+export function normaliseAnthropicKey(raw: string | undefined): string | null {
+  if (!raw) return null;
+  const trimmed = raw.trim().replace(/^["']|["']$/g, '').trim();
+  return trimmed || null;
+}
+
+export function isAnthropicConfigured(): boolean {
+  const key = normaliseAnthropicKey(process.env.ANTHROPIC_API_KEY);
+  return !!key && key.startsWith('sk-ant-');
+}
 
 export function getAnthropicClient(): Anthropic {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+  const apiKey = normaliseAnthropicKey(process.env.ANTHROPIC_API_KEY);
   if (!apiKey) {
     throw new Error('ANTHROPIC_API_KEY environment variable is not set.');
   }
-  if (!_anthropic) {
+  if (!apiKey.startsWith('sk-ant-')) {
+    throw new Error('ANTHROPIC_API_KEY is set but does not look like an Anthropic key (expected to start with sk-ant-).');
+  }
+  // Do not cache forever: if the key is rotated in the deployment env, a
+  // warm serverless instance must pick the new key up instead of reusing
+  // a stale client built from the old key.
+  if (!_anthropic || _cachedKey !== apiKey) {
     _anthropic = new Anthropic({ apiKey, baseURL: 'https://api.anthropic.com' });
+    _cachedKey = apiKey;
   }
   return _anthropic;
 }
