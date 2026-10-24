@@ -236,7 +236,7 @@ export async function POST(req: NextRequest) {
 
           // Use Anthropic SDK typed errors (more reliable than string matching)
           if (e instanceof Anthropic.AuthenticationError) {
-            emit({ type: 'error', message: 'Invalid or missing Anthropic API key. Please check your ANTHROPIC_API_KEY environment variable.' });
+            emit({ type: 'error', message: 'Anthropic authentication failed. Please check your ANTHROPIC_API_KEY environment variable.' });
             controller.close();
             return;
           }
@@ -260,22 +260,22 @@ export async function POST(req: NextRequest) {
           }
           // Fallback string checks for older SDK or non-API errors
           if (rawErr.includes('credit balance') || rawErr.includes('billing')) {
-            emit({ type: 'error', message: 'Anthropic credits exhausted — add credits at console.anthropic.com.' });
+            emit({ type: 'error', message: 'AI credits exhausted — please check your AI provider billing.' });
             controller.close();
             return;
           }
           if (rawErr.includes('429') || rawErr.includes('rate')) {
-            emit({ type: 'error', message: 'Anthropic rate limit — wait a moment and retry.' });
+            emit({ type: 'error', message: 'AI rate limit reached — wait a moment and retry.' });
             controller.close();
             return;
           }
           if (rawErr.includes('401') || rawErr.includes('authentication') || rawErr.includes('API key')) {
-            emit({ type: 'error', message: 'Invalid or missing Anthropic API key. Please check your ANTHROPIC_API_KEY environment variable.' });
+            emit({ type: 'error', message: 'AI provider authentication failed. Please check your configured API keys (GEMINI_API_KEY, GROQ_API_KEY, or ANTHROPIC_API_KEY).' });
             controller.close();
             return;
           }
-          if (rawErr.includes('environment variable is not set')) {
-            emit({ type: 'error', message: 'Anthropic API key is not configured on this server.' });
+          if (rawErr.includes('environment variable is not set') || rawErr.includes('no provider has an API key')) {
+            emit({ type: 'error', message: 'No AI provider API key is configured. Please set GEMINI_API_KEY, GROQ_API_KEY, or ANTHROPIC_API_KEY.' });
             controller.close();
             return;
           }
