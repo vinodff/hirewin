@@ -3600,5 +3600,34 @@
     "isFresher": true,
     "batchEligibility": null,
     "experienceLevel": "0-1 Years (Freshers & College)"
+  },
+  {
+    "id": "live-new-homingo-hackathon-2026",
+    "company": "Homingo",
+    "category": "Hackathon",
+    "type": "Hackathon",
+    "title": "Homingo Hackathon \u2014 National-scale AI Engineering Hackathon",
+    "url": "https://hackathon.homingo.co.in/",
+    "deadline": "2026-11-15",
+    "deadlineIso": "2026-11-15T00:00:00.000Z",
+    "daysLeft": null,
+    "status": "Open",
+    "urgency": "open",
+    "benefits": "Online AI engineering hackathon open to all of India; tracks Agents, Automation and LLM apps; solo or teams of 2-4; Rs 5,000 top prize, recommendation certificates for top 3, participation certificate for every submitter.",
+    "notes": "Pan India (online)",
+    "location": "Pan India",
+    "workMode": "remote",
+    "skills": [
+      "AI Agents",
+      "Automation",
+      "LLM Applications"
+    ],
+    "eligibility": "Students and early-career developers across India",
+    "source": "Direct",
+    "verified": true,
+    "compensation": null,
+    "isFresher": true,
+    "batchEligibility": null,
+    "experienceLevel": "0-1 Years (Freshers & College)"
   }
 ]
