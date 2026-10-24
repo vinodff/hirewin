@@ -139,12 +139,31 @@ export default function AppNav() {
           {loading ? (
             <div className="w-8 h-8 rounded-full animate-pulse" style={{ background: 'rgba(255,255,255,0.06)' }} />
           ) : !user ? (
-            <Link href="/auth/login"
-              className="text-sm font-semibold px-3 py-1.5 rounded-lg text-white hover:opacity-90 transition-all"
-              style={{ background: 'linear-gradient(135deg, #7c3aed, #3b82f6)' }}
-            >
-              Sign in
-            </Link>
+            <>
+              <Link href="/auth/login"
+                className="text-sm font-semibold px-3 py-1.5 rounded-lg text-white hover:opacity-90 transition-all"
+                style={{ background: 'linear-gradient(135deg, #7c3aed, #3b82f6)' }}
+              >
+                Sign in
+              </Link>
+              {/* Mobile hamburger for logged-out visitors — previously the
+                  hamburger only existed inside the logged-in branch, so a
+                  logged-out mobile visitor had no drawer and could not
+                  reach Pricing / Job Scan / LinkedIn / My Resumes /
+                  Job Tracker from the nav. */}
+              <button
+                onClick={() => setMobileOpen((v) => !v)}
+                className="md:hidden flex items-center justify-center w-9 h-9 rounded-xl transition-colors active:scale-95"
+                style={{ background: mobileOpen ? 'rgba(124,58,237,0.2)' : 'rgba(255,255,255,0.06)' }}
+                aria-label="Open menu"
+                aria-expanded={mobileOpen}
+              >
+                {mobileOpen
+                  ? <X    className="w-5 h-5 text-white" />
+                  : <Menu className="w-5 h-5 text-slate-300" />
+                }
+              </button>
+            </>
           ) : (
             <>
               {/* Desktop avatar dropdown */}
@@ -229,11 +248,16 @@ export default function AppNav() {
       </div>
 
       {/* ── Mobile drawer ── */}
-      {mobileOpen && user && (
+      {/* Rendered for logged-out visitors too (previously `user &&` gated
+          it, so logged-out mobile users had no drawer at all). The nav
+          links below are the same NAV_LINKS desktop shows to everyone;
+          user-only rows stay guarded by `user`. */}
+      {mobileOpen && (
         <div className="md:hidden border-t border-white/[0.06]"
           style={{ background: 'rgba(6,10,22,0.98)', backdropFilter: 'blur(16px)' }}
         >
-          {/* User info row */}
+          {/* User info row — logged-in only */}
+          {user && (
           <div className="px-4 py-4 flex items-center gap-3 border-b border-white/[0.06]">
             {avatar && !avatarError ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -252,6 +276,7 @@ export default function AppNav() {
               <div className="text-xs text-slate-500 truncate">{user.email}</div>
             </div>
           </div>
+          )}
 
           {/* Nav links */}
           <div className="px-3 pt-3 pb-2 space-y-1">
@@ -282,7 +307,7 @@ export default function AppNav() {
             )}
           </div>
 
-          {/* Upgrade + Sign out */}
+          {/* Upgrade + Sign out (logged-in) / Sign in + Upgrade (logged-out) */}
           <div className="px-3 pt-2 pb-5 space-y-2 border-t border-white/[0.06]">
             <Link href="/pricing" onClick={() => setMobileOpen(false)}
               className="flex items-center justify-center gap-2 w-full py-3.5 rounded-xl text-sm font-bold text-white transition-all active:scale-[0.98]"
@@ -291,6 +316,7 @@ export default function AppNav() {
               <Zap className="w-4 h-4" />
               Upgrade to Pro
             </Link>
+            {user ? (
             <button onClick={signOut}
               className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-medium text-slate-400 transition-all active:scale-[0.98]"
               style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
@@ -298,6 +324,14 @@ export default function AppNav() {
               <LogOut className="w-4 h-4" />
               Sign out
             </button>
+            ) : (
+            <Link href="/auth/login" onClick={() => setMobileOpen(false)}
+              className="flex items-center justify-center gap-2 w-full py-3 rounded-xl text-sm font-medium text-slate-300 transition-all active:scale-[0.98]"
+              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
+            >
+              Sign in
+            </Link>
+            )}
           </div>
         </div>
       )}
