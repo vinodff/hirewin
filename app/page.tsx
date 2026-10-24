@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { ArrowRight, Sparkles, ShieldCheck, CheckCircle2, Lock, Zap } from 'lucide-react';
+import { ArrowRight, Sparkles, ShieldCheck, CheckCircle2, Lock, Zap, Cpu } from 'lucide-react';
 import AppNav from '@/components/app-nav';
 import Footer from '@/components/footer';
 import ScrollReveal from '@/components/scroll-reveal';
@@ -12,7 +12,7 @@ import FeatureShowcase from '@/components/feature-showcase';
 import SocialProofBar from '@/components/social-proof-bar';
 import HowItWorks from '@/components/how-it-works';
 import TrustMatrix from '@/components/trust-matrix';
-
+import LinearCalibrationStudio from '@/components/linear-calibration-studio';
 import ScrollProgress from '@/components/scroll-progress';
 
 export default function LandingPage() {
@@ -39,7 +39,28 @@ export default function LandingPage() {
         <HowItWorks />
       </ScrollReveal>
 
-      {/* ── 4 · LIVE INTERACTIVE TRANSFORMATION PLAYGROUND ─ */}
+      {/* ── 4 · DEEP-DIVE CALIBRATION STUDIO ──────────────── */}
+      <section className="relative max-w-6xl mx-auto px-4 sm:px-6 py-12 sm:py-20">
+        <ScrollReveal className="text-center mb-10">
+          <div
+            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold text-emerald-400 mb-4 bg-emerald-500/10 border border-emerald-500/20 font-mono"
+          >
+            <Cpu className="w-3.5 h-3.5 text-emerald-400" />
+            Deterministic Inspection Engine
+          </div>
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white mb-4 leading-[1.05] tracking-tight font-display">
+            Inspect the algorithm before you apply.
+          </h2>
+          <p className="text-slate-400 text-sm sm:text-base max-w-2xl mx-auto leading-relaxed">
+            Every candidate background is scored against real employer rubric standards. Examine how raw bullets transform into bulletproof, quantifiable achievements.
+          </p>
+        </ScrollReveal>
+        <ScrollReveal delay={150}>
+          <LinearCalibrationStudio />
+        </ScrollReveal>
+      </section>
+
+      {/* ── 5 · LIVE INTERACTIVE TRANSFORMATION PLAYGROUND ─ */}
       <section className="relative max-w-5xl mx-auto px-4 sm:px-6 py-16 sm:py-24">
         <ScrollReveal className="text-center mb-10 sm:mb-14">
           <div

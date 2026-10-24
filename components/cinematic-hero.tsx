@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { ArrowRight, Sparkles, ShieldCheck, Zap, Star, CheckCircle2, Lock } from 'lucide-react';
 import RotatingHeadline from '@/components/rotating-headline';
 import { motion } from 'motion/react';
-import LinearCalibrationStudio from '@/components/linear-calibration-studio';
+import PrecisionCockpit from '@/components/precision-cockpit';
 
 function MagneticButton({ children, href, primary }: { children: React.ReactNode; href: string; primary?: boolean }) {
   const ref = useRef<HTMLAnchorElement>(null);
@@ -116,14 +116,14 @@ export default function CinematicHero() {
         ))}
       </motion.div>
 
-      {/* Approved Direction 1: Linear-Style Document & ATS Calibration Studio */}
+      {/* Approved Option 1: Precision Instrument Interactive Evaluation Cockpit */}
       <motion.div
         initial={{ opacity: 0, y: 32, filter: 'blur(4px)' }}
         animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
         transition={{ duration: 0.8, delay: 0.45, ease: [0.16, 1, 0.3, 1] }}
         className="relative mt-2"
       >
-        <LinearCalibrationStudio />
+        <PrecisionCockpit />
       </motion.div>
     </section>
   );
